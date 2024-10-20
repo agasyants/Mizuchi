@@ -75,19 +75,8 @@ export default class Mizuchi{
         GenerateButton.addEventListener('click', () => {
             let score1 = new Score();
             score1.addNotes([
-                new Note(-24,0,2),
-                new Note(-24,3,2),
-                new Note(-24,6,2),
-                new Note(-24,9,2),
-                new Note(-24,12,2),
-                new Note(-31,14,1),
-                new Note(-31,15,1),
-                new Note(-31,16,2),
-                new Note(-31,19,2),
-                new Note(-28,22,2),
-                new Note(-28,25,2),
-                new Note(-28,28,2),
-                new Note(-28,31,1),
+                new Note("A2",0,2),
+                new Note("D2",2,4),
                 
             ])
             track1.scores.push(score1);
