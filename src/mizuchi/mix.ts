@@ -12,7 +12,6 @@ export default class Mix{
         let min_lenght = 0;
         this.tracks.forEach(track => { 
             track.generate(this.bpm,audioContext.sampleRate);
-            console.log(track.wave);
             if (track.wave.length < min_lenght || min_lenght == 0)
                 min_lenght = track.wave.length;
         });
