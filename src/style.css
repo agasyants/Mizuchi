@@ -1,0 +1,30 @@
+.main{
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+body{
+    margin: 0;
+    padding: 0;
+    /* overflow: hidden; */
+}
+.Inputs{
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    bottom: 100px;
+    right: 60px;
+    gap: 6px;
+}
+.Presets{
+    display: flex;
+    padding: 10px;
+    flex-direction: column;
+    gap: 6px;
+}
+input{
+    width: 50px;
+}
+button{
+    padding: 0px;
+}
