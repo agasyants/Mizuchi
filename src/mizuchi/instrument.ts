@@ -8,7 +8,7 @@ export default class Instrument {
     }
     play(score:Score, bpm:number, sampleRate:number):Float32Array {
         let k = sampleRate/bpm*120;
-        let wave = new Float32Array(score.length*k);
+        let wave = new Float32Array(score.duration*k);
         score.notes.forEach((note) => {
            
             for (let i = 0; i < note.duration*k*0.125; i++){

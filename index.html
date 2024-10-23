@@ -2,18 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image" href="./src/img/UzumeLogo2.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>Mizuchi</title>
   </head>
   <body>
     <div id="app">
       <div class="Inputs">
         <button id="OscSettings">
             Score
-        </button>
-        <button id="InstSettings">
-            Instrument Settings
         </button>
         <input type="number" value="0" id="volume">
         <button id="Generate">
@@ -22,10 +19,13 @@
         <button id="Play">
             Play
         </button>
+        <button id="Stop">
+            Stop
+        </button>
     </div>
     <div style="display: flex;">
         <div>
-            <canvas id="OscCanvas" height="300" width="450"></canvas>
+            <canvas id="OscCanvas" height="250" width="375" style="background-color: black;"></canvas>
         </div>
         <div class="Presets">
             <button id="Sine">
@@ -42,9 +42,11 @@
             </button>
         </div>
         <div>
-            <canvas id="ScoreCanvas" height="300" width="600"></canvas>
+            <canvas id="EnvelopeCanvas" height="200" width="400"></canvas>
         </div>
     </div>
+    <div>
+        <canvas id="ScoreCanvas" height="320" width="800" style="background-color: black;"></canvas>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
