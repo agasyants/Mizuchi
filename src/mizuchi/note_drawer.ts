@@ -59,16 +59,17 @@ export default class ScoreDrawer{
             const rect = scoreCanvas.getBoundingClientRect();
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
-            // if (e.ctrlKey)
             this.render();
-            this.findNote(x, y, 0.2);
+            this.findNote(x, y, 0.4, e.shiftKey, e.ctrlKey);
         });
         scoreCanvas.addEventListener('pointerdown', (e) => {
             if (this.selectedNotes.length==1){
-                if (this.chosenNotes.length<=1){
+                if (e.ctrlKey){
+                    this.addSelectedToChosen();
+                } else if (this.chosenNotes.length<=1){
                     this.selectedToChosen();
-                }
-            } else {
+                } 
+            } else if (!e.ctrlKey) {
                 this.chosenNotes = [];
             }
             this.drugged = true;
@@ -114,7 +115,13 @@ export default class ScoreDrawer{
     }
     selectedToChosen(){
         this.chosenNotes = this.selectedNotes;
-
+    }
+    addSelectedToChosen(){
+        for (let note of this.selectedNotes){
+            if (!this.chosenNotes.includes(note)){
+                this.chosenNotes.push(note);
+            }
+        }
     }
     render() {
         this.scoreCtx.clearRect(0, 0, this.w, -this.h);
@@ -122,9 +129,7 @@ export default class ScoreDrawer{
         this.renderPiano();
         this.renderGrid()
         this.renderNotes()
-        if (this.selectedNotes.length) {
-            this.renderSelectedNotes();
-        } 
+        this.renderSelected();
         if (this.chosenNotes.length) {
             this.renderChosenNotes();
         }
@@ -164,6 +169,7 @@ export default class ScoreDrawer{
     }
     renderGrid(){
         this.scoreCtx.lineWidth = 1;
+        // horizontal
         for (let i = 0; i < this.notes_width_count+1; i++){
             this.scoreCtx.beginPath();
             this.scoreCtx.strokeStyle = "grey";
@@ -172,9 +178,14 @@ export default class ScoreDrawer{
             this.scoreCtx.stroke();
             this.scoreCtx.closePath();
         }
+        // vertical
         for (let i = 0; i < this.score.duration+1; i++){
             this.scoreCtx.beginPath();
             this.scoreCtx.strokeStyle = "grey";
+            if (i%4==0)
+                this.scoreCtx.lineWidth = 1.7;
+            else
+                this.scoreCtx.lineWidth = 1;
             this.scoreCtx.moveTo(this.gridX + i*this.note_w, this.gridY);
             this.scoreCtx.lineTo(this.gridX + i*this.note_w, this.gridY - this.height);
             this.scoreCtx.stroke();
@@ -193,14 +204,22 @@ export default class ScoreDrawer{
             this.scoreCtx.closePath();
         });
     }
-    renderSelectedNotes(){
+    renderSelected(){
         for (let note of this.selectedNotes){
             this.scoreCtx.beginPath();
             this.scoreCtx.strokeStyle = "yellow";
             this.scoreCtx.lineWidth = 2;
             this.scoreCtx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.scoreCtx.closePath();
+        }
+        const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
+        const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
+        for (let i=0; i<max-min+1; i++){
+            this.scoreCtx.beginPath();
+            this.scoreCtx.strokeStyle = "yellow";
+            this.scoreCtx.lineWidth = 2;
             this.scoreCtx.fillStyle = "yellow";
-            this.scoreCtx.fillRect(this.margin_left, this.gridY-(note.pitch-this.start_note+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+            this.scoreCtx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             this.scoreCtx.closePath();
         }
     }
@@ -229,13 +248,14 @@ export default class ScoreDrawer{
     }
     doubleInput(x:number, y:number){
         if (this.selectedNotes.length) {
-            this.score.removeNotes(this.selectedNotes);
+            this.score.removeNotes(this.chosenNotes);
+            this.chosenNotes = [];
         } else {
             [x,y] = this.processInput(x, y);
             [x,y] = this.getMatrix(x, y);
             this.score.addNotes([new Note(y+this.start_note,x,1)]);
-            this.selectedNotes = [];
         }        
+        this.selectedNotes = [];
         this.render();
     }
     getMatrix(x:number,y:number){
@@ -251,26 +271,35 @@ export default class ScoreDrawer{
         note.start = note.start-this.sectorsSelection.x1+x;
     }
     moveDuration(note:Note, x:number){
-        note.duration = x-note.start;
+        note.duration = x-this.selectedNotes[0].start+1;
     }
     moveStart(note:Note, x:number){
-        note.duration += note.start-x;
-        note.start = x;
+        note.duration = note.duration+this.sectorsSelection.x1-x;
+        note.start = note.start-this.sectorsSelection.x1+x;
     }
-    findNote(x:number, y:number, range:number){
+    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
         [x,y] = this.processInput(x,y);;
         if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
             let xn = x*this.score.duration;
             [x, y] = this.getMatrix(x, y);
             if (this.drugged){
-                if (this.chosenNotes.length && this.selectedNotes.length==1){
-                    if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){
-                        this.moveStart(this.selectedNotes[0], xn-range/2);
-                    } else if (this.selectedNotes[0].start+this.selectedNotes[0].duration>=xn && xn>=this.selectedNotes[0].start+this.selectedNotes[0].duration-range) {
-                        this.moveDuration(this.selectedNotes[0], xn+range/2);
+                console.log(this.chosenNotes.length,this.selectedNotes.length )
+                if (this.chosenNotes.length && this.selectedNotes.length){
+                    if (shift){
+                        if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){
+                            for (let note of this.chosenNotes)  
+                                this.moveStart(note, Math.floor(xn-range/2));
+                        } else if (this.selectedNotes[0].start+this.selectedNotes[0].duration>=xn && xn>=this.selectedNotes[0].start+this.selectedNotes[0].duration-range) {
+                            for (let note of this.chosenNotes)
+                                this.moveDuration(note, Math.floor(xn+range/2));
+                        }
                     } else {
+                        // if (ctrl){
+                        //     this.score.addNotes(this.selectedNotes);
+                        // }
                         for (let note of this.chosenNotes)
                             this.move(note, x, y);
+                        
                     }
                     this.sectorsSelection.x1 = x;
                     this.sectorsSelection.y1 = y;

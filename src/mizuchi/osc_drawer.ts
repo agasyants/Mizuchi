@@ -219,7 +219,11 @@ export default class OscDrawer{
             if (this.oscFunction.basics.includes(this.chosenPoint)){
                 this.oscFunction.removeBasicPoint(this.chosenPoint);
             } else {
-                this.oscFunction.setDefaultHandle(this.oscFunction.handles.findIndex((e)=>(e==this.chosenPoint)));
+                if (this.chosenPoint.xl == 0.5 && this.chosenPoint.yl == 0.5){
+                    this.oscFunction.addBasicPoint(this.chosenPoint.x, this.chosenPoint.y);
+                } else {
+                    this.oscFunction.setDefaultHandle(this.oscFunction.handles.findIndex((e)=>(e==this.chosenPoint)));
+                }
             }
             this.chosenPoint=null;
         } else {
@@ -228,13 +232,8 @@ export default class OscDrawer{
     }
     addPoint(x:number, y:number){
         if (x > 0 && x < 1 && y > -1 && y < 1){
-            for (let i = 0; i < this.oscFunction.basics.length-1; i++){
-                if (this.oscFunction.basics[i].x <= x && x <= this.oscFunction.basics[i+1].x){
-                    this.oscFunction.addBasicPoint(new Point(x, y), i+1);
-                    this.render();
-                    return;
-                }
-            }
+            this.oscFunction.addBasicPoint(x,y)
+            this.render();
         }
     }
     findPoint(x:number, y:number, range:number){

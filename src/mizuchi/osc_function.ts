@@ -47,11 +47,17 @@ export default class OscFunction{
         this.handles[num].yl=0.5;
         this.setHandleAbsByRelPos(num);
     }
-    addBasicPoint(point:Point, num:number){
-        this.basics.splice(num, 0, point);
-        this.handles.splice(num-1, 1, new Point(0,0), new Point(0,0));
-        this.setDefaultHandle(num-1);
-        this.setDefaultHandle(num);
+    addBasicPoint(x:number, y:number){
+        for (let i = 0; i < this.basics.length-1; i++){
+            if (this.basics[i].x <= x && x <= this.basics[i+1].x){
+                this.basics.splice(i+1, 0, new Point(x, y));
+                this.handles.splice(i, 1, new Point(0,0), new Point(0,0));
+                this.setDefaultHandle(i);
+                this.setDefaultHandle(i+1);
+                return;
+            }
+        }
+        
     }
     removeBasicPoint(point:Point){
         const num = this.basics.indexOf(point);
