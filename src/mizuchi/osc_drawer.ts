@@ -150,17 +150,24 @@ export default class OscDrawer{
 
         let n = 8;
         for (let i=1; i<n; i++){
+            // if (i%2==0){
+            //     this.oscCtx.beginPath();
+            //     this.oscCtx.strokeStyle = 'grey';
+            //     this.oscCtx.moveTo(i*this.width/n, -this.height/2);
+            //     this.oscCtx.lineTo(i*this.width/n, this.height/2);
+            //     this.oscCtx.closePath();
+            // }
             this.oscCtx.beginPath();
+            this.oscCtx.strokeStyle = 'red';
             this.oscCtx.moveTo(i*this.width/n, -5);
             this.oscCtx.lineTo(i*this.width/n, 5);
             this.oscCtx.lineWidth = 2;
-            this.oscCtx.strokeStyle = 'red';
             this.oscCtx.stroke();
             this.oscCtx.fillStyle = 'white';
             this.oscCtx.fillText((i/n).toString(), i*this.width/n-10, 20);
             this.oscCtx.closePath();
         }
-        let t = 4
+        let t = 2
         for (let i=1; i<t+1; i++){
             this.oscCtx.beginPath();
             this.oscCtx.moveTo(-5, -i*this.height/t/2);

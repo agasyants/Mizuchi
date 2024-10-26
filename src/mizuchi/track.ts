@@ -2,11 +2,16 @@ import Instrument from "./instrument";
 import Score from "./score";
 
 export default class Track {
+    inst:Instrument;
+    name:string;
     wave:number[] = [];
     // audioEffects:Effect[] = [];
     scores:Score[] = [];
     // scoreEffects:ScoreEffect[] = [];
-    constructor(public inst:Instrument) { }
+    constructor(name:string, inst:Instrument = new Instrument()) { 
+        this.name = name;
+        this.inst = inst;
+    }
     generate(bpm:number, sampleRate:number) {
         this.wave = [];
         let full = new Score(0);

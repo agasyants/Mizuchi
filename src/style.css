@@ -28,3 +28,8 @@ input{
 button{
     padding: 0px;
 }
+#ScoreCanvas{
+    position: absolute;
+    display: none;
+    top: 0px;
+}

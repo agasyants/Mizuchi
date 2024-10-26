@@ -9,10 +9,13 @@
   <body>
     <div id="app">
       <div class="Inputs">
-        <button id="OscSettings">
-            Score
+        <button id="AddTrack">
+            Add Track
         </button>
-        <input type="number" value="0" id="volume">
+        <button id="AddScore">
+            Add Score
+        </button>
+        <input type="number" value="120" id="bpm">
         <button id="Generate">
             Generate
         </button>
@@ -42,11 +45,14 @@
             </button>
         </div>
         <div>
-            <canvas id="EnvelopeCanvas" height="200" width="400"></canvas>
+            <canvas id="EnvelopeCanvas" height="250" width="375" style="background-color: black;"></canvas>
         </div>
     </div>
     <div>
-        <canvas id="ScoreCanvas" height="320" width="800" style="background-color: black;"></canvas>
+        <canvas id="ScoreCanvas" height="380" width="800" style="background-color: black;"></canvas>
+    </div>
+    <div style="padding: 5px; padding-top: 130px;">
+        <canvas id="MixCanvas" height="200" width="1000"></canvas>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

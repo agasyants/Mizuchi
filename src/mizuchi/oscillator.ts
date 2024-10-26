@@ -3,7 +3,7 @@ import OscFunction from "./osc_function";
 
 export default class Oscillator {
     oscFunction:OscFunction;
-    constructor(func:OscFunction) {
+    constructor(func:OscFunction = new OscFunction()) {
         this.oscFunction = func;
     }
     play(note:Note, sampleRate:number, i:number):number {

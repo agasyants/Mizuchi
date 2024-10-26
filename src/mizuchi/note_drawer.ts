@@ -40,7 +40,6 @@ export default class ScoreDrawer{
         this.note_w = this.width/score.duration;
         this.gridX = this.margin_left + this.pianoWidth*this.width;
         this.gridY = -this.margin_top;
-
         scoreCanvas.onselectstart = function () { return false; }
         scoreCanvas.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -60,7 +59,7 @@ export default class ScoreDrawer{
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
             this.render();
-            this.findNote(x, y, 0.4, e.shiftKey, e.ctrlKey);
+            this.findNote(x, y, 0.4, e.shiftKey);
         });
         scoreCanvas.addEventListener('pointerdown', (e) => {
             if (this.selectedNotes.length==1){
@@ -102,6 +101,15 @@ export default class ScoreDrawer{
         });
 
         this.render()
+    }
+    setScore(score:Score|null){
+        if (score){
+            this.score = score;
+            this.scoreCanvas.style.display = 'block';
+            this.render();
+        } else {
+            this.scoreCanvas.style.display = 'none';
+        }
     }
     scroll(i:number){
         this.start_note -= i;
@@ -212,11 +220,13 @@ export default class ScoreDrawer{
             this.scoreCtx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
             this.scoreCtx.closePath();
         }
+        if (this.sectorsSelection.x1==-1){
+            return;
+        }
         const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
         const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
         for (let i=0; i<max-min+1; i++){
             this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "yellow";
             this.scoreCtx.lineWidth = 2;
             this.scoreCtx.fillStyle = "yellow";
             this.scoreCtx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
@@ -277,7 +287,7 @@ export default class ScoreDrawer{
         note.duration = note.duration+this.sectorsSelection.x1-x;
         note.start = note.start-this.sectorsSelection.x1+x;
     }
-    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
+    findNote(x:number, y:number, range:number, shift:boolean){
         [x,y] = this.processInput(x,y);;
         if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
             let xn = x*this.score.duration;

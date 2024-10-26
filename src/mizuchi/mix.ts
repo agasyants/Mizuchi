@@ -1,11 +1,16 @@
+import Score from "./score";
 import Track from "./track";
 
 export default class Mix{
     tracks:Track[] = [];
     constructor(public bpm:number){
+        this.addTrack();
     }
-    addTrack(track:Track){
-        this.tracks.push(track);
+    addTrack(){
+        this.tracks.push(new Track('track '+ (this.tracks.length+1).toString()));
+        for (let i = 0; i < 4; i++){
+            this.tracks[this.tracks.length-1].scores.push(new Score);
+        }
     }
     mixTracks(sampleRate:number):Float32Array{
         let min_lenght = 0;

@@ -3,7 +3,7 @@ import Oscillator from "./oscillator";
 
 export default class Instrument {
     osc:Oscillator;
-    constructor(osc:Oscillator) {
+    constructor(osc:Oscillator = new Oscillator()) {
         this.osc = osc;
     }
     play(score:Score, bpm:number, sampleRate:number):Float32Array {
