@@ -22,5 +22,21 @@ export default class Track {
         for (let i = 0; i < aa.length; i++) {
             this.wave.push(aa[i]);
         }
+        this.normalize();
+    }
+    clip(){
+        for (let i of this.wave){
+            if (i > 1) i = 1;
+            if (i < -1) i = -1;
+        }
+    }
+    normalize(){
+        let max = 1;
+        for (let i of this.wave){
+            if (Math.abs(i) > max) max = Math.abs(i);
+        }
+        for (let i = 0; i < this.wave.length; i++){
+            this.wave[i] /= max;
+        }
     }
 }

@@ -2,7 +2,7 @@ import Instrument from "./instrument";
 import Mix from "./mix";
 import Score from "./score";
 import OscDrawer from "./osc_drawer";
-import ScoreDrawer from "./note_drawer";
+import ScoreDrawer from "./score_drawer";
 
 
 export default class MixDrawer{
@@ -54,7 +54,7 @@ export default class MixDrawer{
         this.score_h = this.track_h-this.width*this.instrument_frame-this.height*this.instrument_top;
         this.score_w = this.width*(1-this.instrument_frame*2)/this.score_number_on_screen;
 
-        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen)*this.track_h;
+        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen+1)*this.track_h;
         this.x_max = (this.mix.tracks[0].scores.length-this.score_number_on_screen)*this.width;
 
         canvas.onselectstart = function () { return false; }
@@ -82,6 +82,14 @@ export default class MixDrawer{
             this.input_y = y * devicePixelRatio;
             this.find();
             this.render();
+        });
+        canvas.addEventListener('dblclick', () => {
+            if (this.chosenInst && this.mix.tracks.length > 1){
+                for (let i of this.mix.tracks) if (i.inst==this.chosenInst) this.mix.removeTrack(i);
+                this.chosenInst = null;
+                this.find();
+                this.render();
+            }
         });
         canvas.addEventListener('pointerdown', () => {
             if (this.chosenInst){
@@ -117,7 +125,7 @@ export default class MixDrawer{
     }
     render() {
         // need fix
-        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen)*this.track_h;
+        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen+1)*this.track_h;
         if (this.y_max<0) this.y_max = 0;
         this.x_max = (this.mix.tracks[0].scores.length-this.score_number_on_screen)*this.score_w;
         if (this.x_max<0) this.x_max = 0;
@@ -155,6 +163,16 @@ export default class MixDrawer{
         let inst_left_right = this.instrument_frame*this.width;
         let inst_bottom = inst_left_right;
         let y = this.margin_top-this.y;
+        if (chosen) {
+            this.ctx.fillStyle = 'blue';
+            this.ctx.strokeStyle = 'white';
+        } else if (selected){
+            this.ctx.fillStyle = 'red';
+            this.ctx.strokeStyle = 'white';
+        } else {
+            this.ctx.fillStyle = 'black';
+            this.ctx.strokeStyle = 'white';
+        }
 
         this.ctx.beginPath();
         // 0 0
@@ -179,19 +197,9 @@ export default class MixDrawer{
         this.ctx.lineTo(this.margin_left+inst_left_right, inst_top+i*(this.track_h)+y);
         // 0 0
         this.ctx.lineTo(this.margin_left, i*this.track_h+y);
-        this.ctx.fillStyle = 'red';
         this.ctx.fill();
         this.ctx.closePath();
-        if (chosen) {
-            this.ctx.fillStyle = 'blue';
-            this.ctx.strokeStyle = 'blue';
-        } else if (selected){
-            this.ctx.fillStyle = 'yellow';
-            this.ctx.strokeStyle = 'yellow';
-        } else {
-            this.ctx.fillStyle = 'white';
-            this.ctx.strokeStyle = 'white';
-        }
+        this.ctx.fillStyle = 'white';
         this.ctx.fillText(this.mix.tracks[i].name, this.margin_left+inst_left_right, inst_top+i*this.track_h+y-5);
 
         this.ctx.beginPath();
@@ -208,14 +216,14 @@ export default class MixDrawer{
             this.ctx.fillStyle = 'blue';
             this.ctx.strokeStyle = 'blue';
         } else if (selected){
-            this.ctx.fillStyle = 'yellow';
-            this.ctx.strokeStyle = 'yellow';
+            this.ctx.fillStyle = 'red';
+            this.ctx.strokeStyle = 'red';
         } else {
             this.ctx.fillStyle = 'black';
             this.ctx.strokeStyle = 'black';
         }
         this.ctx.fillRect(start_x, start_y, this.score_w, this.score_h);
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 4;
         this.ctx.strokeStyle = 'white';
         this.ctx.strokeRect(start_x, start_y, this.score_w, this.score_h);
         this.ctx.closePath();

@@ -19,7 +19,7 @@ export default class OscDrawer{
         this.oscCanvas.style.height = oscCanvas.height / devicePixelRatio + 'px';
       
         this.oscCtx = oscCanvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.margin_top = oscCanvas.height/16;
+        this.margin_top = oscCanvas.height/12;
         this.margin_left = this.margin_top;
         this.width = (this.w - 2*this.margin_left);
         this.height = (this.h - 2*this.margin_top);

@@ -6,7 +6,7 @@ import Mix from "./mix";
 // import Track from "./track";
 // import Instrument from "./instrument";
 import Score from "./score";
-import ScoreDrawer from "./note_drawer";
+import ScoreDrawer from "./score_drawer";
 import MixDrawer from "./mix_drawer";
 
 export default class Mizuchi{
@@ -16,7 +16,6 @@ export default class Mizuchi{
         const mix = new Mix(120);
         const drawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
         
-        mix.addTrack();
         mix.addTrack();
         mix.addTrack();
 
@@ -107,6 +106,7 @@ export default class Mizuchi{
             if (!audioContext){
                 audioContext = new AudioContext();
                 let mixed = mix.mixTracks(audioContext.sampleRate);
+                console.log(mixed);
                 let audioBuffer = audioContext.createBuffer(1, mixed.length, audioContext.sampleRate);
                 audioBuffer.copyToChannel(mixed, 0);
                 let source = audioContext.createBufferSource();

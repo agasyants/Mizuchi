@@ -225,10 +225,15 @@ export default class ScoreDrawer{
         }
         const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
         const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
+        let n = [1,3,6,8,10];
         for (let i=0; i<max-min+1; i++){
             this.scoreCtx.beginPath();
             this.scoreCtx.lineWidth = 2;
-            this.scoreCtx.fillStyle = "yellow";
+            if (!n.includes((min+i+this.start_note)%12)){
+                this.scoreCtx.fillStyle = "yellow";
+            } else {
+                this.scoreCtx.fillStyle = "rgb(240,160,0)";
+            }
             this.scoreCtx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             this.scoreCtx.closePath();
         }
