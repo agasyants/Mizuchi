@@ -12,7 +12,7 @@ export default class Instrument {
         if (founded.length == 0) return 0;
         let sum:number = 0;
         for (let note of founded){
-            sum+=this.osc.play(note, sampleRate, i);
+            sum+=this.osc.play(note, sampleRate, i, SPS);
         }
         return sum/founded.length;
     }

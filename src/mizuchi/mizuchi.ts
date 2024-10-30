@@ -18,7 +18,13 @@ export default class Mizuchi{
                 e.preventDefault();
                 mix.save();
             }
+            if (e.code=="Spase"){
+                e.preventDefault();
+                mixer.play();
+            }
         });
+
+
         
         const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
         
