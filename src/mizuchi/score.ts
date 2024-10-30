@@ -2,7 +2,7 @@ import Note from "./note";
 
 export default class Score {
     notes:Note[] = []
-    constructor(public duration:number = 32){}
+    constructor(public start_time:number, public duration:number = 32){}
     addNotes(notes:Note[]) {
         notes.forEach(note => {
             this.notes.push(note);
@@ -45,9 +45,10 @@ export default class Score {
         }
     }
     addScore(score:Score){
+        const scoreDelt = this.start_time-score.start_time
         score.notes.forEach(note => {
-            this.notes.push(new Note(note.pitch, note.start+this.duration, note.duration));
-        }); this.duration += score.duration;
+            this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
+        }); this.duration = score.duration+scoreDelt;
         this.sort();
     }
     removeNotes(notes:Note[]) {

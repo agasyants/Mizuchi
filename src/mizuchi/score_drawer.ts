@@ -13,7 +13,7 @@ export default class ScoreDrawer{
     margin_left:number;
     width:number;
     height:number;
-    scoreCtx:CanvasRenderingContext2D;
+    ctx:CanvasRenderingContext2D;
     note_w:number;
     note_h:number;
     gridX:number;
@@ -30,8 +30,8 @@ export default class ScoreDrawer{
         this.h = this.scoreCanvas.height = scoreCanvas.height * devicePixelRatio;
         this.scoreCanvas.style.width = scoreCanvas.width / devicePixelRatio + 'px';
         this.scoreCanvas.style.height = scoreCanvas.height / devicePixelRatio + 'px';
-        this.scoreCtx = scoreCanvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.scoreCtx.translate(0, this.h)
+        this.ctx = scoreCanvas.getContext('2d') || new CanvasRenderingContext2D();
+        this.ctx.translate(0, this.h)
         this.margin_top = scoreCanvas.height/20;
         this.margin_left = this.margin_top;
         this.width = (this.w - 2*this.margin_left - this.pianoWidth*scoreCanvas.width);
@@ -132,8 +132,8 @@ export default class ScoreDrawer{
         }
     }
     render() {
-        this.scoreCtx.clearRect(0, 0, this.w, -this.h);
-        this.scoreCtx.font = "16px system-ui";
+        this.ctx.clearRect(0, 0, this.w, -this.h);
+        this.ctx.font = "16px system-ui";
         this.renderPiano();
         this.renderGrid()
         this.renderNotes()
@@ -151,74 +151,74 @@ export default class ScoreDrawer{
         let n = [1,3,6,8,10]
         for (let i = 0; i < this.notes_width_count; i++){
             if (!n.includes((i+this.start_note)%12)){
-                this.scoreCtx.beginPath();
-                this.scoreCtx.strokeStyle = "red";
-                this.scoreCtx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-                this.scoreCtx.fillStyle = "white";
-                this.scoreCtx.fillRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-                this.scoreCtx.closePath();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "red";
+                this.ctx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+                this.ctx.fillStyle = "white";
+                this.ctx.fillRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+                this.ctx.closePath();
             } else {
-                this.scoreCtx.beginPath();
-                this.scoreCtx.strokeStyle = "red";
-                this.scoreCtx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-                this.scoreCtx.closePath();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "red";
+                this.ctx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+                this.ctx.closePath();
             }
         }
     }
     renderPianoLabels(){
-        this.scoreCtx.lineWidth = 2;
+        this.ctx.lineWidth = 2;
         for (let i = 0; i < this.notes_width_count; i++){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "red";
-            this.scoreCtx.lineWidth = 1.6;
-            this.scoreCtx.strokeText(Note.numberToPitch(this.start_note+i), this.margin_left+5, -this.margin_top - i*this.note_h-this.note_h*0.2);
-            this.scoreCtx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "red";
+            this.ctx.lineWidth = 1.6;
+            this.ctx.strokeText(Note.numberToPitch(this.start_note+i), this.margin_left+5, -this.margin_top - i*this.note_h-this.note_h*0.2);
+            this.ctx.lineWidth = 1;
         }
     }
     renderGrid(){
-        this.scoreCtx.lineWidth = 1;
+        this.ctx.lineWidth = 1;
         // horizontal
         for (let i = 0; i < this.notes_width_count+1; i++){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "grey";
-            this.scoreCtx.moveTo(this.gridX, this.gridY - i*this.note_h);
-            this.scoreCtx.lineTo(this.gridX + this.width, this.gridY - i*this.note_h);
-            this.scoreCtx.stroke();
-            this.scoreCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "grey";
+            this.ctx.moveTo(this.gridX, this.gridY - i*this.note_h);
+            this.ctx.lineTo(this.gridX + this.width, this.gridY - i*this.note_h);
+            this.ctx.stroke();
+            this.ctx.closePath();
         }
         // vertical
         for (let i = 0; i < this.score.duration+1; i++){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "grey";
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "grey";
             if (i%4==0)
-                this.scoreCtx.lineWidth = 1.7;
+                this.ctx.lineWidth = 1.7;
             else
-                this.scoreCtx.lineWidth = 1;
-            this.scoreCtx.moveTo(this.gridX + i*this.note_w, this.gridY);
-            this.scoreCtx.lineTo(this.gridX + i*this.note_w, this.gridY - this.height);
-            this.scoreCtx.stroke();
-            this.scoreCtx.closePath();
+                this.ctx.lineWidth = 1;
+            this.ctx.moveTo(this.gridX + i*this.note_w, this.gridY);
+            this.ctx.lineTo(this.gridX + i*this.note_w, this.gridY - this.height);
+            this.ctx.stroke();
+            this.ctx.closePath();
         }
     }
     renderNotes(){
         this.score.notes.forEach(note => {
             if (note.pitch < this.start_note || note.pitch > this.start_note + this.notes_width_count-1) return;
-            this.scoreCtx.beginPath();
-            this.scoreCtx.fillStyle = "red";
-            this.scoreCtx.fillRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.scoreCtx.strokeStyle = "white";
-            this.scoreCtx.lineWidth = 2;
-            this.scoreCtx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.scoreCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.fillStyle = "red";
+            this.ctx.fillRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.strokeStyle = "white";
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.closePath();
         });
     }
     renderSelected(){
         for (let note of this.selectedNotes){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "yellow";
-            this.scoreCtx.lineWidth = 2;
-            this.scoreCtx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.scoreCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "yellow";
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.closePath();
         }
         if (this.sectorsSelection.x1==-1){
             return;
@@ -227,27 +227,27 @@ export default class ScoreDrawer{
         const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
         let n = [1,3,6,8,10];
         for (let i=0; i<max-min+1; i++){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.lineWidth = 2;
             if (!n.includes((min+i+this.start_note)%12)){
-                this.scoreCtx.fillStyle = "yellow";
+                this.ctx.fillStyle = "yellow";
             } else {
-                this.scoreCtx.fillStyle = "rgb(240,160,0)";
+                this.ctx.fillStyle = "rgb(240,160,0)";
             }
-            this.scoreCtx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-            this.scoreCtx.closePath();
+            this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+            this.ctx.closePath();
         }
     }
     renderChosenNotes(){
         for (let note of this.chosenNotes){
-            this.scoreCtx.beginPath();
-            this.scoreCtx.strokeStyle = "blue";
-            this.scoreCtx.lineWidth = 2;
-            this.scoreCtx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.scoreCtx.fillStyle = "blue";
-            this.scoreCtx.fillRect(this.margin_left, this.gridY-(note.pitch-this.start_note+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "blue";
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.fillStyle = "blue";
+            this.ctx.fillRect(this.margin_left, this.gridY-(note.pitch-this.start_note+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             
-            this.scoreCtx.closePath();
+            this.ctx.closePath();
         }
     }
     renderSector(){
@@ -255,11 +255,11 @@ export default class ScoreDrawer{
         let x_len = Math.max(this.sectorsSelection.x1, this.sectorsSelection.x2)-x_min+1;
         let y_min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
         let y_len = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2)-y_min+1;
-        this.scoreCtx.beginPath();
-        this.scoreCtx.strokeStyle = "yellow";
-        this.scoreCtx.lineWidth = 2;
-        this.scoreCtx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-y_min*this.note_h, this.note_w*x_len, -this.note_h*y_len);
-        this.scoreCtx.closePath();
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = "yellow";
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-y_min*this.note_h, this.note_w*x_len, -this.note_h*y_len);
+        this.ctx.closePath();
     }
     doubleInput(x:number, y:number){
         if (this.selectedNotes.length) {
@@ -298,7 +298,6 @@ export default class ScoreDrawer{
             let xn = x*this.score.duration;
             [x, y] = this.getMatrix(x, y);
             if (this.drugged){
-                console.log(this.chosenNotes.length,this.selectedNotes.length )
                 if (this.chosenNotes.length && this.selectedNotes.length){
                     if (shift){
                         if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){

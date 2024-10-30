@@ -1,8 +1,8 @@
-import Instrument from "./instrument";
 import Mix from "./mix";
 import Score from "./score";
 import OscDrawer from "./osc_drawer";
 import ScoreDrawer from "./score_drawer";
+import Track from "./track";
 
 
 export default class MixDrawer{
@@ -26,9 +26,9 @@ export default class MixDrawer{
     x:number = 0;
     x_max:number;
     ctx:CanvasRenderingContext2D;
-    selectedInst:Instrument|null = null;
+    selectedTrack:Track|null = null;
     selectedScore:Score|null = null;
-    chosenInst:Instrument|null = null;
+    chosenTrack:Track|null = null;
     chosenScore:Score|null = null;
 
     oscDrawer:OscDrawer;
@@ -84,20 +84,16 @@ export default class MixDrawer{
             this.render();
         });
         canvas.addEventListener('dblclick', () => {
-            if (this.chosenInst && this.mix.tracks.length > 1){
-                for (let i of this.mix.tracks) if (i.inst==this.chosenInst) this.mix.removeTrack(i);
-                this.chosenInst = null;
-                this.find();
-                this.render();
-            }
+            this.doubleInput(this.input_x, this.input_y);
+
         });
         canvas.addEventListener('pointerdown', () => {
-            if (this.chosenInst){
-                this.oscDrawer.oscFunction = this.chosenInst.osc.oscFunction;
+            if (this.chosenTrack){
+                this.oscDrawer.oscFunction = this.chosenTrack.inst.osc.oscFunction;
             }
-            if (this.selectedInst){
-                this.chosenInst = this.selectedInst;
-                this.oscDrawer.oscFunction = this.chosenInst.osc.oscFunction;
+            if (this.selectedTrack){
+                this.chosenTrack = this.selectedTrack;
+                this.oscDrawer.oscFunction = this.chosenTrack.inst.osc.oscFunction;
                 this.oscDrawer.render();
             }
             if (this.chosenScore && this.chosenScore==this.selectedScore){
@@ -136,7 +132,7 @@ export default class MixDrawer{
             for (let j=0; j<this.mix.tracks[i].scores.length; j++){
                 this.renderScore(i, j, this.mix.tracks[i].scores[j]==this.selectedScore, this.mix.tracks[i].scores[j]==this.chosenScore);
             }
-            this.renderTracks(i, this.mix.tracks[i].inst==this.selectedInst, this.mix.tracks[i].inst==this.chosenInst);
+            this.renderTracks(i, this.mix.tracks[i]==this.selectedTrack, this.mix.tracks[i]==this.chosenTrack);
         }
 
         this.renderFrame();
@@ -228,13 +224,31 @@ export default class MixDrawer{
         this.ctx.strokeRect(start_x, start_y, this.score_w, this.score_h);
         this.ctx.closePath();
     }
+    doubleInput(x:number, y:number){
+        if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
+            if (!this.selectedTrack) this.mix.addTrack();
+            if (this.chosenTrack){
+                if (this.selectedScore){
+                    this.chosenTrack.addScore();
+                } else if (this.chosenTrack==this.selectedTrack && this.mix.tracks.length > 1){
+                    for (let i of this.mix.tracks) if (i==this.chosenTrack) this.mix.removeTrack(i);
+                    this.chosenTrack = null;
+                    this.find();
+                    this.render();
+                }
+            }
+            
+            this.find();
+            this.render();
+        }
+    }
     find(){
         let x = this.input_x;
         let y = this.input_y;
         if (x >= 0 && x <= this.w && y >= 0 && y <= this.h){
             for (let i=0; i<this.mix.tracks.length;i++){
                 if (y >= this.margin_top+i*this.track_h-this.y && y <= this.margin_top+(i+1)*this.track_h-this.y){
-                    this.selectedInst = this.mix.tracks[i].inst;
+                    this.selectedTrack = this.mix.tracks[i];
                     for (let j=0; j<this.mix.tracks[i].scores.length; j++){
                         let start_x = this.margin_left + this.instrument_frame*this.width + j*this.score_w-this.x;
                         let start_y = this.margin_top + this.instrument_top*this.height*(i+1) + i*(this.score_h+this.instrument_frame*this.width)-this.y;
@@ -246,7 +260,7 @@ export default class MixDrawer{
                     return;
                 }
             } 
-        } this.selectedInst = null;
+        } this.selectedTrack = null;
         this.selectedScore = null;
     }
 } 

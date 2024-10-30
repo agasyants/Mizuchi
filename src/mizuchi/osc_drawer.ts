@@ -1,4 +1,4 @@
-import OscFunction, { Point } from "./osc_function";
+import OscFunction, { BasicPoint, HandlePoint, Point } from "./osc_function";
 
 export default class OscDrawer{
     chosenPoint:Point|null = null;
@@ -10,7 +10,7 @@ export default class OscDrawer{
     margin_left:number;
     width:number;
     height:number;
-    oscCtx:CanvasRenderingContext2D;
+    ctx:CanvasRenderingContext2D;
     constructor(public oscCanvas:HTMLCanvasElement, public oscFunction:OscFunction){
 
         this.w = this.oscCanvas.width = oscCanvas.width * devicePixelRatio;
@@ -18,12 +18,12 @@ export default class OscDrawer{
         this.oscCanvas.style.width = oscCanvas.width / devicePixelRatio + 'px';
         this.oscCanvas.style.height = oscCanvas.height / devicePixelRatio + 'px';
       
-        this.oscCtx = oscCanvas.getContext('2d') || new CanvasRenderingContext2D();
+        this.ctx = oscCanvas.getContext('2d') || new CanvasRenderingContext2D();
         this.margin_top = oscCanvas.height/12;
         this.margin_left = this.margin_top;
         this.width = (this.w - 2*this.margin_left);
         this.height = (this.h - 2*this.margin_top);
-        this.oscCtx?.translate(this.margin_left, this.h/2);
+        this.ctx?.translate(this.margin_left, this.h/2);
 
         oscCanvas.onselectstart = function () { return false; }
         oscCanvas.addEventListener('dblclick', (e) => {
@@ -59,8 +59,8 @@ export default class OscDrawer{
         this.render()
     }
     render() {
-        this.oscCtx.clearRect(-this.margin_left, -this.h/2, this.w, this.h);
-        this.oscCtx.font = "14px system-ui";
+        this.ctx.clearRect(-this.margin_left, -this.h/2, this.w, this.h);
+        this.ctx.font = "14px system-ui";
         this.renderTest();
         this.renderAxes();
         if (this.render_handles){
@@ -76,142 +76,142 @@ export default class OscDrawer{
     }
 
     renderFunction(){
-        this.oscCtx.beginPath();
-        this.oscCtx.moveTo(0, 0);
-        this.oscCtx.strokeStyle = 'yellow';
-        this.oscCtx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.strokeStyle = 'yellow';
+        this.ctx.lineWidth = 4;
         let i = 0;
         this.oscFunction.handles.forEach((handle) => {
             const basic = this.oscFunction.basics[i+1];
-            this.oscCtx.quadraticCurveTo(handle.x*this.width, -handle.y*this.height/2, basic.x*this.width, -basic.y*this.height/2);
+            this.ctx.quadraticCurveTo(handle.x*this.width, -handle.y*this.height/2, basic.x*this.width, -basic.y*this.height/2);
             i++;
         });
-        this.oscCtx.stroke();
-        this.oscCtx.closePath();
+        this.ctx.stroke();
+        this.ctx.closePath();
     }
 
     renderBasics(){
         this.oscFunction.basics.forEach(point => {
-            this.oscCtx.beginPath();
-            this.oscCtx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
-            this.oscCtx.fillStyle = 'red';
-            this.oscCtx.fill();
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
+            this.ctx.fillStyle = 'red';
+            this.ctx.fill();
+            this.ctx.closePath();
         });
     }
 
     renderHandles(){
         this.oscFunction.handles.forEach((point) => {
-            this.oscCtx.beginPath();
-            this.oscCtx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
-            this.oscCtx.fillStyle = 'rgb(0,160,255)';
-            this.oscCtx.fill();
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
+            this.ctx.fillStyle = 'rgb(0,160,255)';
+            this.ctx.fill();
+            this.ctx.closePath();
         });
     }
 
     renderBetween(){
         for (let i=0; i<this.oscFunction.handles.length; i++){
-            this.oscCtx.beginPath();
-            this.oscCtx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
-            this.oscCtx.lineTo(this.oscFunction.basics[i].x*this.width, -this.oscFunction.basics[i].y*this.height/2);
-            this.oscCtx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
-            this.oscCtx.lineTo(this.oscFunction.basics[i+1].x*this.width, -this.oscFunction.basics[i+1].y*this.height/2);
-            this.oscCtx.strokeStyle = 'rgb(0,160,255)';
-            this.oscCtx.lineWidth = 1;
-            this.oscCtx.stroke();
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
+            this.ctx.lineTo(this.oscFunction.basics[i].x*this.width, -this.oscFunction.basics[i].y*this.height/2);
+            this.ctx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
+            this.ctx.lineTo(this.oscFunction.basics[i+1].x*this.width, -this.oscFunction.basics[i+1].y*this.height/2);
+            this.ctx.strokeStyle = 'rgb(0,160,255)';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+            this.ctx.closePath();
         }
     }
 
     renderAxes(){
-        this.oscCtx.beginPath();
-        this.oscCtx.moveTo(0, 0);
-        this.oscCtx.lineTo(0, this.height/2);
-        this.oscCtx.lineTo(this.width, this.height/2);
-        this.oscCtx.lineTo(this.width, -this.height/2);
-        this.oscCtx.lineTo(0, -this.height/2);
-        this.oscCtx.lineTo(0, 0);
-        this.oscCtx.lineWidth = 2;
-        this.oscCtx.strokeStyle = 'white';
-        this.oscCtx.stroke();
-        this.oscCtx.closePath();
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(0, this.height/2);
+        this.ctx.lineTo(this.width, this.height/2);
+        this.ctx.lineTo(this.width, -this.height/2);
+        this.ctx.lineTo(0, -this.height/2);
+        this.ctx.lineTo(0, 0);
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = 'white';
+        this.ctx.stroke();
+        this.ctx.closePath();
 
-        this.oscCtx.beginPath();
-        this.oscCtx.moveTo(0, 0);
-        this.oscCtx.lineTo(0, -this.height/2);
-        this.oscCtx.lineTo(0, this.height/2);
-        this.oscCtx.moveTo(0, 0);
-        this.oscCtx.lineTo(this.width, 0);
-        this.oscCtx.lineWidth = 3;
-        this.oscCtx.strokeStyle = 'red';
-        this.oscCtx.stroke();
-        this.oscCtx.closePath();
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(0, -this.height/2);
+        this.ctx.lineTo(0, this.height/2);
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(this.width, 0);
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = 'red';
+        this.ctx.stroke();
+        this.ctx.closePath();
 
         let n = 8;
         for (let i=1; i<n; i++){
             // if (i%2==0){
-            //     this.oscCtx.beginPath();
-            //     this.oscCtx.strokeStyle = 'grey';
-            //     this.oscCtx.moveTo(i*this.width/n, -this.height/2);
-            //     this.oscCtx.lineTo(i*this.width/n, this.height/2);
-            //     this.oscCtx.closePath();
+            //     this.ctx.beginPath();
+            //     this.ctx.strokeStyle = 'grey';
+            //     this.ctx.moveTo(i*this.width/n, -this.height/2);
+            //     this.ctx.lineTo(i*this.width/n, this.height/2);
+            //     this.ctx.closePath();
             // }
-            this.oscCtx.beginPath();
-            this.oscCtx.strokeStyle = 'red';
-            this.oscCtx.moveTo(i*this.width/n, -5);
-            this.oscCtx.lineTo(i*this.width/n, 5);
-            this.oscCtx.lineWidth = 2;
-            this.oscCtx.stroke();
-            this.oscCtx.fillStyle = 'white';
-            this.oscCtx.fillText((i/n).toString(), i*this.width/n-10, 20);
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = 'red';
+            this.ctx.moveTo(i*this.width/n, -5);
+            this.ctx.lineTo(i*this.width/n, 5);
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            this.ctx.fillStyle = 'white';
+            this.ctx.fillText((i/n).toString(), i*this.width/n-10, 20);
+            this.ctx.closePath();
         }
         let t = 2
         for (let i=1; i<t+1; i++){
-            this.oscCtx.beginPath();
-            this.oscCtx.moveTo(-5, -i*this.height/t/2);
-            this.oscCtx.lineTo(5, -i*this.height/t/2);
-            this.oscCtx.moveTo(-5, i*this.height/t/2);
-            this.oscCtx.lineTo(5, i*this.height/t/2);
-            this.oscCtx.lineWidth = 2;
-            this.oscCtx.strokeStyle = 'red';
-            this.oscCtx.stroke();
-            this.oscCtx.fillStyle = 'white';
-            this.oscCtx.fillText(`${i/t}`, -20, -i*this.height/t/2+5);
-            this.oscCtx.fillText(`${-i/t}`, -25, i*this.height/t/2+5);
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.moveTo(-5, -i*this.height/t/2);
+            this.ctx.lineTo(5, -i*this.height/t/2);
+            this.ctx.moveTo(-5, i*this.height/t/2);
+            this.ctx.lineTo(5, i*this.height/t/2);
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeStyle = 'red';
+            this.ctx.stroke();
+            this.ctx.fillStyle = 'white';
+            this.ctx.fillText(`${i/t}`, -20, -i*this.height/t/2+5);
+            this.ctx.fillText(`${-i/t}`, -25, i*this.height/t/2+5);
+            this.ctx.closePath();
         }
 
     }
 
     renderChosen(){
         if (!this.chosenPoint) return;
-        this.oscCtx.beginPath();
+        this.ctx.beginPath();
         let x = this.chosenPoint.x;
         let y = -this.chosenPoint.y;
-        this.oscCtx.arc(x*this.width, y*this.height/2, 6, 0, 2*Math.PI);
-        this.oscCtx.lineWidth = 2;
-        this.oscCtx.strokeStyle = 'yellow';
-        this.oscCtx.stroke();
-        this.oscCtx.closePath();
+        this.ctx.arc(x*this.width, y*this.height/2, 6, 0, 2*Math.PI);
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = 'yellow';
+        this.ctx.stroke();
+        this.ctx.closePath();
 
-        this.oscCtx.beginPath();
-        this.oscCtx.fillStyle = 'yellow';
-        this.oscCtx.fillText(`${this.chosenPoint.x.toFixed(2)}, ${this.chosenPoint.y.toFixed(2)}`, this.chosenPoint.x*this.width+5, -this.chosenPoint.y*this.height/2-5);
-        this.oscCtx.closePath();
+        this.ctx.beginPath();
+        this.ctx.fillStyle = 'yellow';
+        this.ctx.fillText(`${this.chosenPoint.x.toFixed(2)}, ${this.chosenPoint.y.toFixed(2)}`, this.chosenPoint.x*this.width+5, -this.chosenPoint.y*this.height/2-5);
+        this.ctx.closePath();
     }
 
     renderTest(){
         let n = 64;
         for (let i=1; i<n; i++){
-            this.oscCtx.beginPath();
-            this.oscCtx.moveTo(i*this.width/n, 0);
-            this.oscCtx.lineTo(i*this.width/n, -this.oscFunction.getI(i/n)*this.height/2);
-            this.oscCtx.lineWidth = 1;
-            this.oscCtx.strokeStyle = 'yellow';
-            this.oscCtx.stroke();
-            this.oscCtx.closePath();
+            this.ctx.beginPath();
+            this.ctx.moveTo(i*this.width/n, 0);
+            this.ctx.lineTo(i*this.width/n, -this.oscFunction.getI(i/n)*this.height/2);
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeStyle = 'yellow';
+            this.ctx.stroke();
+            this.ctx.closePath();
         }
     }
 
@@ -223,9 +223,9 @@ export default class OscDrawer{
     doubleInput(x:number, y:number){
         [x,y] = this.processInput(x,y);
         if (this.chosenPoint!=null){
-            if (this.oscFunction.basics.includes(this.chosenPoint)){
+            if (this.chosenPoint instanceof BasicPoint && this.chosenPoint.x_move && this.chosenPoint.y_move){
                 this.oscFunction.removeBasicPoint(this.chosenPoint);
-            } else {
+            } else if (this.chosenPoint instanceof HandlePoint){
                 if (this.chosenPoint.xl == 0.5 && this.chosenPoint.yl == 0.5){
                     this.oscFunction.addBasicPoint(this.chosenPoint.x, this.chosenPoint.y);
                 } else {
@@ -255,7 +255,7 @@ export default class OscDrawer{
                 return;
             }
         }
-        for (let i = 1; i < this.oscFunction.basics.length-1; i++){
+        for (let i = 0; i < this.oscFunction.basics.length; i++){
             if (Math.abs(this.oscFunction.basics[i].x - x) <= range && Math.abs(this.oscFunction.basics[i].y - y) <= range){
                 this.chosenPoint = this.oscFunction.basics[i];
                 return;

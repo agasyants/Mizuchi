@@ -1,26 +1,30 @@
 export default class OscFunction{
-    basics: Point[];
-    handles: Point[];
+    basics: BasicPoint[];
+    handles: HandlePoint[];
     constructor(){
-        this.basics = [new Point(0, 0), new Point(1, 0)];
-        this.handles = [new Point(0,0)];
+        this.basics = [new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)];
+        this.handles = [new HandlePoint(0,0)];
         this.setDefaultHandle(0);
     }
     move(point:Point, x:number, y:number):void{
-        if (this.basics.includes(point)){
+        if (point instanceof BasicPoint){
             const num = this.basics.indexOf(point);
-            if (x < this.basics[num-1].x){
-                x = this.basics[num-1].x;
-            } else if (x > this.basics[num+1].x){
-                x = this.basics[num+1].x;
+            if (point.x_move) {
+                if (x < this.basics[num-1].x){
+                    x = this.basics[num-1].x;
+                } else if (x > this.basics[num+1].x){
+                    x = this.basics[num+1].x;
+                }
+                point.x = x;
             }
-            point.x = x;
-            if (y < -1){
-                y = -1;
-            } else if (y > 1){
-                y = 1;
-            } 
-            point.y = y;
+            if (point.y_move) {
+                if (y < -1){
+                    y = -1;
+                } else if (y > 1){
+                    y = 1;
+                } 
+                point.y = y;
+            }
             this.setHandleAbsByRelPos(num);
             this.setHandleAbsByRelPos(num-1);
         } else {
@@ -50,8 +54,8 @@ export default class OscFunction{
     addBasicPoint(x:number, y:number){
         for (let i = 0; i < this.basics.length-1; i++){
             if (this.basics[i].x <= x && x <= this.basics[i+1].x){
-                this.basics.splice(i+1, 0, new Point(x, y));
-                this.handles.splice(i, 1, new Point(0,0), new Point(0,0));
+                this.basics.splice(i+1, 0, new BasicPoint(x, y));
+                this.handles.splice(i, 1, new HandlePoint(0,0), new HandlePoint(0,0));
                 this.setDefaultHandle(i);
                 this.setDefaultHandle(i+1);
                 return;
@@ -59,10 +63,10 @@ export default class OscFunction{
         }
         
     }
-    removeBasicPoint(point:Point){
+    removeBasicPoint(point:BasicPoint){
         const num = this.basics.indexOf(point);
         this.basics.splice(num, 1);
-        this.handles.splice(num-1, 2, new Point(0,0));
+        this.handles.splice(num-1, 2, new HandlePoint(0,0));
         this.setDefaultHandle(num-1);
     }
     getI(i:number):number{
@@ -120,11 +124,27 @@ export default class OscFunction{
 export class Point{
     x:number;
     y:number;
+    constructor(x:number, y:number){
+        this.x = x;
+        this.y = y;
+    }
+}
+
+export class BasicPoint extends Point{
+    x_move:boolean;
+    y_move:boolean;
+    constructor(x:number, y:number, x_move:boolean=true, y_move:boolean=true){
+        super(x, y);
+        this.x_move = x_move;
+        this.y_move = y_move;
+    }
+}
+
+export class HandlePoint extends Point{
     xl:number;
     yl:number;
     constructor(x:number, y:number, xl:number = 0.5, yl:number = 0.5){
-        this.x = x;
-        this.y = y;
+        super(x, y);
         this.xl = xl;
         this.yl = yl;
     }
