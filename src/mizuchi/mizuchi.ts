@@ -18,9 +18,9 @@ export default class Mizuchi{
                 e.preventDefault();
                 mix.save();
             }
-            if (e.code=="Spase"){
+            if (e.code=="Space"){
                 e.preventDefault();
-                mixer.play();
+                mixer.toggle();
             }
         });
 
