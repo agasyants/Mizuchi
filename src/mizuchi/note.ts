@@ -49,5 +49,7 @@ export default class Note {
         const note = num%12;
         return octave + noteMap[note];
     }
-    
+    clone():Note{
+        return new Note(this.pitch, this.start, this.duration);
+    }
 }

@@ -18,50 +18,65 @@ export default class ScoreDrawer{
     note_h:number;
     gridX:number;
     gridY:number;
+    buffer:Note[] = [];
 
     selectedNotes:Note[] = [];
     chosenNotes:Note[] = [];
     drugged:boolean = false;
 
     sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
-
-    constructor(public scoreCanvas:HTMLCanvasElement, public score:Score){
-        this.w = this.scoreCanvas.width = scoreCanvas.width * devicePixelRatio;
-        this.h = this.scoreCanvas.height = scoreCanvas.height * devicePixelRatio;
-        this.scoreCanvas.style.width = scoreCanvas.width / devicePixelRatio + 'px';
-        this.scoreCanvas.style.height = scoreCanvas.height / devicePixelRatio + 'px';
-        this.ctx = scoreCanvas.getContext('2d') || new CanvasRenderingContext2D();
+    selection = {chosenNotes:[],start:0,end:0}
+    constructor(public canvas:HTMLCanvasElement, public score:Score){
+        this.w = this.canvas.width = canvas.width * devicePixelRatio;
+        this.h = this.canvas.height = canvas.height * devicePixelRatio;
+        this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
+        this.canvas.style.height = canvas.height / devicePixelRatio + 'px';
+        this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
         this.ctx.translate(0, this.h)
-        this.margin_top = scoreCanvas.height/20;
+        this.margin_top = canvas.height/20;
         this.margin_left = this.margin_top;
-        this.width = (this.w - 2*this.margin_left - this.pianoWidth*scoreCanvas.width);
+        this.width = (this.w - 2*this.margin_left - this.pianoWidth*canvas.width);
         this.height = (this.h - 2*this.margin_top);
         this.note_h = this.height/this.notes_width_count;
         this.note_w = this.width/score.duration;
         this.gridX = this.margin_left + this.pianoWidth*this.width;
         this.gridY = -this.margin_top;
-        scoreCanvas.onselectstart = function () { return false; }
-        scoreCanvas.addEventListener('wheel', (e) => {
+        canvas.onselectstart = function () { return false; }
+        canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            if (e.deltaY){
-                this.scroll(Math.abs(e.deltaY)/e.deltaY);
+            if (e.deltaY) {
+                if (e.ctrlKey){
+                    this.zoom(Math.abs(e.deltaY)/e.deltaY);
+                } else {
+                    this.scroll(Math.abs(e.deltaY)/e.deltaY);
+                }
             }
         });
-        scoreCanvas.addEventListener('dblclick', (e) => {
-            const rect = scoreCanvas.getBoundingClientRect();
+        window.addEventListener("keydown", (e) => {
+            if (e.code=="KeyC" && e.ctrlKey){
+                // e.preventDefault();
+                this.copy();
+            }
+            if (e.code=="KeyV" && e.ctrlKey){
+                e.preventDefault();
+                this.paste();
+            }
+        });
+        canvas.addEventListener('dblclick', (e) => {
+            const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
             this.doubleInput(x, y);
             this.render();
         });
-        scoreCanvas.addEventListener('pointermove', (e) => {
-            const rect = scoreCanvas.getBoundingClientRect();
+        canvas.addEventListener('pointermove', (e) => {
+            const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
             this.render();
             this.findNote(x, y, 0.4, e.shiftKey);
         });
-        scoreCanvas.addEventListener('pointerdown', (e) => {
+        canvas.addEventListener('pointerdown', (e) => {
             if (this.selectedNotes.length==1){
                 if (e.ctrlKey){
                     this.addSelectedToChosen();
@@ -72,7 +87,7 @@ export default class ScoreDrawer{
                 this.chosenNotes = [];
             }
             this.drugged = true;
-            const rect = scoreCanvas.getBoundingClientRect();
+            const rect = canvas.getBoundingClientRect();
             let x = (e.clientX - rect.left)/rect.width;
             let y = (e.clientY - rect.top)/rect.height;
             [x,y] = this.processInput(x,y);
@@ -81,11 +96,11 @@ export default class ScoreDrawer{
             this.sectorsSelection.y1 = y;
             this.render();
         });
-        scoreCanvas.addEventListener('pointerup', (e) => {
+        canvas.addEventListener('pointerup', (e) => {
             if (this.chosenNotes.length==0){
                 this.selectedToChosen();
             }
-            const rect = scoreCanvas.getBoundingClientRect();
+            const rect = canvas.getBoundingClientRect();
             let x = (e.clientX - rect.left)/rect.width;
             let y = (e.clientY - rect.top)/rect.height;
             [x,y] = this.processInput(x,y);
@@ -95,7 +110,7 @@ export default class ScoreDrawer{
             this.drugged = false;
             this.render();
         });
-        scoreCanvas.addEventListener('pointerleave', () => {
+        canvas.addEventListener('pointerleave', () => {
             this.sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
             this.render();
         });
@@ -105,10 +120,10 @@ export default class ScoreDrawer{
     setScore(score:Score|null){
         if (score){
             this.score = score;
-            this.scoreCanvas.style.display = 'block';
+            this.canvas.style.display = 'block';
             this.render();
         } else {
-            this.scoreCanvas.style.display = 'none';
+            this.canvas.style.display = 'none';
         }
     }
     scroll(i:number){
@@ -119,6 +134,37 @@ export default class ScoreDrawer{
             for (let note of this.chosenNotes)
                 this.move(note, this.sectorsSelection.x1, this.sectorsSelection.y1-i);
         }
+        this.render();
+    }
+    copy(){
+        this.buffer = [];
+        for (let note of this.chosenNotes){
+            this.buffer.push(note.clone());
+        }
+    }
+    paste(){
+        for (let note of this.buffer){
+            this.score.notes.push(note.clone());
+            this.score.sort();
+            this.score.update();
+            this.render();
+        }
+    }
+    zoom(i:number){
+        if (this.start_note >= this.max_note && this.start_note <= 0 && i==1) return;
+        this.notes_width_count += i*2;
+        console.log(this.start_note,this.max_note);
+        if (this.start_note >= this.max_note){ 
+            this.start_note -= i*2;
+        } else if (this.start_note > 0) {
+            this.start_note -= i
+        }
+        if (this.drugged){
+            for (let note of this.chosenNotes)
+                this.move(note, this.sectorsSelection.x1, this.sectorsSelection.y1-i);
+        }
+        this.max_note = 127 - this.notes_width_count;
+        this.note_h = this.height/this.notes_width_count;
         this.render();
     }
     selectedToChosen(){
@@ -277,8 +323,8 @@ export default class ScoreDrawer{
         return [Math.floor(x*this.score.duration), Math.floor(y*this.notes_width_count)];
     }
     processInput(x:number, y:number){
-        x = (x - this.margin_left/this.scoreCanvas.width) * this.scoreCanvas.width/this.width - this.pianoWidth;
-        y = 1-(y-this.margin_top*2/this.scoreCanvas.width)*this.scoreCanvas.height/this.height;
+        x = (x - this.margin_left/this.canvas.width) * this.canvas.width/this.width - this.pianoWidth;
+        y = 1-(y-this.margin_top*2/this.canvas.width)*this.canvas.height/this.height;
         return [x,y];
     }
     move(note:Note, x:number, y:number){

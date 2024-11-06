@@ -1,11 +1,12 @@
 import Instrument from "./instrument";
 import Score from "./score";
 import Note from "./note";
+import AudioEffect from "./audio_effects";
 
 export default class Track {
     inst:Instrument;
     name:string;
-    // audioEffects:AudioEffect[] = [];
+    audioEffects:AudioEffect[] = [];
     scores:Score[] = [];
     // scoreEffects:ScoreEffect[] = [];
     constructor(name:string, inst:Instrument = new Instrument()) { 

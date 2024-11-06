@@ -3,6 +3,7 @@ import Score from "./score";
 import OscDrawer from "./osc_drawer";
 import ScoreDrawer from "./score_drawer";
 import Track from "./track";
+import AudioEffect from "./audio_effects";
 
 
 export default class MixDrawer{
@@ -262,5 +263,9 @@ export default class MixDrawer{
             } 
         } this.selectedTrack = null;
         this.selectedScore = null;
+    }
+    addAudioEffect(effect:AudioEffect){
+        if (this.chosenTrack)
+            this.chosenTrack.audioEffects.push(effect);
     }
 } 

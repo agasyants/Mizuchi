@@ -5,13 +5,19 @@ import Mix from "./mix";
 import ScoreDrawer from "./score_drawer";
 import MixDrawer from "./mix_drawer";
 import { Mixer } from "./mixer";
+import { Delay, Distortion } from "./audio_effects";
 
 export default class Mizuchi{
     constructor(){
         const OscCanvas = document.getElementById('OscCanvas') as HTMLCanvasElement;
         if (!OscCanvas) return;
-        let mix:Mix = new Mix(120);
+        let mix:Mix = new Mix();
         const mixer: Mixer = new Mixer(mix);
+
+        const start_input = document.getElementById('start') as HTMLInputElement;
+        start_input.addEventListener("change", () => {
+            mixer.start = Number(start_input.value);
+        }) 
         
         window.addEventListener("keydown", (e) => {
             if (e.code=="KeyS" && e.ctrlKey){
@@ -48,8 +54,16 @@ export default class Mizuchi{
                     }
                     mixDrawer.render();
                 })
-                
             }
+            const PlayButton = document.getElementById('Dist') || document.createElement('div');
+            PlayButton.addEventListener('click', () => {
+                mixDrawer.addAudioEffect(new Distortion(1,3));
+            })  
+            const StopButton = document.getElementById('Delay') || document.createElement('div');
+            StopButton.addEventListener('click', () => {
+                mixDrawer.addAudioEffect(new Delay(0.5,1,44100));
+            })
+            
         }
         const SinePreset = document.getElementById('Sine') || document.createElement('div');
         SinePreset.addEventListener('click', () => {
@@ -78,12 +92,13 @@ export default class Mizuchi{
     
         
         const BPM = <HTMLInputElement>document.getElementById('bpm');
+        if (BPM) BPM.value = String(mix.bpm);
         if (BPM){
             BPM.addEventListener('change', () => {
                 mix.bpm = Number(BPM.value);
             })
         }
-        const GenerateButton = document.getElementById('Generate') || document.createElement('div');
+        const GenerateButton = document.getElementById('Generate') || document.createElement('div');    
         GenerateButton.addEventListener('click', () => {
             score_drawer.score.notes = [
                 new Note('A2', 0, 2),
@@ -101,14 +116,6 @@ export default class Mizuchi{
                 new Note('F2', 31, 1),
             ];
             score_drawer.render();
-        })
-        const PlayButton = document.getElementById('Play') || document.createElement('div');
-        PlayButton.addEventListener('click', () => {
-            mixer.play();
-        })  
-        const StopButton = document.getElementById('Stop') || document.createElement('div');
-        StopButton.addEventListener('click', () => {
-            mixer.stop();
         })
     }
 }

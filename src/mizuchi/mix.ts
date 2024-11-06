@@ -4,11 +4,13 @@ import Instrument from "./instrument";
 import Oscillator from "./oscillator";
 import Note from "./note";
 import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
+import AudioEffect from "./audio_effects";
 
 export default class Mix{
     tracks:Track[] = [];
     max_score:number = 4;
-    constructor(public bpm:number){
+    bpm:number = 120;
+    constructor(){
         let data = localStorage.getItem('key');
         if (data){
             this.load(JSON.parse(data));
@@ -23,6 +25,8 @@ export default class Mix{
     }
     load(data:any){
         console.log(data);
+        this.bpm = data.bpm;
+        this.max_score = data.max_score;
         for (let track of data.tracks){
             const newFunc = new OscFunction();
             let newBasics:BasicPoint[] = [];
@@ -59,5 +63,10 @@ export default class Mix{
     removeTrack(track:Track){
         let index = this.tracks.indexOf(track);
         if (index > -1) this.tracks.splice(index, 1);
+    }
+    addAudioEffect(effect:AudioEffect){
+        for (let track of this.tracks){
+            track.audioEffects.push(effect);
+        }
     }
 }
