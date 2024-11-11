@@ -102,6 +102,7 @@ export default class MixDrawer{
                 this.scoreDrower.setScore(this.chosenScore);
             } else if (this.selectedScore){
                 this.chosenScore = this.selectedScore;
+                this.mix.start = this.chosenScore.start_time/2;
                 this.scoreDrower.setScore(this.chosenScore);
             } 
             this.render();

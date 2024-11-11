@@ -117,8 +117,8 @@ export default class OscDrawer{
             this.ctx.lineTo(this.oscFunction.basics[i].x*this.width, -this.oscFunction.basics[i].y*this.height/2);
             this.ctx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
             this.ctx.lineTo(this.oscFunction.basics[i+1].x*this.width, -this.oscFunction.basics[i+1].y*this.height/2);
-            this.ctx.strokeStyle = 'rgb(0,160,255)';
-            this.ctx.lineWidth = 1;
+            this.ctx.strokeStyle = 'rgb(0,100,255)';
+            this.ctx.lineWidth = 2.5;
             this.ctx.stroke();
             this.ctx.closePath();
         }
@@ -249,18 +249,19 @@ export default class OscDrawer{
             this.oscFunction.move(this.chosenPoint, x, y);
             return;
         }
-        for (let i = 0; i < this.oscFunction.handles.length; i++){
-            if (Math.abs(this.oscFunction.handles[i].x - x) <= range && Math.abs(this.oscFunction.handles[i].y - y) <= range){
-                this.chosenPoint = this.oscFunction.handles[i];
-                return;
+        let flag = true; 
+        for (let point of this.oscFunction.handles){
+            if (point.getLength(x,y) <= range && (flag || (this.chosenPoint && point.getLength(x,y)<this.chosenPoint.getLength(x,y)))){
+                this.chosenPoint = point;
+                flag = false;
             }
         }
-        for (let i = 0; i < this.oscFunction.basics.length; i++){
-            if (Math.abs(this.oscFunction.basics[i].x - x) <= range && Math.abs(this.oscFunction.basics[i].y - y) <= range){
-                this.chosenPoint = this.oscFunction.basics[i];
-                return;
+        for (let point of this.oscFunction.basics){
+            if (point.getLength(x,y) <= range && (flag || (this.chosenPoint && point.getLength(x,y)<this.chosenPoint.getLength(x,y)))){
+                this.chosenPoint = point;
+                flag = false;
             }
         } 
-        this.chosenPoint = null;
+        if (flag) this.chosenPoint = null;
     }
 }

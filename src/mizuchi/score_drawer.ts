@@ -143,12 +143,8 @@ export default class ScoreDrawer{
         }
     }
     paste(){
-        for (let note of this.buffer){
-            this.score.notes.push(note.clone());
-            this.score.sort();
-            this.score.update();
-            this.render();
-        }
+        this.score.addNotes(this.buffer);
+        this.render();
     }
     zoom(i:number){
         if (this.start_note >= this.max_note && this.start_note <= 0 && i==1) return;

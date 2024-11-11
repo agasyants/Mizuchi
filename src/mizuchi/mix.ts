@@ -10,6 +10,7 @@ export default class Mix{
     tracks:Track[] = [];
     max_score:number = 4;
     bpm:number = 120;
+    start:number = 0;
     constructor(){
         let data = localStorage.getItem('key');
         if (data){

@@ -5,7 +5,7 @@ import Mix from "./mix";
 import ScoreDrawer from "./score_drawer";
 import MixDrawer from "./mix_drawer";
 import { Mixer } from "./mixer";
-import { Delay, Distortion } from "./audio_effects";
+import { Delay, Distortion, Distortion2, Distortion3 } from "./audio_effects";
 
 export default class Mizuchi{
     constructor(){
@@ -13,10 +13,10 @@ export default class Mizuchi{
         if (!OscCanvas) return;
         let mix:Mix = new Mix();
         const mixer: Mixer = new Mixer(mix);
-
+        
         const start_input = document.getElementById('start') as HTMLInputElement;
         start_input.addEventListener("change", () => {
-            mixer.start = Number(start_input.value);
+            mix.start = Number(start_input.value);
         }) 
         
         window.addEventListener("keydown", (e) => {
@@ -30,10 +30,12 @@ export default class Mizuchi{
             }
         });
 
+        const TestButton = document.getElementById('Test') || document.createElement('div');
+        TestButton.addEventListener('click', () => {
+            
+        })
 
-        
         const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
-        
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
         const score_drawer = new ScoreDrawer(scoreCanvas, mix.tracks[0].scores[0]);
@@ -41,28 +43,17 @@ export default class Mizuchi{
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;
         if (mixCanvas){
             const mixDrawer = new MixDrawer(mixCanvas, mix, oscDrawer, score_drawer);
-            const AddTrack = document.getElementById('AddTrack');
-            if (AddTrack){
-                AddTrack.addEventListener('click', () => mix.addTrack());
-            }
+            const audioE = [new Distortion(1,0.8),new Distortion2(1,0.8),new Distortion3(1,0.5),new Delay(0.5,1,44100)]
+            const InputDiv = document.getElementById('Inputs') || document.createElement('div');
 
-            const AddScore = document.getElementById('AddScore');
-            if (AddScore){
-                AddScore.addEventListener('click', () => {
-                    for (let track of mix.tracks){
-                        mix.addScore(track);
-                    }
-                    mixDrawer.render();
-                })
+            for (let effect of audioE){
+                const PlayButton = document.createElement('button');
+                PlayButton.textContent = effect.name;
+                PlayButton.addEventListener('click', () => {
+                    mixDrawer.addAudioEffect(effect);
+                })  
+                InputDiv.appendChild(PlayButton);
             }
-            const PlayButton = document.getElementById('Dist') || document.createElement('div');
-            PlayButton.addEventListener('click', () => {
-                mixDrawer.addAudioEffect(new Distortion(1,3));
-            })  
-            const StopButton = document.getElementById('Delay') || document.createElement('div');
-            StopButton.addEventListener('click', () => {
-                mixDrawer.addAudioEffect(new Delay(0.5,1,44100));
-            })
             
         }
         const SinePreset = document.getElementById('Sine') || document.createElement('div');

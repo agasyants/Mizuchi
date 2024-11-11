@@ -24,10 +24,36 @@ export class Distortion extends AudioEffect{
         this.gain=gain;
     }
     process(sample:number){
-        return [sample*(1-this.dry) + this.distort(sample)*this.dry];
+        if (sample>=0) return [Math.pow(sample,this.gain*5+1)];
+        return [-Math.pow(-sample,this.gain*5+1)];
+    }
+}
+
+export class Distortion2 extends AudioEffect{
+    gain:number;
+    constructor(dry:number, gain:number){
+        super("Distortion2", 1);
+        this.dry=dry;
+        this.gain=gain;
+    }
+    process(sample:number){
+        if (sample>=0) return [1-Math.pow(sample,this.gain+1)];
+        return [Math.pow(-sample,this.gain+1)-1];
+    }
+}
+
+export class Distortion3 extends AudioEffect{
+    gain:number;
+    constructor(dry:number, gain:number){
+        super("Distortion3", 1);
+        this.dry=dry;
+        this.gain=gain;
+    }
+    process(sample:number){
+        return [this.distort(sample)];
     }
     distort(sample:number){
-        return super.clip(sample*this.gain);
+        return super.clip(sample+(Math.random()-0.5)/(10*this.gain*(sample+1)*2));
     }
 }
 
@@ -38,15 +64,16 @@ export class Flanger extends AudioEffect {
 
 export class Delay extends AudioEffect {
     delayBuffer:Array<number>;
-    delayIndex:number=0;
     constructor(dry:number, delayTime:number, sampleRate:number){
         super("Delay", delayTime);
-        this.dry=dry;
-        this.delayBuffer=new Array(Math.floor(delayTime*sampleRate));
+        this.dry = dry;
+        this.delayBuffer = new Array(Math.floor(delayTime*sampleRate));
+        this.delayBuffer.fill(0);
+    }
+    getStart(){
+        return this.delayBuffer;
     }
     process(sample:number){
-        this.delayBuffer[this.delayIndex] = sample*(1-this.dry);
-        this.delayBuffer[this.delayIndex]=sample*this.dry/2;
-        return this.delayBuffer;
+        return [sample/2];
     }
 }

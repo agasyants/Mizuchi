@@ -128,6 +128,9 @@ export class Point{
         this.x = x;
         this.y = y;
     }
+    getLength(x:number, y:number):number{
+        return Math.sqrt(Math.pow(this.x-x, 2) + Math.pow(this.y-y, 2));
+    }
 }
 
 export class BasicPoint extends Point{

@@ -16,7 +16,7 @@ export default class Instrument {
         }
         return sum/founded.length;
     }
-    findNote(notes:Note[], SPS:number, i:number):Note[]{
+    private findNote(notes:Note[], SPS:number, i:number):Note[]{
         let result:Note[] = [];
         for (let note of notes){
             if (i<note.start*SPS){
