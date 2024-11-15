@@ -7,77 +7,142 @@ export default class OscFunction{
         this.setDefaultHandle(0);
     }
     move(point:Point, x:number, y:number):void{
+        x += point.x;
+        y += point.y; 
         if (point instanceof BasicPoint){
-            const num = this.basics.indexOf(point);
-            if (point.x_move) {
-                if (x < this.basics[num-1].x){
-                    x = this.basics[num-1].x;
-                } else if (x > this.basics[num+1].x){
-                    x = this.basics[num+1].x;
-                }
-                point.x = x;
+            let num = this.basics.indexOf(point);
+            [x,y] = this.calcBasic(point, num, x, y);
+            point.x = x;
+            point.y = y;
+            if (num < this.basics.length-1){
+                this.setHandleAbsByRelPos(num);
             }
-            if (point.y_move) {
-                if (y < -1){
-                    y = -1;
-                } else if (y > 1){
-                    y = 1;
-                } 
-                point.y = y;
+            if (num > 0){
+                this.setHandleAbsByRelPos(num-1);
             }
-            this.setHandleAbsByRelPos(num);
-            this.setHandleAbsByRelPos(num-1);
-        } else {
-            const num = this.handles.findIndex((e)=>(e == point));
-            let max_x = this.basics[num+1].x;
-            let min_x = this.basics[num].x;
-            if (x > max_x){
-                x = max_x;
-            } else if (x < min_x){
-                x = min_x;
-            }
-            let max_y = Math.max(this.basics[num].y,this.basics[num+1].y);
-            let min_y = Math.min(this.basics[num].y, this.basics[num+1].y);
-            if (y > max_y){
-                y = max_y;
-            } else if (y < min_y){
-                y = min_y;
-            }
-            this.setHandleAbsPos(num,x,y);
+        } else if (point instanceof HandlePoint) {
+            let num = this.handles.findIndex((e)=>(e == point));
+            [x,y] = this.calcHandle(num, x, y);
+            let [xl,yl] = this.setHandleAbsPos(num, x, y);
+            this.handles[num].x = x;
+            this.handles[num].y = y;
+            this.handles[num].xl = xl;
+            this.handles[num].yl = yl;
         }
     }
-    setDefaultHandle(num:number){
+    calcBasic(basic:BasicPoint, num:number, x:number, y:number){
+        if (basic.x_move) {
+            if (x < this.basics[num-1].x){
+                x = this.basics[num-1].x;
+            } else if (x > this.basics[num+1].x){
+                x = this.basics[num+1].x;
+            }
+        } else {
+            x = basic.x;
+        }
+        if (basic.y_move) {
+            if (y < -1){
+                y = -1;
+            } else if (y > 1){
+                y = 1;
+            }
+        } else {
+            y = basic.y;
+        }
+        return [x,y];
+    }
+    calcHandle(num:number, x:number, y:number){
+        let max_x = this.basics[num+1].x;
+        let min_x = this.basics[num].x;
+        if (x > max_x){
+            x = max_x;
+        } else if (x < min_x){
+            x = min_x;
+        }
+        let max_y = Math.max(this.basics[num].y, this.basics[num+1].y);
+        let min_y = Math.min(this.basics[num].y, this.basics[num+1].y);
+        if (y > max_y){
+            y = max_y;
+        } else if (y < min_y){
+            y = min_y;
+        }
+        return [x,y];
+    }
+    private setDefaultHandle(num:number){
         this.handles[num].xl=0.5;
         this.handles[num].yl=0.5;
-        this.setHandleAbsByRelPos(num);
     }
-    addBasicPoint(x:number, y:number){
+    paste(paste:[BasicPoint[], HandlePoint[]]){
+        this.basics = [];
+        this.handles = [];
+        for (let basic of paste[0]){
+            this.basics.push(basic.clone())
+        }
+        for (let handle of paste[1]){
+            this.handles.push(handle.clone())
+        }
+    }
+    copy():[BasicPoint[], HandlePoint[]]{
+        let basics = [];
+        let handles = [];
+        for (let basic of this.basics){
+            basics.push(basic.clone())
+        }
+        for (let handle of this.handles){
+            handles.push(handle.clone())
+        }
+        return [basics, handles];
+    }
+    getAroundPoints(point:Point){
+        if (point instanceof HandlePoint){
+            const num = this.handles.indexOf(point);
+            return [this.basics[num], this.handles[num], this.basics[num+1]];
+        } else if (point instanceof BasicPoint){
+            const num = this.basics.indexOf(point);
+            return [point, this.handles[num-1], this.handles[num]];
+        } else {
+            return [new BasicPoint(0, 0, false, false), new HandlePoint(0, 0), new HandlePoint(0, 0)];
+        }
+    }
+    create(points:any){
+        let basic = points[0];
+        let handle1 = new HandlePoint(0, 0);
+        let handle2 = new HandlePoint(0, 0);
+        if (points.length==3){
+            handle1 = points[1];
+            handle2 = points[2];
+        }
         for (let i = 0; i < this.basics.length-1; i++){
-            if (this.basics[i].x <= x && x <= this.basics[i+1].x){
-                this.basics.splice(i+1, 0, new BasicPoint(x, y));
-                this.handles.splice(i, 1, new HandlePoint(0,0), new HandlePoint(0,0));
-                this.setDefaultHandle(i);
-                this.setDefaultHandle(i+1);
+            if (this.basics[i].x <= basic.x && basic.x <= this.basics[i+1].x){
+                this.basics.splice(i+1, 0, basic);
+                this.handles.splice(i, 1, handle1, handle2);
+                this.setHandleAbsByRelPos(i);
+                this.setHandleAbsByRelPos(i+1);
                 return;
             }
         }
-        
     }
-    removeBasicPoint(point:BasicPoint){
+    delete(points:any){
+        if (points.length==2){
+            this.basics = [];
+            this.handles = [];
+            return;
+        }
+        let point = points[0];
         const num = this.basics.indexOf(point);
         this.basics.splice(num, 1);
         this.handles.splice(num-1, 2, new HandlePoint(0,0));
-        this.setDefaultHandle(num-1);
+        this.setHandleAbsByRelPos(num-1);
     }
-    getI(i:number):number{
-        for (let j = 0; j < this.basics.length-1; j++){
-            if (this.basics[j+1].x == i){
-                return this.basics[j+1].y;
+    getI(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
+        for (let j = 0; j < basics.length-1; j++){
+            if (basics[j+1].x == i){
+                return basics[j+1].y;
             }
-            if (this.basics[j].x <= i && i <= this.basics[j+1].x){
-                let p0 = this.basics[j];
-                let p1 = this.handles[j];
-                let p2 = this.basics[j+1];
+            if (basics[j].x <= i && i <= basics[j+1].x){
+                let p0 = basics[j];
+                let p1 = handles[j];
+                let p2 = basics[j+1];
                 let A = p0.x - 2*p1.x + p2.x;
                 let B = 2*(p1.x-p0.x);
                 let C = p0.x-i;
@@ -100,24 +165,32 @@ export default class OscFunction{
     getItest(i:number):number{
         return (Math.acos(Math.cos(i * Math.PI*2)) - (Math.PI / 2)) / (Math.PI / 2) * 2 - 1;
     }
-    
     setHandleAbsPos(num:number, x:number, y:number){
+        let xl = 0;
+        let yl = 0;
+        if (x-this.basics[num].x != 0){
+            xl = (x-this.basics[num].x)/(this.basics[num+1].x-this.basics[num].x);
+        }
+        if (y-this.basics[num].y != 0){
+            yl = (y-this.basics[num].y)/(this.basics[num+1].y-this.basics[num].y);
+        }
+        return [xl,yl];
+    }
+    calcHandleAbs(basic1:BasicPoint, handle:HandlePoint, basic2:BasicPoint):[number,number]{
+        let x = basic1.x + (basic2.x-basic1.x)*handle.xl;
+        let y = basic1.y + (basic2.y-basic1.y)*handle.yl;
+        return [x, y];
+    }
+    private setHandleAbsByRelPos(num:number){
+        let [x, y] = this.calcHandleAbs(this.basics[num], this.handles[num], this.basics[num+1]);
         this.handles[num].x = x;
         this.handles[num].y = y;
-        if (x-this.basics[num].x==0){
-            this.handles[num].xl = 0;
-        } else {
-            this.handles[num].xl = (x-this.basics[num].x)/(this.basics[num+1].x-this.basics[num].x);
-        }
-        if (y-this.basics[num].y==0){
-            this.handles[num].yl = 0;
-        } else {
-            this.handles[num].yl = (y-this.basics[num].y)/(this.basics[num+1].y-this.basics[num].y);
-        }
     }
-    setHandleAbsByRelPos(num:number){
-        this.handles[num].x = this.basics[num].x + (this.basics[num+1].x-this.basics[num].x)*this.handles[num].xl;
-        this.handles[num].y = this.basics[num].y + (this.basics[num+1].y-this.basics[num].y)*this.handles[num].yl;
+    getHandleDelta(point:HandlePoint){
+        let num = this.handles.findIndex((e)=>(e==point));
+        let x = this.basics[num].x + (this.basics[num+1].x-this.basics[num].x)*this.handles[num].xl - point.x;
+        let y = this.basics[num].y + (this.basics[num+1].y-this.basics[num].y)*this.handles[num].yl - point.y;
+        return [x,y];
     }
 }
 
@@ -131,6 +204,9 @@ export class Point{
     getLength(x:number, y:number):number{
         return Math.sqrt(Math.pow(this.x-x, 2) + Math.pow(this.y-y, 2));
     }
+    clone():Point{
+        return new Point(this.x, this.y);
+    }
 }
 
 export class BasicPoint extends Point{
@@ -141,6 +217,9 @@ export class BasicPoint extends Point{
         this.x_move = x_move;
         this.y_move = y_move;
     }
+    clone():BasicPoint{
+        return new BasicPoint(this.x, this.y, this.x_move, this.y_move);
+    }
 }
 
 export class HandlePoint extends Point{
@@ -150,5 +229,8 @@ export class HandlePoint extends Point{
         super(x, y);
         this.xl = xl;
         this.yl = yl;
+    }
+    clone():HandlePoint{
+        return new HandlePoint(this.x, this.y, this.xl, this.yl);
     }
 }

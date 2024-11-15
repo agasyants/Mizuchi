@@ -24,8 +24,8 @@ export class Distortion extends AudioEffect{
         this.gain=gain;
     }
     process(sample:number){
-        if (sample>=0) return [Math.pow(sample,this.gain*5+1)];
-        return [-Math.pow(-sample,this.gain*5+1)];
+        if (sample>=0) return [Math.pow(sample,1.1-this.gain)];
+        return [-Math.pow(-sample,1.1-this.gain)];
     }
 }
 

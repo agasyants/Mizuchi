@@ -32,10 +32,11 @@ export default class Mix{
             const newFunc = new OscFunction();
             let newBasics:BasicPoint[] = [];
             for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
-            newFunc.basics = newBasics;
+            newBasics[0].x_move = false;
+            newBasics[newBasics.length-1].x_move = false;
             let newHandles:HandlePoint[] = [];
             for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
-            newFunc.handles = newHandles;
+            newFunc.paste([newBasics,newHandles]);
             const newOsc = new Oscillator(newFunc);
             const newInst = new Instrument(newOsc);
             const newTrack = new Track(track.name, newInst);
@@ -57,9 +58,6 @@ export default class Mix{
     }
     addTrack(){
         this.tracks.push(new Track('track '+ (this.tracks.length+1).toString()));
-        for (let i = 0; i < this.max_score; i++){
-            this.tracks[this.tracks.length-1].addScore();
-        }
     }
     removeTrack(track:Track){
         let index = this.tracks.indexOf(track);

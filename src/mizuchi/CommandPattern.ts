@@ -1,72 +1,88 @@
 export default class CommandPattern{
-    private static _instance:CommandPattern;
-    public static get_instance():CommandPattern{
-        if (!this._instance) this._instance = new CommandPattern();
-        return this._instance;
+    public commands:Command[] = [];
+    public undoCommands:Command[] = [];
+    public addCommand(command:Command){
+        this.commands.push(command);
+        this.undoCommands = [];
     }
-    constructor(){
-        console.log("CommandPattern created");
+    undo(){
+        const command = this.commands.pop();
+        if (command){
+            this.undoCommands.push(command);
+            command.undo();
+        }
+    }
+    redo(){
+        const command = this.undoCommands.pop();
+        if (command){
+            this.commands.push(command);
+            command.do();
+        }
     }
 }
-
 
 export class Command{
-    constructor(){
-        console.log("Command created");
-    }
+    do(){console.log("Do");}
+    undo(){console.log("Undo");}
 }
 
-export class Cut extends Command{
-    constructor(public object:any, public subject:any, shouldUse:boolean){
-        super();
-        if (shouldUse) this.use();
-    }
-    use(){
-        console.log("Cut");
-        this.subject.cut(this.object);
-    }
-    getUndo(){
-        return new Paste(this.object, this.subject, false);
-    }
-}
 
-export class Paste extends Command{
-    constructor(public object:any, public subject:any, shouldUse:boolean){
+export class Create extends Command{
+    constructor(public subject:any, public object:any, shouldUse:boolean=true){
         super();
-        if (shouldUse) this.use();
+        if (shouldUse) this.do();
     }
-    use(){
-        console.log("Paste");
+    do(){
+        console.log("Create");
+        this.subject.create(this.object);
     }
-    getUndo(){
-        return new Cut(this.object, this.subject, false);
+    undo(){
+        console.log("Delete");
+        this.subject.delete(this.object);
     }
 }
 
 export class Delete extends Command{
-    constructor(public object:any, public subject:any, shouldUse:boolean){
+    constructor(public subject:any, public object:any, shouldUse:boolean=true){
         super();
-        if (shouldUse) this.use();
+        if (shouldUse) this.do();
     }
-    use(){
+    do(){
         console.log("Delete");
         this.subject.delete(this.object);
     }
-    getUndo(){
-        return new Cut(this.object, this.subject, false);
+    undo(){
+        console.log("Create");
+        this.subject.create(this.object);
     }
 }
 
 export class Move extends Command{
-    constructor(public object:any, public subject:any, public x:number, public y:number, shouldUse:boolean=true){
+    constructor(public subject:any, public object:any, public x:number, public y:number, shouldUse:boolean=true){
         super();
-        if (shouldUse) this.use();
+        if (shouldUse) this.do();
     }
-    use(){
-        console.log("Move");
+    do(){
+        console.log("Move "+this.x+" "+this.y);
         this.subject.move(this.object, this.x, this.y);
     }
-    getUndo(){
-        return new Move(this.object, this.subject, -this.x, -this.y, false);
+    undo(){
+        console.log("Move "+(-this.x)+" "+(-this.y));
+        this.subject.move(this.object, -this.x, -this.y);
+    }
+}
+
+export class Paste extends Command{
+    constructor(public subject:any, public object:any, shouldUse:boolean=true){
+        super();
+        if (shouldUse) this.do();
+    }
+    do(){
+        console.log("Paste");
+        this.subject.paste(this.object);
+    }
+    undo(){
+        console.log("Delete");
+        this.subject.delete(this.object);
     }
 }

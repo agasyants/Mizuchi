@@ -33,3 +33,7 @@ button{
     display: none;
     top: 0px;
 }
+canvas:focus{
+    outline: rgb(0, 119, 255) solid 2px;
+    border-radius: 2px;
+}

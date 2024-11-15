@@ -1,8 +1,10 @@
 import OscFunction, { BasicPoint, HandlePoint, Point } from "./osc_function";
+import  CommandPattern,{ Create, Delete, Move } from "./CommandPattern";
 
 export default class OscDrawer{
+    commandPattern:CommandPattern;
     chosenPoint:Point|null = null;
-    drugged:boolean = false;
+    drugged:number = -1;
     render_handles:boolean = false;
     w:number;
     h:number;
@@ -11,119 +13,206 @@ export default class OscDrawer{
     width:number;
     height:number;
     ctx:CanvasRenderingContext2D;
-    constructor(public oscCanvas:HTMLCanvasElement, public oscFunction:OscFunction){
+    range:number = 0.03;
+    cursor:Point|null=null;
 
-        this.w = this.oscCanvas.width = oscCanvas.width * devicePixelRatio;
-        this.h = this.oscCanvas.height = oscCanvas.height * devicePixelRatio;
-        this.oscCanvas.style.width = oscCanvas.width / devicePixelRatio + 'px';
-        this.oscCanvas.style.height = oscCanvas.height / devicePixelRatio + 'px';
+    constructor(public canvas:HTMLCanvasElement, public oscFunction:OscFunction){
+        this.commandPattern = new CommandPattern();
+
+        this.w = this.canvas.width = canvas.width * devicePixelRatio;
+        this.h = this.canvas.height = canvas.height * devicePixelRatio;
+        this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
+        this.canvas.style.height = canvas.height / devicePixelRatio + 'px';
       
-        this.ctx = oscCanvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.margin_top = oscCanvas.height/12;
+        this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
+        this.margin_top = canvas.height/12;
         this.margin_left = this.margin_top;
         this.width = (this.w - 2*this.margin_left);
         this.height = (this.h - 2*this.margin_top);
-        this.ctx?.translate(this.margin_left, this.h/2);
+        this.ctx.translate(this.margin_left, this.h/2);
 
-        oscCanvas.onselectstart = function () { return false; }
-        oscCanvas.addEventListener('dblclick', (e) => {
-            const rect = oscCanvas.getBoundingClientRect();
+        canvas.onselectstart = function () { return false; }
+        canvas.tabIndex = 1;
+        this.initializeListeners()
+        this.render()
+    }
+    initializeListeners(){
+        this.canvas.addEventListener('dblclick', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height-0.5;
             this.doubleInput(x,y);
             this.render();
         });
-        oscCanvas.addEventListener('pointermove', (e) => {
-            const rect = oscCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left)/rect.width;
-            const y = (e.clientY - rect.top)/rect.height-0.5;
-            this.findPoint(x,y,0.06);
-            this.render();
+        window.addEventListener("keydown", (e) => {
+            if (e.code=="KeyZ" && e.ctrlKey){
+                e.preventDefault();
+                if (e.shiftKey){
+                    this.commandPattern.redo();
+                } else {
+                    this.commandPattern.undo();
+                } this.render();
+            }
         });
-        oscCanvas.addEventListener('pointerdown', () => {
+        this.canvas.addEventListener('keydown', (e) => {
+            if (e.code=="KeyA" && e.ctrlKey){
+                e.preventDefault();
+                console.log("Osc");
+                e.stopPropagation();
+            }
+        });
+        this.canvas.addEventListener('pointermove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            let x = (e.clientX - rect.left)/rect.width;
+            let y = (e.clientY - rect.top)/rect.height-0.5;
+            [x,y] = this.processInput(x,y);
+            if (this.drugged==-1){
+                this.findPoint(x,y,this.range);
+            }
+            this.render(x,y);
+        });
+        this.canvas.addEventListener('pointerdown', () => {
             if (this.chosenPoint){
-                this.drugged = true;}
+                if (this.chosenPoint instanceof BasicPoint){
+                    this.drugged = this.oscFunction.basics.findIndex((e)=>(e == this.chosenPoint));
+                } else if (this.chosenPoint instanceof HandlePoint){
+                    this.drugged = this.oscFunction.handles.findIndex((e)=>(e == this.chosenPoint));
+                }                
+            }
         });
-        oscCanvas.addEventListener('pointerup', () => {
-            this.drugged = false;
+        this.canvas.addEventListener('pointerup', (e) => {
+            if (this.drugged!=-1 && this.chosenPoint){
+                const rect = this.canvas.getBoundingClientRect();
+                let x = (e.clientX - rect.left)/rect.width;
+                let y = (e.clientY - rect.top)/rect.height-0.5;
+                [x,y] = this.processInput(x,y);
+                x = x-this.chosenPoint.x;
+                y = y-this.chosenPoint.y;
+                if (Math.sqrt(x*x+y*y)>this.range){
+                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,x,y));
+                }
+            }
+            this.drugged = -1;
         });
-        oscCanvas.addEventListener('pointerleave', () => {
+        this.canvas.addEventListener('pointerleave', () => {
             this.render_handles = false;
             this.chosenPoint = null;
+
             this.render();
         });
-        oscCanvas.addEventListener('pointerover', () => {
+        this.canvas.addEventListener('pointerover', () => {
             this.render_handles = true;
+            this.canvas.focus();
         });
-
-        this.render()
     }
-    render() {
+    render(x:number=0, y:number=0) {
         this.ctx.clearRect(-this.margin_left, -this.h/2, this.w, this.h);
         this.ctx.font = "14px system-ui";
-        this.renderTest();
+        let basics = [];
+        if (this.chosenPoint instanceof BasicPoint && this.drugged==0){
+            [x, y] = this.oscFunction.calcBasic(this.chosenPoint,0, x, y);
+            basics.push(new BasicPoint(x,y));
+
+        } else {
+            basics.push(this.oscFunction.basics[0]);
+        }
+        let handles = [];
+        if (this.chosenPoint instanceof HandlePoint){
+            for (let i=0; i<this.oscFunction.handles.length; i++){
+                if (this.drugged==i){
+                    basics.push(this.oscFunction.basics[i+1]);
+                    [x,y] = this.oscFunction.calcHandle(i,x,y);
+                    let [xl,yl] = this.oscFunction.setHandleAbsPos(i, x, y);
+                    handles.push(new HandlePoint(x, y, xl, yl));
+                } else {
+                    basics.push(this.oscFunction.basics[i+1]);
+                    handles.push(this.oscFunction.handles[i]);
+                }
+            }
+        } else if (this.chosenPoint instanceof BasicPoint && this.drugged!=0) {
+            for (let i=0; i<this.oscFunction.handles.length; i++){
+                if (this.drugged-1==i){
+                    [x, y] = this.oscFunction.calcBasic(this.chosenPoint, i+1, x, y);
+                    basics.push(new BasicPoint(x, y));
+                    let [x1,y1] = this.oscFunction.calcHandleAbs(basics[i], this.oscFunction.handles[i], basics[i+1]);
+                    handles.push(new HandlePoint(x1, y1, this.oscFunction.handles[i].xl, this.oscFunction.handles[i].yl));
+                } else if (this.drugged==i){
+                    basics.push(this.oscFunction.basics[i+1]);
+                    let [x1,y1] = this.oscFunction.calcHandleAbs(basics[i], this.oscFunction.handles[i], basics[i+1]);
+                    handles.push(new HandlePoint(x1, y1, this.oscFunction.handles[i].xl, this.oscFunction.handles[i].yl));
+                } else {
+                    basics.push(this.oscFunction.basics[i+1]);
+                    handles.push(this.oscFunction.handles[i]);
+                }
+            }
+        } else {
+            for (let i=0; i<this.oscFunction.handles.length; i++){
+                basics.push(this.oscFunction.basics[i+1]);
+                handles.push(this.oscFunction.handles[i]);
+            }
+            if (this.drugged == 0){
+                let [x1,y1] = this.oscFunction.calcHandleAbs(basics[0], this.oscFunction.handles[0], basics[1]);
+                handles[0] = new HandlePoint(x1,y1,this.oscFunction.handles[0].xl,this.oscFunction.handles[0].yl);
+            }
+        }
+        this.renderTest(basics, handles);
         this.renderAxes();
         if (this.render_handles){
-            this.renderBetween()
+            this.renderBetween(basics, handles)
         }
-        this.renderFunction();
+        this.renderFunction(basics, handles);
         if (this.render_handles){
-            this.renderHandles();
+            this.renderHandles(handles);
         }
-        this.renderBasics();
-        this.renderChosen();
-        
+        this.renderBasics(basics);
+        this.renderChosen(x,-y);
     }
-
-    renderFunction(){
+    renderFunction(basics:BasicPoint[], handles:HandlePoint[]){
         this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
+        this.ctx.moveTo(basics[0].x*this.width, -basics[0].y*this.height/2);
+        
         this.ctx.strokeStyle = 'yellow';
         this.ctx.lineWidth = 4;
         let i = 0;
-        this.oscFunction.handles.forEach((handle) => {
-            const basic = this.oscFunction.basics[i+1];
+        for (let handle of handles) {
+            const basic = basics[i+1];
             this.ctx.quadraticCurveTo(handle.x*this.width, -handle.y*this.height/2, basic.x*this.width, -basic.y*this.height/2);
             i++;
-        });
+        };
         this.ctx.stroke();
         this.ctx.closePath();
     }
-
-    renderBasics(){
-        this.oscFunction.basics.forEach(point => {
+    renderBasics(basics:BasicPoint[]){
+        for (let basic of basics) {
             this.ctx.beginPath();
-            this.ctx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
+            this.ctx.arc(basic.x*this.width, -basic.y*this.height/2, 6, 0, 2*Math.PI);
             this.ctx.fillStyle = 'red';
             this.ctx.fill();
             this.ctx.closePath();
-        });
+        }
     }
-
-    renderHandles(){
-        this.oscFunction.handles.forEach((point) => {
+    renderHandles(handles:HandlePoint[]){
+        for (let handle of handles) {
             this.ctx.beginPath();
-            this.ctx.arc(point.x*this.width, -point.y*this.height/2, 6, 0, 2*Math.PI);
+            this.ctx.arc(handle.x*this.width, -handle.y*this.height/2, 6, 0, 2*Math.PI);
             this.ctx.fillStyle = 'rgb(0,160,255)';
             this.ctx.fill();
             this.ctx.closePath();
-        });
+        };
     }
-
-    renderBetween(){
+    renderBetween(basics:BasicPoint[], handles:HandlePoint[]){
         for (let i=0; i<this.oscFunction.handles.length; i++){
             this.ctx.beginPath();
-            this.ctx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
-            this.ctx.lineTo(this.oscFunction.basics[i].x*this.width, -this.oscFunction.basics[i].y*this.height/2);
-            this.ctx.moveTo(this.oscFunction.handles[i].x*this.width, -this.oscFunction.handles[i].y*this.height/2);
-            this.ctx.lineTo(this.oscFunction.basics[i+1].x*this.width, -this.oscFunction.basics[i+1].y*this.height/2);
+            this.ctx.moveTo(handles[i].x*this.width, -handles[i].y*this.height/2);
+            this.ctx.lineTo(basics[i].x*this.width, -basics[i].y*this.height/2);
+            this.ctx.moveTo(handles[i].x*this.width, -handles[i].y*this.height/2);
+            this.ctx.lineTo(basics[i+1].x*this.width, -basics[i+1].y*this.height/2);
             this.ctx.strokeStyle = 'rgb(0,100,255)';
             this.ctx.lineWidth = 2.5;
             this.ctx.stroke();
             this.ctx.closePath();
         }
     }
-
     renderAxes(){
         this.ctx.beginPath();
         this.ctx.moveTo(0, 0);
@@ -184,12 +273,13 @@ export default class OscDrawer{
         }
 
     }
-
-    renderChosen(){
+    renderChosen(x:number,y:number){
         if (!this.chosenPoint) return;
         this.ctx.beginPath();
-        let x = this.chosenPoint.x;
-        let y = -this.chosenPoint.y;
+        if (this.drugged==-1){
+            x = this.chosenPoint.x;
+            y = -this.chosenPoint.y;
+        }
         this.ctx.arc(x*this.width, y*this.height/2, 6, 0, 2*Math.PI);
         this.ctx.lineWidth = 2;
         this.ctx.strokeStyle = 'yellow';
@@ -198,16 +288,15 @@ export default class OscDrawer{
 
         this.ctx.beginPath();
         this.ctx.fillStyle = 'yellow';
-        this.ctx.fillText(`${this.chosenPoint.x.toFixed(2)}, ${this.chosenPoint.y.toFixed(2)}`, this.chosenPoint.x*this.width+5, -this.chosenPoint.y*this.height/2-5);
+        this.ctx.fillText(`${x.toFixed(2)}, ${-y.toFixed(2)}`, x*this.width+5, y*this.height/2-5);
         this.ctx.closePath();
     }
-
-    renderTest(){
+    renderTest(basics:BasicPoint[], handles:HandlePoint[]){
         let n = 64;
         for (let i=1; i<n; i++){
             this.ctx.beginPath();
             this.ctx.moveTo(i*this.width/n, 0);
-            this.ctx.lineTo(i*this.width/n, -this.oscFunction.getI(i/n)*this.height/2);
+            this.ctx.lineTo(i*this.width/n, -this.oscFunction.getI(i/n,basics,handles)*this.height/2);
             this.ctx.lineWidth = 1;
             this.ctx.strokeStyle = 'yellow';
             this.ctx.stroke();
@@ -216,39 +305,40 @@ export default class OscDrawer{
     }
 
     processInput(x:number, y:number){
-        x = (x - this.margin_left/this.oscCanvas.width) * this.oscCanvas.width/this.width;
-        y = -y*this.oscCanvas.height/this.height*2;
+        x = (x - this.margin_left/this.canvas.width) * this.canvas.width/this.width;
+        y = -y*this.canvas.height/this.height*2;
         return [x,y];
     }
     doubleInput(x:number, y:number){
         [x,y] = this.processInput(x,y);
         if (this.chosenPoint!=null){
             if (this.chosenPoint instanceof BasicPoint && this.chosenPoint.x_move && this.chosenPoint.y_move){
-                this.oscFunction.removeBasicPoint(this.chosenPoint);
+                let points = this.oscFunction.getAroundPoints(this.chosenPoint);
+                this.commandPattern.addCommand(new Delete(this.oscFunction,points));
             } else if (this.chosenPoint instanceof HandlePoint){
                 if (this.chosenPoint.xl == 0.5 && this.chosenPoint.yl == 0.5){
-                    this.oscFunction.addBasicPoint(this.chosenPoint.x, this.chosenPoint.y);
+                    this.addPoint(this.chosenPoint.x,this.chosenPoint.y);
                 } else {
-                    this.oscFunction.setDefaultHandle(this.oscFunction.handles.findIndex((e)=>(e==this.chosenPoint)));
+                    this.chosenPoint.xl = 0.5;
+                    this.chosenPoint.yl = 0.5;
+                    [x,y] = this.oscFunction.getHandleDelta(this.chosenPoint);
+                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,x,y));
                 }
             }
             this.chosenPoint=null;
         } else {
             this.addPoint(x, y);
-        }
+        } 
+        this.findPoint(x, y, 0.06);
+        this.render();
     }
     addPoint(x:number, y:number){
         if (x > 0 && x < 1 && y > -1 && y < 1){
-            this.oscFunction.addBasicPoint(x,y)
+            this.commandPattern.addCommand(new Create(this.oscFunction,[new BasicPoint(x, y)]));
             this.render();
         }
     }
     findPoint(x:number, y:number, range:number){
-        [x,y] = this.processInput(x,y);
-        if (this.drugged && this.chosenPoint){
-            this.oscFunction.move(this.chosenPoint, x, y);
-            return;
-        }
         let flag = true; 
         for (let point of this.oscFunction.handles){
             if (point.getLength(x,y) <= range && (flag || (this.chosenPoint && point.getLength(x,y)<this.chosenPoint.getLength(x,y)))){

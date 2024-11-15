@@ -6,6 +6,8 @@ import ScoreDrawer from "./score_drawer";
 import MixDrawer from "./mix_drawer";
 import { Mixer } from "./mixer";
 import { Delay, Distortion, Distortion2, Distortion3 } from "./audio_effects";
+import { Paste } from "./CommandPattern";
+// import TrackDrawer from "./track_drawer";
 
 export default class Mizuchi{
     constructor(){
@@ -13,7 +15,7 @@ export default class Mizuchi{
         if (!OscCanvas) return;
         let mix:Mix = new Mix();
         const mixer: Mixer = new Mixer(mix);
-        
+
         const start_input = document.getElementById('start') as HTMLInputElement;
         start_input.addEventListener("change", () => {
             mix.start = Number(start_input.value);
@@ -32,7 +34,6 @@ export default class Mizuchi{
 
         const TestButton = document.getElementById('Test') || document.createElement('div');
         TestButton.addEventListener('click', () => {
-            
         })
 
         const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
@@ -58,26 +59,22 @@ export default class Mizuchi{
         }
         const SinePreset = document.getElementById('Sine') || document.createElement('div');
         SinePreset.addEventListener('click', () => {
-            oscDrawer.oscFunction.basics = [new BasicPoint(0,0), new BasicPoint(0.25,1), new BasicPoint(0.5,0), new BasicPoint(0.75,-1), new BasicPoint(1,0)];
-            oscDrawer.oscFunction.handles = [new HandlePoint(0,1,0,1), new HandlePoint(0.5,1,1,0),new HandlePoint(0.5,-1,0,1),new HandlePoint(1,-1,1,0)];
+            oscDrawer.commandPattern.addCommand(new Paste(oscDrawer.oscFunction, [[new BasicPoint(0,0), new BasicPoint(0.25,1), new BasicPoint(0.5,0), new BasicPoint(0.75,-1), new BasicPoint(1,0)], [new HandlePoint(0,1,0,1), new HandlePoint(0.5,1,1,0),new HandlePoint(0.5,-1,0,1),new HandlePoint(1,-1,1,0)]]));
             oscDrawer.render();
         });
         const SawPreset = document.getElementById('Saw') || document.createElement('div');
         SawPreset.addEventListener('click', () => {
-            oscDrawer.oscFunction.basics = [new BasicPoint(0, 0), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1),new BasicPoint(1, 0)];
-            oscDrawer.oscFunction.handles = [new HandlePoint(0.25,0.5), new HandlePoint(0.5,0), new HandlePoint(0.75,-0.5)];
+            oscDrawer.commandPattern.addCommand(new Paste(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1),new BasicPoint(1, 0)], [new HandlePoint(0.25,0.5), new HandlePoint(0.5,0), new HandlePoint(0.75,-0.5)]]));
             oscDrawer.render();
         });
         const SquarePreset = document.getElementById('Square') || document.createElement('div');
         SquarePreset.addEventListener('click', () => {
-            oscDrawer.oscFunction.basics = [new BasicPoint(0, 0), new BasicPoint(0, 1), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1), new BasicPoint(1, -1),new BasicPoint(1, 0)];
-            oscDrawer.oscFunction.handles = [new HandlePoint(0,0.5), new HandlePoint(0.25,1),new HandlePoint(0.5,0),new HandlePoint(0.75,-1),new HandlePoint(1,-0.5)];
+            oscDrawer.commandPattern.addCommand(new Paste(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0, 1), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1), new BasicPoint(1, -1),new BasicPoint(1, 0)], [new HandlePoint(0,0.5), new HandlePoint(0.25,1),new HandlePoint(0.5,0),new HandlePoint(0.75,-1),new HandlePoint(1,-0.5)]]));
             oscDrawer.render();
         });
         const TrianglePreset = document.getElementById('Triangle') || document.createElement('div');
         TrianglePreset.addEventListener('click', () => {
-            oscDrawer.oscFunction.basics = [new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)];
-            oscDrawer.oscFunction.handles = [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)];
+            oscDrawer.commandPattern.addCommand(new Paste(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)]]));
             oscDrawer.render();
         });
     

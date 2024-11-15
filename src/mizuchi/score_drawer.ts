@@ -42,6 +42,7 @@ export default class ScoreDrawer{
         this.gridX = this.margin_left + this.pianoWidth*this.width;
         this.gridY = -this.margin_top;
         canvas.onselectstart = function () { return false; }
+        canvas.tabIndex = 2;
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.deltaY) {
@@ -121,8 +122,10 @@ export default class ScoreDrawer{
         if (score){
             this.score = score;
             this.canvas.style.display = 'block';
+            this.canvas.focus();
             this.render();
         } else {
+            this.canvas.blur();
             this.canvas.style.display = 'none';
         }
     }
