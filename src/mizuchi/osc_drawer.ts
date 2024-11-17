@@ -44,7 +44,11 @@ export default class OscDrawer{
             this.doubleInput(x,y);
             this.render();
         });
-        window.addEventListener("keydown", (e) => {
+        this.canvas.addEventListener('keydown', (e) => {
+            if (e.code=="KeyA" && e.ctrlKey){
+                e.preventDefault();
+                console.log("Osc");
+            }
             if (e.code=="KeyZ" && e.ctrlKey){
                 e.preventDefault();
                 if (e.shiftKey){
@@ -53,13 +57,7 @@ export default class OscDrawer{
                     this.commandPattern.undo();
                 } this.render();
             }
-        });
-        this.canvas.addEventListener('keydown', (e) => {
-            if (e.code=="KeyA" && e.ctrlKey){
-                e.preventDefault();
-                console.log("Osc");
-                e.stopPropagation();
-            }
+            e.stopPropagation();
         });
         this.canvas.addEventListener('pointermove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
@@ -69,7 +67,13 @@ export default class OscDrawer{
             if (this.drugged==-1){
                 this.findPoint(x,y,this.range);
             }
-            this.render(x,y);
+            if (e.ctrlKey && this.chosenPoint){
+                this.render(this.chosenPoint.x, y);
+            } else if (e.shiftKey && this.chosenPoint){
+                this.render(x, this.chosenPoint.y);
+            } else {
+                this.render(x, y);
+            }
         });
         this.canvas.addEventListener('pointerdown', () => {
             if (this.chosenPoint){

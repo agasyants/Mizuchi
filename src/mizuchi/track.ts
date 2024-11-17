@@ -21,6 +21,9 @@ export default class Track {
             this.scores.push(new Score(0));
         }
     }
+    deleteScore(score:Score){
+        this.scores = this.scores.filter((s)=>s!=score);
+    }
     getFullScore():Note[] {
         let full_score:Note[] = [];
         for (let score of this.scores){

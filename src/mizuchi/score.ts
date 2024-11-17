@@ -1,12 +1,22 @@
 import Note from "./note";
 
 export default class Score {
-    notes:Note[] = []
+    notes:Note[] = [];
+    start_note: number = 16;
+    loop_guration: number = 64;
     constructor(public start_time:number, public duration:number = 32){}
-    addNotes(notes:Note[]) {
-        notes.forEach(note => {
-            this.notes.push(note.clone());
-        });
+    create(notes:Note[]) {
+        for (let note of notes){
+            this.notes.push(note);
+        }
+        this.sort();
+        this.update();
+    }
+    move(notes:Note[], x:number, y:number) {
+        for (let note of notes){
+            note.start += x;
+            note.pitch += y;
+        }
         this.sort();
         this.update();
     }
@@ -45,10 +55,11 @@ export default class Score {
         const scoreDelt = this.start_time-score.start_time
         score.notes.forEach(note => {
             this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
-        }); this.duration = score.duration+scoreDelt;
+        }); 
+        this.duration = score.duration+scoreDelt;
         this.sort();
     }
-    removeNotes(notes:Note[]) {
+    delete(notes:Note[]) {
         notes.forEach(note => {
             this.notes.splice(this.notes.indexOf(note), 1);
         });

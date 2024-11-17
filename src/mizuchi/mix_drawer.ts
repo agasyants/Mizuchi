@@ -4,6 +4,7 @@ import OscDrawer from "./osc_drawer";
 import ScoreDrawer from "./score_drawer";
 import Track from "./track";
 import AudioEffect from "./audio_effects";
+import CommandPattern from "./CommandPattern";
 
 
 export default class MixDrawer{
@@ -31,6 +32,7 @@ export default class MixDrawer{
     selectedScore:Score|null = null;
     chosenTrack:Track|null = null;
     chosenScore:Score|null = null;
+    comaandPuttern:CommandPattern = new CommandPattern();
 
     oscDrawer:OscDrawer;
     scoreDrower:ScoreDrawer;
@@ -96,11 +98,17 @@ export default class MixDrawer{
                 e.preventDefault();
                 e.stopPropagation();
             }
-            if (e.code=="KeyDelete" || e.code=="KeyBackSpace"){
+            if (e.code=="Delete" || e.code=="Backspace"){
                 if (this.chosenTrack){
-                    // this.chosenTrack.removeScore(this.chosenScore);
-                    this.chosenScore = null;
+                    if (this.chosenScore){
+                        this.chosenTrack.deleteScore(this.chosenScore);
+                        this.chosenScore = null;
+                    } else {
+                        this.mix.deleteTrack(this.chosenTrack);
+                        this.chosenTrack = null;
+                    }
                 }
+                this.render();
             }
         });
         canvas.addEventListener('contextmenu', (e) => {
@@ -174,7 +182,7 @@ export default class MixDrawer{
             this.ctx.beginPath();
             this.ctx.moveTo(x, y);
             this.ctx.lineTo(x, y+this.track_h);
-            this.ctx.strokeStyle = 'grey';
+            this.ctx.strokeStyle = 'rgba(225,225,255,0.3)';
             this.ctx.lineWidth = 1;
             this.ctx.stroke();
             this.ctx.closePath();
@@ -286,11 +294,6 @@ export default class MixDrawer{
                     } else {
                         this.scoreDrower.setScore(this.chosenScore);
                     }
-                } else if (this.chosenTrack==this.selectedTrack && this.mix.tracks.length > 1){
-                    for (let i of this.mix.tracks) if (i==this.chosenTrack) this.mix.removeTrack(i);
-                    this.chosenTrack = null;
-                    this.find();
-                    this.render();
                 }
             }
             this.find();

@@ -18,7 +18,6 @@ export default class Mix{
         } else {
             this.addTrack();
             this.addTrack();
-            this.addTrack(); 
         }
     }
     save(){
@@ -42,6 +41,8 @@ export default class Mix{
             const newTrack = new Track(track.name, newInst);
             for (let score of track.scores){
                 const newScore = new Score(score.start_time, score.duration);
+                newScore.start_note = score.start_note;
+                // newScore.loop_guration = score.loop_guration;
                 for (let note of score.notes){
                     newScore.notes.push(new Note(note.pitch, note.start, note.duration));
                 }
@@ -59,7 +60,7 @@ export default class Mix{
     addTrack(){
         this.tracks.push(new Track('track '+ (this.tracks.length+1).toString()));
     }
-    removeTrack(track:Track){
+    deleteTrack(track:Track){
         let index = this.tracks.indexOf(track);
         if (index > -1) this.tracks.splice(index, 1);
     }
