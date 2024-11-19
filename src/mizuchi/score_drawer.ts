@@ -1,6 +1,6 @@
-import Score from "./score";
+import Score, { Selection } from "./score";
 import Note from "./note";
-import CommandPattern, { Create, Delete } from "./CommandPattern";
+import CommandPattern, { Complex, Create, Delete, Move } from "./CommandPattern";
 
 export default class ScoreDrawer{
     pianoWidth: number = 0.1;
@@ -23,9 +23,10 @@ export default class ScoreDrawer{
 
     selectedNotes:Note[] = [];
     drugged:boolean = false;
+    note:boolean = false;
+    ctrl:boolean = false;
 
     sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
-    selection: Selection = new Selection;
     constructor(public canvas:HTMLCanvasElement, public score:Score){
 
         this.w = this.canvas.width = canvas.width * devicePixelRatio;
@@ -57,9 +58,23 @@ export default class ScoreDrawer{
                 }
             }
         });
+        this.canvas.addEventListener('keydown', (e) => {
+            if (e.code=="ControlLeft"){
+                this.ctrl = true;
+                this.render()
+            }
+        });
+        this.canvas.addEventListener('keyup', (e) => {
+            if (e.code=="ControlLeft"){
+                this.ctrl = false;
+                this.render()
+            }
+        });
         this.canvas.addEventListener("keydown", (e) => {
             e.preventDefault();
-            e.stopPropagation();
+            if (e.code!="KeyS" && e.code!="KeyI"){
+                e.stopPropagation();
+            }
             if (e.code=="KeyC" && e.ctrlKey){
                 this.copy();
             }
@@ -99,17 +114,21 @@ export default class ScoreDrawer{
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
             this.render();
-            this.findNote(x, y, 0.4, e.shiftKey);
+            this.findNote(x, y, 0.4, e.shiftKey, e.ctrlKey);
         });
         this.canvas.addEventListener('pointerdown', (e) => {
-            if (this.selectedNotes.length==1){
+            this.note = false;
+            if (this.selectedNotes.length){
+                this.note = true;
                 if (e.ctrlKey){
                     this.addSelectedToChosen();
-                } else if (this.selection.chosenNotes.length<=1){
-                    this.selectedToChosen();
+                } else {
+                    if (!this.score.selection.notes.includes(this.selectedNotes[0])) {
+                        this.selectedToChosen();
+                    }
                 } 
             } else if (!e.ctrlKey) {
-                this.selection.chosenNotes = [];
+                this.score.selection.notes = [];
             }
             this.drugged = true;
             const rect = this.canvas.getBoundingClientRect();
@@ -119,11 +138,17 @@ export default class ScoreDrawer{
             [x,y] = this.getMatrix(x,y);
             this.sectorsSelection.x1 = x;
             this.sectorsSelection.y1 = y;
+            this.score.selection.drugged_x = x;
+            this.score.selection.drugged_y = y;
             this.render();
         });
         this.canvas.addEventListener('pointerup', (e) => {
-            if (this.selection.chosenNotes.length==0){
+            if (e.ctrlKey && !this.note){
+                this.addSelectedToChosen();
+            } else if (this.score.selection.notes.length==0){
                 this.selectedToChosen();
+            } else {
+                this.applyChanges(e.ctrlKey);
             }
             const rect = this.canvas.getBoundingClientRect();
             let x = (e.clientX - rect.left)/rect.width;
@@ -132,7 +157,9 @@ export default class ScoreDrawer{
             [x,y] = this.getMatrix(x,y);
             this.sectorsSelection.x1 = x;
             this.sectorsSelection.y1 = y;
+            this.score.selection.clear();
             this.drugged = false;
+            this.note = false;
             this.render();
         });
         this.canvas.addEventListener('pointerleave', () => {
@@ -158,25 +185,26 @@ export default class ScoreDrawer{
         if (this.score.start_note < 0) this.score.start_note = 0;
         if (this.score.start_note > this.max_note) this.score.start_note = this.max_note;
         if (this.drugged){
-            for (let note of this.selection.chosenNotes)
-                this.move(note, this.sectorsSelection.x1, this.sectorsSelection.y1-i);
+            this.score.selection.offset_pitch += (this.sectorsSelection.y1-i);
         }
         this.render();
     }
     copy(){
-        this.buffer = this.selection.clone();
+        this.buffer = this.score.selection.clone();
     }
     dublicate(){
         let paste = [];
-        for (let note of this.selection.chosenNotes){
-            paste.push(new Note(note.pitch, note.start+this.selection.end-this.selection.start, note.duration))
+        for (let note of this.score.selection.notes){
+            paste.push(note.clone());
         }
-        this.commandPattern.addCommand(new Create(this.score, paste));
+        let s = this.score.selection;
+        let commands = [new Move(this.score, s, [s.end-s.start,0,0]), new Create(this.score, paste)]
+        this.commandPattern.addCommand(new Complex(commands))
     }
     paste(){
         let paste = [];
-        for (let note of this.buffer.chosenNotes){
-            paste.push(new Note(note.pitch, note.start + this.selection.start, note.duration))
+        for (let note of this.buffer.notes){
+            paste.push(new Note(note.pitch, note.start + this.score.selection.start, note.duration))
         }
         this.commandPattern.addCommand(new Create(this.score, paste));
     }
@@ -185,8 +213,26 @@ export default class ScoreDrawer{
         this.delete();
     }
     delete(){
-        this.commandPattern.addCommand(new Delete(this.score, this.selection.chosenNotes));
-        this.selection.chosenNotes = [];
+        this.commandPattern.addCommand(new Delete(this.score, this.score.selection.notes));
+        this.score.selection.notes = [];
+    }
+    applyChanges(ctrl:boolean){
+        let s = this.score.selection;
+        if (ctrl){
+            if (s.offset_start || s.offset_duration || s.offset_pitch) {
+                let commands = [];
+                let notes = s.cloneNotes();
+                commands.push(new Move(this.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
+                commands.push(new Create(this.score, notes));
+                this.commandPattern.addCommand(new Complex(commands));
+            } 
+            s.clear();
+        } else {
+            if (s.offset_start || s.offset_duration || s.offset_pitch) {
+                this.commandPattern.addCommand(new Move(this.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
+            } 
+            s.clear();
+        }
     }
     zoom(i:number){
         if (this.score.start_note >= this.max_note && this.score.start_note <= 0 && i==1) return;
@@ -198,36 +244,38 @@ export default class ScoreDrawer{
             this.score.start_note -= i
         }
         if (this.drugged){
-            for (let note of this.selection.chosenNotes)
-                this.move(note, this.sectorsSelection.x1, this.sectorsSelection.y1-i);
+            this.score.selection.offset_pitch += (this.sectorsSelection.y1-i);
+            this.score.selection.offset_start += this.sectorsSelection.x1;
         }
         this.max_note = 127 - this.notes_width_count;
         this.note_h = this.height/this.notes_width_count;
         this.render();
     }
     selectAll(){
-        this.selection.chosenNotes = [];
+        this.score.selection.notes = [];
         for (let note of this.score.notes){
-            this.selection.chosenNotes.push(note);
-            this.selection.start = Math.min(this.selection.start, note.start);
-            this.selection.end = Math.max(this.selection.end, note.start+note.duration);
+            this.score.selection.notes.push(note);
+            this.score.selection.start = Math.min(this.score.selection.start, note.start);
+            this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
         }
     }
     selectedToChosen(){
-        this.selection.chosenNotes = this.selectedNotes;
-        this.selection.start = this.sectorsSelection.x1;
-        this.selection.end = this.sectorsSelection.x2+1;
-        for (let note of this.selection.chosenNotes){
-            this.selection.start = Math.min(this.selection.start, note.start);
-            this.selection.end = Math.max(this.selection.end, note.start+note.duration);
+        this.score.selection.notes = this.selectedNotes;
+        this.score.selection.start = this.sectorsSelection.x1;
+        this.score.selection.end = this.sectorsSelection.x2+1;
+        for (let note of this.score.selection.notes){
+            this.score.selection.start = Math.min(this.score.selection.start, note.start);
+            this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
         }
     }
     addSelectedToChosen(){
+        this.score.selection.start = Math.min(this.score.selection.start, this.sectorsSelection.x1);
+        this.score.selection.end = Math.max(this.score.selection.end, this.sectorsSelection.x2+1);
         for (let note of this.selectedNotes){
-            if (!this.selection.chosenNotes.includes(note)){
-                this.selection.start = Math.min(this.selection.start, note.start);
-                this.selection.end = Math.max(this.selection.end, note.start+note.duration);
-                this.selection.chosenNotes.push(note);
+            if (!this.score.selection.notes.includes(note)){
+                this.score.selection.start = Math.min(this.score.selection.start, note.start);
+                this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
+                this.score.selection.notes.push(note);
             }
         }
     }
@@ -238,11 +286,12 @@ export default class ScoreDrawer{
         this.renderGrid()
         this.renderNotes()
         this.renderSelected();
-        if (this.selection.chosenNotes.length) {
+        if (this.score.selection.notes.length) {
             this.renderChosenNotes();
         }
         this.renderPianoLabels()
-        if (!(this.sectorsSelection.x2==-1 || this.sectorsSelection.y2==-1 || (this.selectedNotes.length==1 && this.sectorsSelection.x1==this.sectorsSelection.x2 && this.sectorsSelection.y1==this.sectorsSelection.y2))){
+        let ss = this.sectorsSelection;
+        if (!(ss.x2==-1 || ss.y2==-1 || (this.selectedNotes.length==1 && ss.x1==ss.x2 && ss.y1==ss.y2))){
             this.renderSector();
         } 
         this.renderSelection();
@@ -301,20 +350,35 @@ export default class ScoreDrawer{
             this.ctx.closePath();
         }
     }
+    renderNote(n:Note){
+        this.ctx.beginPath();
+        this.ctx.fillStyle = "red";
+        this.ctx.fillRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.start_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.start_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
+        this.ctx.closePath();
+    }
     renderNotes(){
         this.score.notes.forEach(note => {
             if (note.pitch < this.score.start_note || note.pitch > this.score.start_note + this.notes_width_count-1) return;
-            this.ctx.beginPath();
-            this.ctx.fillStyle = "red";
-            this.ctx.fillRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.ctx.strokeStyle = "white";
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.ctx.closePath();
+            if (this.score.selection.notes.includes(note)){
+                let n = note.clone();
+                n.start += this.score.selection.offset_start;
+                n.duration += this.score.selection.offset_duration;
+                n.pitch += this.score.selection.offset_pitch;
+                this.renderNote(n);
+                if (this.ctrl){
+                    this.renderNote(note);
+                }
+            } else {
+                this.renderNote(note);
+            }
         });
     }
     renderSelected(){
         for (let note of this.selectedNotes){
+            if (this.score.selection.notes.includes(note)) continue;
             this.ctx.beginPath();
             this.ctx.strokeStyle = "yellow";
             this.ctx.lineWidth = 2;
@@ -329,25 +393,32 @@ export default class ScoreDrawer{
         let n = [1,3,6,8,10];
         for (let i=0; i<max-min+1; i++){
             this.ctx.beginPath();
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeStyle = "yellow";
+            this.ctx.fillStyle = "yellow";
             if (!n.includes((min+i+this.score.start_note)%12)){
-                this.ctx.strokeStyle = "yellow";
+                this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             } else {
-                this.ctx.strokeStyle = "rgb(240,160,0)";
+                this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             }
-            this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
             this.ctx.closePath();
         }
     }
     renderChosenNotes(){
-        for (let note of this.selection.chosenNotes){
+        for (let note of this.score.selection.notes){
             this.ctx.beginPath();
             this.ctx.strokeStyle = "blue";
+            this.ctx.fillStyle = "blue";
             this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
-            this.ctx.strokeStyle = "blue";
-            this.ctx.strokeRect(this.margin_left, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-            
+            let x = this.gridX + (note.start+this.score.selection.offset_start)*this.note_w;
+            let y = this.gridY-(note.pitch-this.score.start_note+1+this.score.selection.offset_pitch)*this.note_h;
+            this.ctx.strokeRect(x, y, note.duration*this.note_w, this.note_h);
+            let n = [1,3,6,8,10];
+            if (n.includes((note.pitch+this.score.selection.offset_pitch)%12)){
+                this.ctx.fillRect(this.margin_left, y, this.pianoWidth*this.width, this.note_h);
+            } else {
+                this.ctx.strokeRect(this.margin_left, y, this.pianoWidth*this.width, this.note_h);
+            }
             this.ctx.closePath();
         }
     }
@@ -365,8 +436,8 @@ export default class ScoreDrawer{
     renderSelection(){
         this.ctx.beginPath();
         this.ctx.fillStyle = "yellow";
-        this.ctx.fillRect(this.gridX + this.selection.start*this.note_w, this.gridY, (this.selection.end - this.selection.start)*this.note_w, 2);
-        this.ctx.fillRect(this.gridX + this.selection.start*this.note_w, this.gridY-this.height, (this.selection.end - this.selection.start)*this.note_w, -2);
+        this.ctx.fillRect(this.gridX + this.score.selection.start*this.note_w, this.gridY, (this.score.selection.end - this.score.selection.start)*this.note_w, 2);
+        this.ctx.fillRect(this.gridX + this.score.selection.start*this.note_w, this.gridY-this.height, (this.score.selection.end - this.score.selection.start)*this.note_w, -2);
         this.ctx.closePath();
     }
     doubleInput(x:number, y:number){
@@ -388,9 +459,9 @@ export default class ScoreDrawer{
         y = 1-(y-this.margin_top*2/this.canvas.width)*this.canvas.height/this.height;
         return [x,y];
     }
-    move(note:Note, x:number, y:number){
-        note.pitch = note.pitch-this.sectorsSelection.y1+y;
-        note.start = note.start-this.sectorsSelection.x1+x;
+    moveOffset(x:number, y:number){
+        this.score.selection.offset_start = x - this.score.selection.drugged_x;
+        this.score.selection.offset_pitch = y - this.score.selection.drugged_y;
     }
     moveDuration(note:Note, x:number){
         note.duration = x-this.selectedNotes[0].start+1;
@@ -399,42 +470,35 @@ export default class ScoreDrawer{
         note.duration = note.duration+this.sectorsSelection.x1-x;
         note.start = note.start-this.sectorsSelection.x1+x;
     }
-    findNote(x:number, y:number, range:number, shift:boolean){
-        [x,y] = this.processInput(x,y);;
-        if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
-            let xn = x*this.score.duration;
-            [x, y] = this.getMatrix(x, y);
-            if (this.drugged){
-                if (this.selection.chosenNotes.length && this.selectedNotes.length){
-                    if (shift){
-                        if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){
-                            for (let note of this.selection.chosenNotes)  
-                                this.moveStart(note, Math.floor(xn-range/2));
-                        } else if (this.selectedNotes[0].start+this.selectedNotes[0].duration>=xn && xn>=this.selectedNotes[0].start+this.selectedNotes[0].duration-range) {
-                            for (let note of this.selection.chosenNotes)
-                                this.moveDuration(note, Math.floor(xn+range/2));
-                        }
-                    } else {
-                        for (let note of this.selection.chosenNotes)
-                            this.move(note, x, y);
-                        
-                    }
-                    this.sectorsSelection.x1 = x;
-                    this.sectorsSelection.y1 = y;
-                    this.sectorsSelection.x2 = x;
-                    this.sectorsSelection.y2 = y;
-                    return;
-                } else {
-                    this.sectorsSelection.x2 = x;
-                    this.sectorsSelection.y2 = y;
+    drug(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
+        let xn = x*this.score.duration;
+        [x, y] = this.getMatrix(x, y);
+        if (this.score.selection.notes.length && this.selectedNotes.length && !ctrl){
+            if (shift){
+                if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){
+                    for (let note of this.score.selection.notes)  
+                        this.moveStart(note, Math.floor(xn-range/2));
+                } else if (this.selectedNotes[0].start+this.selectedNotes[0].duration>=xn && xn>=this.selectedNotes[0].start+this.selectedNotes[0].duration-range) {
+                    for (let note of this.score.selection.notes)
+                        this.moveDuration(note, Math.floor(xn+range/2));
                 }
             } else {
-                this.sectorsSelection.x1 = x;
-                this.sectorsSelection.y1 = y;
-                this.sectorsSelection.x2 = x;
-                this.sectorsSelection.y2 = y;
+                this.moveOffset(x,y);
             }
+            this.sectorsSelection.x1 = x;
+            this.sectorsSelection.y1 = y;
+            this.sectorsSelection.x2 = x;
+            this.sectorsSelection.y2 = y;
+            return;
+        } else if (ctrl) {
+            this.moveOffset(x,y);
+        } else {
+            this.sectorsSelection.x2 = x;
+            this.sectorsSelection.y2 = y;
+            this.select();
         }
+    }
+    select(){
         this.selectedNotes = [];
         let x_min = Math.min(this.sectorsSelection.x1,this.sectorsSelection.x2); 
         let x_max = Math.max(this.sectorsSelection.x1, this.sectorsSelection.x2);
@@ -446,24 +510,19 @@ export default class ScoreDrawer{
             }
         }
     }
-}
-
-class Selection {
-    start:number;
-    end:number;
-    chosenNotes:Note[];
-    constructor(start:number=0, end:number=0){
-        this.start = start;
-        this.end = end;
-        this.chosenNotes = [];
-    }
-    clone(){
-        let clone = new Selection();
-        clone.start = this.start;
-        clone.end = this.end;
-        for (let note of this.chosenNotes){
-            clone.chosenNotes.push(note.clone());
+    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
+        [x,y] = this.processInput(x,y);;
+        if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
+            if (this.drugged){
+                this.drug(x,y,range,shift,ctrl)
+            } else {
+                [x, y] = this.getMatrix(x, y);
+                this.sectorsSelection.x1 = x;
+                this.sectorsSelection.y1 = y;
+                this.sectorsSelection.x2 = x;
+                this.sectorsSelection.y2 = y;
+                this.select()
+            }
         }
-        return clone;
     }
 }

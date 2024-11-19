@@ -75,7 +75,8 @@ export default class OscDrawer{
                 this.render(x, y);
             }
         });
-        this.canvas.addEventListener('pointerdown', () => {
+        this.canvas.addEventListener('pointerdown', (e) => {
+            this.canvas.setPointerCapture(e.pointerId);
             if (this.chosenPoint){
                 if (this.chosenPoint instanceof BasicPoint){
                     this.drugged = this.oscFunction.basics.findIndex((e)=>(e == this.chosenPoint));
@@ -85,6 +86,7 @@ export default class OscDrawer{
             }
         });
         this.canvas.addEventListener('pointerup', (e) => {
+            this.canvas.releasePointerCapture(e.pointerId);
             if (this.drugged!=-1 && this.chosenPoint){
                 const rect = this.canvas.getBoundingClientRect();
                 let x = (e.clientX - rect.left)/rect.width;
@@ -93,7 +95,13 @@ export default class OscDrawer{
                 x = x-this.chosenPoint.x;
                 y = y-this.chosenPoint.y;
                 if (Math.sqrt(x*x+y*y)>this.range){
-                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,x,y));
+                    if (e.ctrlKey){
+                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[0,y]));
+                    } else if (e.shiftKey){
+                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,0]));
+                    } else {
+                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,y]));
+                    }
                 }
             }
             this.drugged = -1;
@@ -300,7 +308,7 @@ export default class OscDrawer{
         for (let i=1; i<n; i++){
             this.ctx.beginPath();
             this.ctx.moveTo(i*this.width/n, 0);
-            this.ctx.lineTo(i*this.width/n, -this.oscFunction.getI(i/n,basics,handles)*this.height/2);
+            this.ctx.lineTo(i*this.width/n, -this.oscFunction.getSample(i/n,basics,handles)*this.height/2);
             this.ctx.lineWidth = 1;
             this.ctx.strokeStyle = 'yellow';
             this.ctx.stroke();
@@ -326,7 +334,7 @@ export default class OscDrawer{
                     this.chosenPoint.xl = 0.5;
                     this.chosenPoint.yl = 0.5;
                     [x,y] = this.oscFunction.getHandleDelta(this.chosenPoint);
-                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,x,y));
+                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,y]));
                 }
             }
             this.chosenPoint=null;

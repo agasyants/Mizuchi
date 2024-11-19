@@ -1,12 +1,10 @@
 export default class OscFunction{
-    basics: BasicPoint[];
-    handles: HandlePoint[];
-    constructor(){
-        this.basics = [new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)];
-        this.handles = [new HandlePoint(0,0)];
-        this.setDefaultHandle(0);
+    basics: BasicPoint[] = [];
+    handles: HandlePoint[] = [];
+    constructor(paste:any=[[new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)], this.handles = [new HandlePoint(0.5,0)]]){
+        this.set(paste);
     }
-    move(point:Point, x:number, y:number):void{
+    move(point:Point, [x,y]:number[]):void{
         x += point.x;
         y += point.y; 
         if (point instanceof BasicPoint){
@@ -68,11 +66,8 @@ export default class OscFunction{
         }
         return [x,y];
     }
-    private setDefaultHandle(num:number){
-        this.handles[num].xl=0.5;
-        this.handles[num].yl=0.5;
-    }
-    paste(paste:[BasicPoint[], HandlePoint[]]){
+    set(paste:[BasicPoint[], HandlePoint[]]){
+        let result = [this.basics,this.handles]
         this.basics = [];
         this.handles = [];
         for (let basic of paste[0]){
@@ -81,6 +76,7 @@ export default class OscFunction{
         for (let handle of paste[1]){
             this.handles.push(handle.clone())
         }
+        return result;
     }
     copy():[BasicPoint[], HandlePoint[]]{
         let basics = [];
@@ -134,7 +130,7 @@ export default class OscFunction{
         this.handles.splice(num-1, 2, new HandlePoint(0,0));
         this.setHandleAbsByRelPos(num-1);
     }
-    getI(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
+    getSample(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
         for (let j = 0; j < basics.length-1; j++){
             if (basics[j+1].x == i){
                 return basics[j+1].y;

@@ -1,3 +1,4 @@
+import OscFunction from "./osc_function";
 
 export default class AudioEffect{
     public name:string;
@@ -43,17 +44,12 @@ export class Distortion2 extends AudioEffect{
 }
 
 export class Distortion3 extends AudioEffect{
-    gain:number;
-    constructor(dry:number, gain:number){
-        super("Distortion3", 1);
+    constructor(public dry:number, public f:OscFunction){
+        super("Distortion Pro", 1);
         this.dry=dry;
-        this.gain=gain;
     }
     process(sample:number){
-        return [this.distort(sample)];
-    }
-    distort(sample:number){
-        return super.clip(sample+(Math.random()-0.5)/(10*this.gain*(sample+1)*2));
+        return [this.f.getSample((super.clip(sample)+1)/2)*2-1];
     }
 }
 

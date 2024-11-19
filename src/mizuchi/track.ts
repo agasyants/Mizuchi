@@ -13,15 +13,15 @@ export default class Track {
         this.name = name;
         this.inst = inst;
     }
-    addScore(){
-        if (this.scores.length > 0){
-            const last_score = this.scores[this.scores.length-1]
-            this.scores.push(new Score(last_score.duration+last_score.start_time));
-        } else {
-            this.scores.push(new Score(0));
+    create(x:any){
+        if (x instanceof Score){
+            this.addScore(x);
         }
     }
-    deleteScore(score:Score){
+    addScore(score:Score){
+        this.scores.push(score);
+    }
+    delete(score:Score){
         this.scores = this.scores.filter((s)=>s!=score);
     }
     getFullScore():Note[] {

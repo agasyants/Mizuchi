@@ -16,8 +16,8 @@ export default class Mix{
         if (data){
             this.load(JSON.parse(data));
         } else {
-            this.addTrack();
-            this.addTrack();
+            this.create(new Track('track '+ (this.tracks.length+1).toString()));
+            this.create(new Track('track '+ (this.tracks.length+1).toString()));
         }
     }
     save(){
@@ -35,7 +35,7 @@ export default class Mix{
             newBasics[newBasics.length-1].x_move = false;
             let newHandles:HandlePoint[] = [];
             for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
-            newFunc.paste([newBasics,newHandles]);
+            newFunc.set([newBasics,newHandles]);
             const newOsc = new Oscillator(newFunc);
             const newInst = new Instrument(newOsc);
             const newTrack = new Track(track.name, newInst);
@@ -51,18 +51,20 @@ export default class Mix{
             this.tracks.push(newTrack);
         }
     }
-    addScore(track:Track){
-        if (track.scores.length+1 > this.max_score){
-            this.max_score = track.scores.length+1;
+    create(track:any, index:number=-1){
+        if (index==-1) {
+            this.tracks.push(track);
+        } else {
+            this.tracks.splice(index, 0, track);
         }
-        track.addScore();
     }
-    addTrack(){
-        this.tracks.push(new Track('track '+ (this.tracks.length+1).toString()));
-    }
-    deleteTrack(track:Track){
+    delete(track:Track){
         let index = this.tracks.indexOf(track);
-        if (index > -1) this.tracks.splice(index, 1);
+        if (index > -1) { 
+            this.tracks.splice(index, 1);
+        }
+        return index;
+
     }
     addAudioEffect(effect:AudioEffect){
         for (let track of this.tracks){

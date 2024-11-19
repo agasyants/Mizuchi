@@ -9,6 +9,6 @@ export default class Oscillator {
     play(note:Note, sampleRate:number, i:number, SPS:number):number {
         let freq = note.getFrequency();
         let t = sampleRate/freq;
-        return this.oscFunction.getI((i-note.start*SPS)%t/t);
+        return this.oscFunction.getSample((i-note.start*SPS)%t/t);
     }
 }

@@ -4,7 +4,7 @@ import OscDrawer from "./osc_drawer";
 import ScoreDrawer from "./score_drawer";
 import Track from "./track";
 import AudioEffect from "./audio_effects";
-import CommandPattern from "./CommandPattern";
+import CommandPattern, { Create, Delete } from "./CommandPattern";
 
 
 export default class MixDrawer{
@@ -32,7 +32,7 @@ export default class MixDrawer{
     selectedScore:Score|null = null;
     chosenTrack:Track|null = null;
     chosenScore:Score|null = null;
-    comaandPuttern:CommandPattern = new CommandPattern();
+    commandPattern:CommandPattern = new CommandPattern();
 
     oscDrawer:OscDrawer;
     scoreDrower:ScoreDrawer;
@@ -40,7 +40,7 @@ export default class MixDrawer{
     input_x:number = -1;
     input_y:number = -1;
     grids_in_screen:number = 60;
-    constructor(public canvas:HTMLCanvasElement, public mix:Mix, oscDrawer:OscDrawer, scoreDrower: ScoreDrawer){
+    constructor(public canvas:HTMLCanvasElement, public mix:Mix, oscDrawer:OscDrawer, scoreDrower:ScoreDrawer){
         this.oscDrawer = oscDrawer;
         this.scoreDrower = scoreDrower;
 
@@ -94,22 +94,31 @@ export default class MixDrawer{
 
         });
         canvas.addEventListener('keydown', (e) => {
+            if (e.code!="KeyS" && e.code!="Space"){
+                e.stopPropagation();
+            }
             if (e.code=="KeyA" && e.ctrlKey){
                 e.preventDefault();
-                e.stopPropagation();
             }
             if (e.code=="Delete" || e.code=="Backspace"){
                 if (this.chosenTrack){
                     if (this.chosenScore){
-                        this.chosenTrack.deleteScore(this.chosenScore);
+                        this.commandPattern.addCommand(new Delete(this.chosenTrack, this.chosenScore));
                         this.chosenScore = null;
                     } else {
-                        this.mix.deleteTrack(this.chosenTrack);
+                        this.commandPattern.addCommand(new Delete(this.mix, this.chosenTrack));
                         this.chosenTrack = null;
                     }
                 }
-                this.render();
             }
+            if (e.code=="KeyZ" && e.ctrlKey){
+                if (e.shiftKey){
+                    this.commandPattern.redo();
+                } else {
+                    this.commandPattern.undo();
+                }
+            }
+            this.render();
         });
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -134,7 +143,7 @@ export default class MixDrawer{
                 }
             } else if (e.button==2){
                 if (this.chosenTrack){
-                    this.chosenTrack.addScore();
+                    this.commandPattern.addCommand(new Create(this.chosenTrack, new Score(0)))
                 }
             }
             this.render();
@@ -286,7 +295,7 @@ export default class MixDrawer{
     }
     doubleInput(x:number, y:number){
         if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
-            if (!this.selectedTrack) this.mix.addTrack();
+            if (!this.selectedTrack) this.commandPattern.addCommand(new Create(this.mix, new Track('track '+ (this.mix.tracks.length+1).toString())));
             if (this.chosenTrack){
                 if (this.chosenScore){
                     if (this.scoreDrower.canvas.style.display=='block') {
@@ -322,7 +331,8 @@ export default class MixDrawer{
         this.selectedScore = null;
     }
     addAudioEffect(effect:AudioEffect){
-        if (this.chosenTrack)
+        if (this.chosenTrack) {
             this.chosenTrack.audioEffects.push(effect);
+        }
     }
 } 

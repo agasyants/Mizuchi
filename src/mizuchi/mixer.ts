@@ -23,7 +23,7 @@ export class Mixer {
         }
     }
 
-    private async play(length: number = 30) {
+    private async play(length: number = 60) {
         this.audioCtx = new AudioContext();
         this.sampleRate = this.audioCtx.sampleRate;
         this.chunkLength = 20000;

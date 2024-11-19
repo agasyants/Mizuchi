@@ -4,6 +4,7 @@ export default class CommandPattern{
     public addCommand(command:Command){
         this.commands.push(command);
         this.undoCommands = [];
+        // save
     }
     undo(){
         const command = this.commands.pop();
@@ -26,63 +27,99 @@ export class Command{
     undo(){console.log("Undo");}
 }
 
-
-export class Create extends Command{
-    constructor(public subject:any, public object:any, shouldUse:boolean=true){
+export class Complex extends Command{
+    constructor(public commands:Command[]){
         super();
-        if (shouldUse) this.do();
     }
     do(){
-        console.log("Create");
+        console.log("Complex DO");
+        for (let i=0; i<this.commands.length; i++)
+            this.commands[i].do();
+    }
+    undo(){
+        console.log("Complex UNDO");
+        for (let i=this.commands.length-1; i>=0; i--)
+            this.commands[i].undo();
+    }
+}
+
+export class Create extends Command{
+    constructor(public subject:any, public object:any){
+        super();
+        this.do();
+    }
+    do(){
+        console.log("Create"+this.object);
         this.subject.create(this.object);
     }
     undo(){
-        console.log("Delete");
+        console.log("Delete"+this.object);
         this.subject.delete(this.object);
     }
 }
 
 export class Delete extends Command{
-    constructor(public subject:any, public object:any, shouldUse:boolean=true){
+    place:number;
+    constructor(public subject:any, public object:any){
         super();
-        if (shouldUse) this.do();
+        this.place = this.do();
     }
     do(){
-        console.log("Delete");
-        this.subject.delete(this.object);
+        console.log("Delete"+this.object);
+        return this.subject.delete(this.object);
     }
     undo(){
-        console.log("Create");
-        this.subject.create(this.object);
-    }
-}
+        console.log("Create"+this.object);
+        this.subject.create(this.object, this.place);
+    }}
 
 export class Move extends Command{
-    constructor(public subject:any, public object:any, public x:number, public y:number, shouldUse:boolean=true){
+    constructor(public subject:any, public object:any, public offset:number[]){
         super();
-        if (shouldUse) this.do();
+        this.do();
     }
     do(){
-        console.log("Move "+this.x+" "+this.y);
-        this.subject.move(this.object, this.x, this.y);
+        console.log("Move "+this.offset);
+        this.subject.move(this.object, this.offset);
     }
     undo(){
-        console.log("Move "+(-this.x)+" "+(-this.y));
-        this.subject.move(this.object, -this.x, -this.y);
+        let un = []
+        for (let i=0; i<this.offset.length; i++){
+            un.push(-this.offset[i]);
+        }
+        console.log("Move "+this.offset);
+        this.subject.move(this.object, un);
     }
 }
 
-export class Paste extends Command{
-    constructor(public subject:any, public object:any, shouldUse:boolean=true){
+export class Select extends Command {
+    un:any;
+    constructor(public subject:any, public object:any){
         super();
-        if (shouldUse) this.do();
+        this.un = this.do();
     }
     do(){
-        console.log("Paste");
-        this.subject.paste(this.object);
+        console.log("Select");
+        return this.subject.select(this.object);
     }
     undo(){
-        console.log("Delete");
-        this.subject.delete(this.object);
+        console.log("Unselect");
+        this.subject.unselect(this.un);
+    }
+}
+
+export class Set extends Command{
+    un:any;
+    constructor(public subject:any, public object:any){
+        super();
+        this.un = this.do();
+    }
+    do(){
+        console.log("Set");
+        return this.subject.set(this.object);
+    }
+    undo(){
+        console.log("unSet");
+        this.subject.set(this.un);
     }
 }
