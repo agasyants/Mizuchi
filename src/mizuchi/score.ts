@@ -7,42 +7,25 @@ export default class Score {
     selection: Selection = new Selection;
     constructor(public start_time:number, public duration:number = 32){}
     create(notes:Note[]) {
-        for (let note of notes){
-            this.notes.push(note);
+        for (let new_note of notes){
+            this.notes.push(new_note);
+            this.update(new_note);
         }
         this.sort();
-        this.update();
+        // this.update();
     }
     private sort(){
         this.notes.sort((a, b) => {
             return a.start - b.start;
         });
     }
-    private update() {
-        let i = 0;
-        while (i < this.notes.length - 1) {
-            if (this.notes[i].pitch === this.notes[i + 1].pitch) {
-                if (this.notes[i].start === this.notes[i + 1].start) {
-                    this.notes.splice(i + 1, 1);
-                    continue;
-                }
-    
-                if (this.notes[i].start + this.notes[i].duration > this.notes[i + 1].start) {
-                    this.notes[i].duration = this.notes[i + 1].start - this.notes[i].start;
-                }
+    private update(new_note:Note) {
+        for (let i = 0; i < this.notes.length; i++){
+            if (new_note.start < this.notes[i].start && new_note.start + new_note.duration > this.notes[i].start){
+                this.notes.splice(i, 1);
             }
-    
-            if (this.notes[i].start + this.notes[i].duration > this.duration) {
-                this.notes[i].duration = this.duration - this.notes[i].start;
-            }
-    
-            i++;
         }
-    
-        let lastNote = this.notes[this.notes.length - 1];
-        if (lastNote.start + lastNote.duration > this.duration) {
-            lastNote.duration = this.duration - lastNote.start;
-        }
+        
     }
     addScore(score:Score){
         const scoreDelt = this.start_time-score.start_time
@@ -59,9 +42,9 @@ export default class Score {
             note.start += start;
             note.duration += duration;
             note.pitch += pitch;
+            this.update(note);
         }
         this.sort();
-        this.update();
     }
     delete(notes:Note[]) {
         notes.forEach(note => {

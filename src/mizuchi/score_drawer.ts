@@ -1,6 +1,7 @@
 import Score, { Selection } from "./score";
 import Note from "./note";
-import CommandPattern, { Complex, Create, Delete, Move } from "./CommandPattern";
+import CommandPattern from "./CommandPattern";
+import score_drawer_controller from "./score_drawer_controller";
 
 export default class ScoreDrawer{
     pianoWidth: number = 0.1;
@@ -21,14 +22,16 @@ export default class ScoreDrawer{
     buffer: Selection = new Selection;
     commandPattern:CommandPattern = new CommandPattern();
 
-    selectedNotes:Note[] = [];
+    hovered:{note:Note|null,notes:Note[],start:boolean,end:boolean} = {note:null,notes:[],start:false,end:false}
     drugged:boolean = false;
     note:boolean = false;
     ctrl:boolean = false;
+    controller:score_drawer_controller;
 
-    sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
+    sectorsSelection:{x1:number,y1:number,x2:number,y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
+
     constructor(public canvas:HTMLCanvasElement, public score:Score){
-
+        this.controller = new score_drawer_controller(this);
         this.w = this.canvas.width = canvas.width * devicePixelRatio;
         this.h = this.canvas.height = canvas.height * devicePixelRatio;
         this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
@@ -52,16 +55,10 @@ export default class ScoreDrawer{
             e.preventDefault();
             if (e.deltaY) {
                 if (e.ctrlKey){
-                    this.zoom(Math.abs(e.deltaY)/e.deltaY);
+                    this.controller.zoom(Math.abs(e.deltaY)/e.deltaY);
                 } else {
-                    this.scroll(Math.abs(e.deltaY)/e.deltaY);
+                    this.controller.scroll(Math.abs(e.deltaY)/e.deltaY);
                 }
-            }
-        });
-        this.canvas.addEventListener('keydown', (e) => {
-            if (e.code=="ControlLeft"){
-                this.ctrl = true;
-                this.render()
             }
         });
         this.canvas.addEventListener('keyup', (e) => {
@@ -72,14 +69,18 @@ export default class ScoreDrawer{
         });
         this.canvas.addEventListener("keydown", (e) => {
             e.preventDefault();
-            if (e.code!="KeyS" && e.code!="KeyI"){
+            if (e.code=="ControlLeft"){
+                this.ctrl = true;
+                this.render()
+            }
+            if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
                 e.stopPropagation();
             }
             if (e.code=="KeyC" && e.ctrlKey){
-                this.copy();
+                this.controller.copy();
             }
             if (e.code=="KeyV" && e.ctrlKey){
-                this.paste();
+                this.controller.paste();
             }
             if (e.code=="KeyZ" && e.ctrlKey){
                 if (e.shiftKey){
@@ -89,16 +90,27 @@ export default class ScoreDrawer{
                 } 
             }
             if (e.code=="KeyA" && e.ctrlKey){
-                this.selectAll();
+                this.controller.selectAll();
             }
             if (e.code=="Delete" || e.code=="Backspace"){
-                this.delete();
+                this.controller.delete();
             } 
             if (e.code=="KeyX" && e.ctrlKey){
-                this.cut();
+                this.controller.cut();
             }
             if (e.code=="KeyD" && e.ctrlKey){
-                this.dublicate();
+                this.controller.dublicate();
+            }
+            if (e.code=="ArrowUp")
+                this.score.selection.offset_pitch+=1;
+            if (e.code=="ArrowDown")
+                this.score.selection.offset_pitch-=1;
+            if (e.code=="ArrowLeft")
+                this.score.selection.offset_start-=1;
+            if (e.code=="ArrowRight")
+                this.score.selection.offset_start+=1;
+            if (e.code=="Enter"){
+                this.controller.applyChanges(e.ctrlKey);
             }
             this.render();
         });
@@ -106,7 +118,7 @@ export default class ScoreDrawer{
             const rect = this.canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
-            this.doubleInput(x, y);
+            this.controller.doubleInput(x, y);
             this.render();
         });
         this.canvas.addEventListener('pointermove', (e) => {
@@ -114,18 +126,17 @@ export default class ScoreDrawer{
             const x = (e.clientX - rect.left)/rect.width;
             const y = (e.clientY - rect.top)/rect.height;
             this.render();
-            this.findNote(x, y, 0.4, e.shiftKey, e.ctrlKey);
+            this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey);
         });
         this.canvas.addEventListener('pointerdown', (e) => {
+            this.canvas.setPointerCapture(e.pointerId);
             this.note = false;
-            if (this.selectedNotes.length){
+            if (this.hovered.note){
                 this.note = true;
                 if (e.ctrlKey){
-                    this.addSelectedToChosen();
-                } else {
-                    if (!this.score.selection.notes.includes(this.selectedNotes[0])) {
-                        this.selectedToChosen();
-                    }
+                    this.controller.addSelectedToChosen();
+                } else if (this.hovered.note && !this.score.selection.notes.includes(this.hovered.note)) {
+                    this.controller.selectedToChosen();
                 } 
             } else if (!e.ctrlKey) {
                 this.score.selection.notes = [];
@@ -134,29 +145,28 @@ export default class ScoreDrawer{
             const rect = this.canvas.getBoundingClientRect();
             let x = (e.clientX - rect.left)/rect.width;
             let y = (e.clientY - rect.top)/rect.height;
-            [x,y] = this.processInput(x,y);
-            [x,y] = this.getMatrix(x,y);
-            this.sectorsSelection.x1 = x;
-            this.sectorsSelection.y1 = y;
+            [x,y] = this.controller.processInput(x,y);
+            [x,y] = this.controller.getGrid(x,y);
+            y = Math.floor(y)
             this.score.selection.drugged_x = x;
             this.score.selection.drugged_y = y;
+            x = Math.floor(x)
             this.render();
         });
         this.canvas.addEventListener('pointerup', (e) => {
+            this.canvas.releasePointerCapture(e.pointerId);
             if (e.ctrlKey && !this.note){
-                this.addSelectedToChosen();
+                this.controller.addSelectedToChosen();
             } else if (this.score.selection.notes.length==0){
-                this.selectedToChosen();
+                this.controller.selectedToChosen();
             } else {
-                this.applyChanges(e.ctrlKey);
+                this.controller.applyChanges(e.ctrlKey);
             }
             const rect = this.canvas.getBoundingClientRect();
             let x = (e.clientX - rect.left)/rect.width;
             let y = (e.clientY - rect.top)/rect.height;
-            [x,y] = this.processInput(x,y);
-            [x,y] = this.getMatrix(x,y);
-            this.sectorsSelection.x1 = x;
-            this.sectorsSelection.y1 = y;
+            [x,y] = this.controller.processInput(x,y);
+            [x,y] = this.controller.getMatrix(x,y);
             this.score.selection.clear();
             this.drugged = false;
             this.note = false;
@@ -169,133 +179,32 @@ export default class ScoreDrawer{
 
         this.render()
     }
-    setScore(score:Score|null){
-        if (score){
-            this.score = score;
-            this.canvas.style.display = 'block';
-            this.canvas.focus();
-            this.render();
-        } else {
-            this.canvas.blur();
-            this.canvas.style.display = 'none';
-        }
-    }
-    scroll(i:number){
-        this.score.start_note -= i;
-        if (this.score.start_note < 0) this.score.start_note = 0;
-        if (this.score.start_note > this.max_note) this.score.start_note = this.max_note;
-        if (this.drugged){
-            this.score.selection.offset_pitch += (this.sectorsSelection.y1-i);
-        }
-        this.render();
-    }
-    copy(){
-        this.buffer = this.score.selection.clone();
-    }
-    dublicate(){
-        let paste = [];
-        for (let note of this.score.selection.notes){
-            paste.push(note.clone());
-        }
-        let s = this.score.selection;
-        let commands = [new Move(this.score, s, [s.end-s.start,0,0]), new Create(this.score, paste)]
-        this.commandPattern.addCommand(new Complex(commands))
-    }
-    paste(){
-        let paste = [];
-        for (let note of this.buffer.notes){
-            paste.push(new Note(note.pitch, note.start + this.score.selection.start, note.duration))
-        }
-        this.commandPattern.addCommand(new Create(this.score, paste));
-    }
-    cut(){
-        this.copy();
-        this.delete();
-    }
-    delete(){
-        this.commandPattern.addCommand(new Delete(this.score, this.score.selection.notes));
-        this.score.selection.notes = [];
-    }
-    applyChanges(ctrl:boolean){
-        let s = this.score.selection;
-        if (ctrl){
-            if (s.offset_start || s.offset_duration || s.offset_pitch) {
-                let commands = [];
-                let notes = s.cloneNotes();
-                commands.push(new Move(this.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
-                commands.push(new Create(this.score, notes));
-                this.commandPattern.addCommand(new Complex(commands));
-            } 
-            s.clear();
-        } else {
-            if (s.offset_start || s.offset_duration || s.offset_pitch) {
-                this.commandPattern.addCommand(new Move(this.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
-            } 
-            s.clear();
-        }
-    }
-    zoom(i:number){
-        if (this.score.start_note >= this.max_note && this.score.start_note <= 0 && i==1) return;
-        this.notes_width_count += i*2;
-        console.log(this.score.start_note,this.max_note);
-        if (this.score.start_note >= this.max_note){ 
-            this.score.start_note -= i*2;
-        } else if (this.score.start_note > 0) {
-            this.score.start_note -= i
-        }
-        if (this.drugged){
-            this.score.selection.offset_pitch += (this.sectorsSelection.y1-i);
-            this.score.selection.offset_start += this.sectorsSelection.x1;
-        }
-        this.max_note = 127 - this.notes_width_count;
-        this.note_h = this.height/this.notes_width_count;
-        this.render();
-    }
-    selectAll(){
-        this.score.selection.notes = [];
-        for (let note of this.score.notes){
-            this.score.selection.notes.push(note);
-            this.score.selection.start = Math.min(this.score.selection.start, note.start);
-            this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
-        }
-    }
-    selectedToChosen(){
-        this.score.selection.notes = this.selectedNotes;
-        this.score.selection.start = this.sectorsSelection.x1;
-        this.score.selection.end = this.sectorsSelection.x2+1;
-        for (let note of this.score.selection.notes){
-            this.score.selection.start = Math.min(this.score.selection.start, note.start);
-            this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
-        }
-    }
-    addSelectedToChosen(){
-        this.score.selection.start = Math.min(this.score.selection.start, this.sectorsSelection.x1);
-        this.score.selection.end = Math.max(this.score.selection.end, this.sectorsSelection.x2+1);
-        for (let note of this.selectedNotes){
-            if (!this.score.selection.notes.includes(note)){
-                this.score.selection.start = Math.min(this.score.selection.start, note.start);
-                this.score.selection.end = Math.max(this.score.selection.end, note.start+note.duration);
-                this.score.selection.notes.push(note);
-            }
-        }
-    }
+    
     render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.ctx.font = "16px system-ui";
         this.renderPiano();
         this.renderGrid()
         this.renderNotes()
-        this.renderSelected();
+        if (this.hovered.note && !this.score.selection.notes.includes(this.hovered.note) ||this.hovered.notes.length){
+            this.renderSelected();
+        }
         if (this.score.selection.notes.length) {
             this.renderChosenNotes();
         }
         this.renderPianoLabels()
         let ss = this.sectorsSelection;
-        if (!(ss.x2==-1 || ss.y2==-1 || (this.selectedNotes.length==1 && ss.x1==ss.x2 && ss.y1==ss.y2))){
+        if (!(ss.x2==-1 || ss.y2==-1 || (this.hovered.note && ss.x1==ss.x2 && ss.y1==ss.y2))){
             this.renderSector();
         } 
         this.renderSelection();
-        
+        if (this.hovered.note){
+            if (this.hovered.start){
+                this.renderHovered(this.hovered.note.start+this.score.selection.offset_start);
+            } else if (this.hovered.end){
+                this.renderHovered(this.hovered.note.start+this.hovered.note.duration+this.score.selection.offset_duration);
+            }
+        }
     }
     renderPiano(){
         let n = [1,3,6,8,10]
@@ -377,32 +286,54 @@ export default class ScoreDrawer{
         });
     }
     renderSelected(){
-        for (let note of this.selectedNotes){
-            if (this.score.selection.notes.includes(note)) continue;
+        if (this.hovered.note){
             this.ctx.beginPath();
             this.ctx.strokeStyle = "yellow";
             this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.strokeRect(this.gridX + this.hovered.note.start*this.note_w, this.gridY-(this.hovered.note.pitch-this.score.start_note+1)*this.note_h, this.hovered.note.duration*this.note_w, this.note_h);
             this.ctx.closePath();
-        }
-        if (this.sectorsSelection.x1==-1){
-            return;
-        }
-        const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
-        const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
-        let n = [1,3,6,8,10];
-        for (let i=0; i<max-min+1; i++){
-            this.ctx.beginPath();
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeStyle = "yellow";
-            this.ctx.fillStyle = "yellow";
-            if (!n.includes((min+i+this.score.start_note)%12)){
-                this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-            } else {
-                this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+        } else {
+            for (let note of this.hovered.notes){
+                if (this.score.selection.notes.includes(note)) continue;
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "yellow";
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+                this.ctx.closePath();
             }
-            this.ctx.closePath();
+            if (this.sectorsSelection.x1==-1){
+                return;
+            }
+            const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
+            const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
+            let n = [1,3,6,8,10];
+            for (let i=0; i<max-min+1; i++){
+                this.ctx.beginPath();
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = "yellow";
+                this.ctx.fillStyle = "yellow";
+                if (!n.includes((min+i+this.score.start_note)%12)){
+                    this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+                } else {
+                    this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+                }
+                this.ctx.closePath();
+            }
         }
+    }
+    renderHovered(x:number){
+        if (!this.hovered.note) return;
+        this.ctx.beginPath();
+        if (this.score.selection.notes.length){
+            this.ctx.strokeStyle = "yellow";
+        } else {
+            this.ctx.strokeStyle = "blue";
+        }
+        this.ctx.lineWidth = 4;
+        this.ctx.moveTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.note.pitch-this.score.start_note)*this.note_h+2);
+        this.ctx.lineTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.note.pitch-this.score.start_note+1)*this.note_h-2);
+        this.ctx.stroke()
+        this.ctx.closePath();
     }
     renderChosenNotes(){
         for (let note of this.score.selection.notes){
@@ -412,7 +343,7 @@ export default class ScoreDrawer{
             this.ctx.lineWidth = 2;
             let x = this.gridX + (note.start+this.score.selection.offset_start)*this.note_w;
             let y = this.gridY-(note.pitch-this.score.start_note+1+this.score.selection.offset_pitch)*this.note_h;
-            this.ctx.strokeRect(x, y, note.duration*this.note_w, this.note_h);
+            this.ctx.strokeRect(x, y, (note.duration+this.score.selection.offset_duration)*this.note_w, this.note_h);
             let n = [1,3,6,8,10];
             if (n.includes((note.pitch+this.score.selection.offset_pitch)%12)){
                 this.ctx.fillRect(this.margin_left, y, this.pianoWidth*this.width, this.note_h);
@@ -436,93 +367,10 @@ export default class ScoreDrawer{
     renderSelection(){
         this.ctx.beginPath();
         this.ctx.fillStyle = "yellow";
-        this.ctx.fillRect(this.gridX + this.score.selection.start*this.note_w, this.gridY, (this.score.selection.end - this.score.selection.start)*this.note_w, 2);
-        this.ctx.fillRect(this.gridX + this.score.selection.start*this.note_w, this.gridY-this.height, (this.score.selection.end - this.score.selection.start)*this.note_w, -2);
+        let s = this.score.selection;
+        this.ctx.fillRect(this.gridX + (s.start +  + s.offset_start)*this.note_w, this.gridY, (s.end - s.start + s.offset_duration)*this.note_w, 2);
+        this.ctx.fillRect(this.gridX + (s.start +  + s.offset_start)*this.note_w, this.gridY-this.height, (s.end - s.start + s.offset_duration)*this.note_w, -2);
         this.ctx.closePath();
     }
-    doubleInput(x:number, y:number){
-        if (this.selectedNotes.length) {
-            this.delete();
-        } else {
-            [x,y] = this.processInput(x, y);
-            [x,y] = this.getMatrix(x, y);
-            this.commandPattern.addCommand(new Create(this.score, [new Note(y+this.score.start_note,x,1)]));
-        }        
-        this.selectedNotes = [];
-        this.render();
-    }
-    getMatrix(x:number,y:number){
-        return [Math.floor(x*this.score.duration), Math.floor(y*this.notes_width_count)];
-    }
-    processInput(x:number, y:number){
-        x = (x - this.margin_left/this.canvas.width) * this.canvas.width/this.width - this.pianoWidth;
-        y = 1-(y-this.margin_top*2/this.canvas.width)*this.canvas.height/this.height;
-        return [x,y];
-    }
-    moveOffset(x:number, y:number){
-        this.score.selection.offset_start = x - this.score.selection.drugged_x;
-        this.score.selection.offset_pitch = y - this.score.selection.drugged_y;
-    }
-    moveDuration(note:Note, x:number){
-        note.duration = x-this.selectedNotes[0].start+1;
-    }
-    moveStart(note:Note, x:number){
-        note.duration = note.duration+this.sectorsSelection.x1-x;
-        note.start = note.start-this.sectorsSelection.x1+x;
-    }
-    drug(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
-        let xn = x*this.score.duration;
-        [x, y] = this.getMatrix(x, y);
-        if (this.score.selection.notes.length && this.selectedNotes.length && !ctrl){
-            if (shift){
-                if (this.selectedNotes[0].start<=xn && xn<=range+this.selectedNotes[0].start){
-                    for (let note of this.score.selection.notes)  
-                        this.moveStart(note, Math.floor(xn-range/2));
-                } else if (this.selectedNotes[0].start+this.selectedNotes[0].duration>=xn && xn>=this.selectedNotes[0].start+this.selectedNotes[0].duration-range) {
-                    for (let note of this.score.selection.notes)
-                        this.moveDuration(note, Math.floor(xn+range/2));
-                }
-            } else {
-                this.moveOffset(x,y);
-            }
-            this.sectorsSelection.x1 = x;
-            this.sectorsSelection.y1 = y;
-            this.sectorsSelection.x2 = x;
-            this.sectorsSelection.y2 = y;
-            return;
-        } else if (ctrl) {
-            this.moveOffset(x,y);
-        } else {
-            this.sectorsSelection.x2 = x;
-            this.sectorsSelection.y2 = y;
-            this.select();
-        }
-    }
-    select(){
-        this.selectedNotes = [];
-        let x_min = Math.min(this.sectorsSelection.x1,this.sectorsSelection.x2); 
-        let x_max = Math.max(this.sectorsSelection.x1, this.sectorsSelection.x2);
-        let y_min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
-        let y_max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
-        for (let note of this.score.notes){
-            if ((x_min <= note.start+note.duration-1 && note.start <= x_max) && (y_min<=note.pitch-this.score.start_note && y_max >= note.pitch-this.score.start_note)){
-                this.selectedNotes.push(note);
-            }
-        }
-    }
-    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
-        [x,y] = this.processInput(x,y);;
-        if (x >= 0 && x <= 1 && y >= 0 && y <= 1){
-            if (this.drugged){
-                this.drug(x,y,range,shift,ctrl)
-            } else {
-                [x, y] = this.getMatrix(x, y);
-                this.sectorsSelection.x1 = x;
-                this.sectorsSelection.y1 = y;
-                this.sectorsSelection.x2 = x;
-                this.sectorsSelection.y2 = y;
-                this.select()
-            }
-        }
-    }
+    
 }

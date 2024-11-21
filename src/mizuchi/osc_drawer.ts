@@ -45,6 +45,9 @@ export default class OscDrawer{
             this.render();
         });
         this.canvas.addEventListener('keydown', (e) => {
+            if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
+                e.stopPropagation();
+            }
             if (e.code=="KeyA" && e.ctrlKey){
                 e.preventDefault();
                 console.log("Osc");
@@ -57,7 +60,6 @@ export default class OscDrawer{
                     this.commandPattern.undo();
                 } this.render();
             }
-            e.stopPropagation();
         });
         this.canvas.addEventListener('pointermove', (e) => {
             const rect = this.canvas.getBoundingClientRect();

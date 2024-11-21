@@ -94,7 +94,7 @@ export default class MixDrawer{
 
         });
         canvas.addEventListener('keydown', (e) => {
-            if (e.code!="KeyS" && e.code!="Space"){
+            if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
                 e.stopPropagation();
             }
             if (e.code=="KeyA" && e.ctrlKey){
@@ -134,12 +134,12 @@ export default class MixDrawer{
                 if (this.selectedScore) {
                     this.chosenScore = this.selectedScore;
                     if (this.scoreDrower.canvas.style.display=='block') {
-                        this.scoreDrower.setScore(this.chosenScore);
+                        this.scoreDrower.controller.setScore(this.chosenScore);
                     }
                     this.mix.start = this.chosenScore.start_time/2;
                 } else {
                     this.chosenScore = null;
-                    this.scoreDrower.setScore(this.chosenScore);
+                    this.scoreDrower.controller.setScore(this.chosenScore);
                 }
             } else if (e.button==2){
                 if (this.chosenTrack){
@@ -299,9 +299,9 @@ export default class MixDrawer{
             if (this.chosenTrack){
                 if (this.chosenScore){
                     if (this.scoreDrower.canvas.style.display=='block') {
-                        this.scoreDrower.setScore(null);
+                        this.scoreDrower.controller.setScore(null);
                     } else {
-                        this.scoreDrower.setScore(this.chosenScore);
+                        this.scoreDrower.controller.setScore(this.chosenScore);
                     }
                 }
             }
