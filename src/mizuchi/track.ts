@@ -8,6 +8,7 @@ export default class Track {
     name:string;
     audioEffects:AudioEffect[] = [];
     scores:Score[] = [];
+    renderHeight:number = 1;
     // scoreEffects:ScoreEffect[] = [];
     constructor(name:string, inst:Instrument = new Instrument()) { 
         this.name = name;

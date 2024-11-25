@@ -53,7 +53,15 @@ export class Distortion3 extends AudioEffect{
     }
 }
 
-export class Flanger extends AudioEffect {
+export class Smothstep extends AudioEffect {
+    constructor(dry:number){
+        super("Smothstep", 1);
+        this.dry=dry;
+    }
+    process(sample:number){
+        if (sample>=0) return [3*Math.pow(sample,2)-2*Math.pow(sample,3)];
+        return [-(3*Math.pow(sample,2)-2*Math.pow(sample,3))];
+    }
 
 }
 

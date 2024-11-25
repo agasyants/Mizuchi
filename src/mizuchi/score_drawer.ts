@@ -1,4 +1,5 @@
-import Score, { Selection } from "./score";
+import Score from "./score";
+import Selection from "./selection";
 import Note from "./note";
 import CommandPattern from "./CommandPattern";
 import score_drawer_controller from "./score_drawer_controller";
@@ -24,6 +25,7 @@ export default class ScoreDrawer{
 
     hovered:{note:Note|null,notes:Note[],start:boolean,end:boolean} = {note:null,notes:[],start:false,end:false}
     drugged:boolean = false;
+    drug_window:{cx:number,cy:number,cliX:number,cliY:number}|null = null;
     note:boolean = false;
     ctrl:boolean = false;
     controller:score_drawer_controller;
@@ -47,6 +49,89 @@ export default class ScoreDrawer{
         this.gridX = this.margin_left + this.pianoWidth*this.width;
         this.gridY = -this.margin_top;
         this.initialize();
+        // const wrapper = document.getElementById('score-canvas-wrapper') as HTMLDivElement;
+        // let isResizing = false;
+        // let resizeEdge = { right: false, bottom: false, corner: false };
+        // let startX = 0;
+        // let startY = 0;
+
+        // const MIN_WIDTH = 50;
+        // const MIN_HEIGHT = 50;
+
+        // // Настройка стилей для wrapper
+        // wrapper.style.position = 'absolute';
+        // wrapper.style.display = 'inline-block';
+        // wrapper.style.border = '1px solid black';
+        // wrapper.style.padding = '10px';
+        // this.canvas.style.display = 'block';
+        // wrapper.style.width = (canvas.width / devicePixelRatio +10) + 'px';
+        // wrapper.style.height = (canvas.height / devicePixelRatio +10) + 'px';
+
+        // // Функция для определения курсора
+        // function getCursorStyle(e: MouseEvent): string {
+        //     const rect = wrapper.getBoundingClientRect();
+        //     const isRightEdge = e.clientX > rect.right - 10 && e.clientX < rect.right;
+        //     const isBottomEdge = e.clientY > rect.bottom - 10 && e.clientY < rect.bottom;
+        //     const isCorner = isRightEdge && isBottomEdge;
+        
+        //     if (isCorner) return 'nwse-resize';
+        //     if (isRightEdge) return 'ew-resize';
+        //     if (isBottomEdge) return 'ns-resize';
+        //     return 'default';
+        // }
+
+        // // Обработчик для изменения курсора
+        // wrapper.addEventListener('mousemove', (e) => {
+        //     if (!isResizing) {
+        //     wrapper.style.cursor = getCursorStyle(e);
+        //     }
+        // });
+        
+        // wrapper.addEventListener('mousedown', (e) => {
+        //     const rect = wrapper.getBoundingClientRect();
+        
+        //     const isRightEdge = e.clientX > rect.right - 10 && e.clientX < rect.right;
+        //     const isBottomEdge = e.clientY > rect.bottom - 10 && e.clientY < rect.bottom;
+        //     const isCorner = isRightEdge && isBottomEdge;
+        
+        //     if (isRightEdge || isBottomEdge) {
+        //     isResizing = true;
+        //     resizeEdge = { right: isRightEdge, bottom: isBottomEdge, corner: isCorner };
+        //     startX = e.clientX;
+        //     startY = e.clientY;
+        //     e.preventDefault();
+        //     }
+        // });
+        
+        // document.addEventListener('mousemove', (e) => {
+        //     if (isResizing) {
+        //       const dx = e.clientX - startX;
+        //       const dy = e.clientY - startY;
+          
+        //       if (resizeEdge.right || resizeEdge.corner) {
+        //         canvas.width = Math.max(MIN_WIDTH, canvas.width + dx);
+        //       }
+          
+        //       if (resizeEdge.bottom || resizeEdge.corner) {
+        //         canvas.height = Math.max(MIN_HEIGHT, canvas.height + dy);
+        //       }
+          
+        //       startX = e.clientX;
+        //       startY = e.clientY;
+        //     }
+        //   });
+        
+        // document.addEventListener('mouseup', () => {
+        //     isResizing = false;
+        //     resizeEdge = { right: false, bottom: false, corner: false };
+        //     wrapper.style.cursor = 'default';
+        // });
+    }
+    rectInput(e:MouseEvent){
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left)/rect.width;
+        const y = (e.clientY - rect.top)/rect.height;
+        return [x,y];
     }
     initialize(){
         this.canvas.onselectstart = function () { return false; }
@@ -59,7 +144,10 @@ export default class ScoreDrawer{
                 } else {
                     this.controller.scroll(Math.abs(e.deltaY)/e.deltaY);
                 }
-            }
+            } 
+            // const [x,y] = this.rectInput(e);
+            // this.controller.findNote(x,y, 0.2, e.shiftKey, e.ctrlKey);
+            this.render();
         });
         this.canvas.addEventListener('keyup', (e) => {
             if (e.code=="ControlLeft"){
@@ -114,69 +202,117 @@ export default class ScoreDrawer{
             }
             this.render();
         });
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        })
         this.canvas.addEventListener('dblclick', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left)/rect.width;
-            const y = (e.clientY - rect.top)/rect.height;
-            this.controller.doubleInput(x, y);
-            this.render();
+            if (e.button==0){
+                const [x,y] = this.rectInput(e);
+                this.controller.doubleInput(x, y);
+                this.render();
+            }
         });
         this.canvas.addEventListener('pointermove', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left)/rect.width;
-            const y = (e.clientY - rect.top)/rect.height;
-            this.render();
-            this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey);
-        });
-        this.canvas.addEventListener('pointerdown', (e) => {
-            this.canvas.setPointerCapture(e.pointerId);
-            this.note = false;
-            if (this.hovered.note){
-                this.note = true;
-                if (e.ctrlKey){
-                    this.controller.addSelectedToChosen();
-                } else if (this.hovered.note && !this.score.selection.notes.includes(this.hovered.note)) {
-                    this.controller.selectedToChosen();
+            if (this.drug_window) {
+                let x = this.drug_window.cliX + e.clientX - this.drug_window.cx;
+                let y = this.drug_window.cliY + e.clientY - this.drug_window.cy;
+                const w = this.canvas.width/devicePixelRatio
+                const h = this.canvas.height/devicePixelRatio
+                if (x < 0){
+                    x = 0;
+                    // this.drug_window.cliX = e.clientX;
                 } 
-            } else if (!e.ctrlKey) {
-                this.score.selection.notes = [];
+                if (y < 0){
+                    y = 0;
+                    // this.drug_window.cliY = e.clientY;
+                }
+                if (x > window.innerWidth - w){
+                    x = window.innerWidth - w;
+                    // this.drug_window.cliX = e.clientX;
+                }
+                if (y > window.innerHeight - h){
+                    y = window.innerHeight - h;
+                    // this.drug_window.cliY = e.clientY;
+                }
+                console.log(this.drug_window);
+                
+                this.canvas.style.left = `${x}px`;
+                this.canvas.style.top = `${y}px`;
+            } else {
+                const [x,y] = this.rectInput(e);
+                this.render();
+                this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey);
             }
-            this.drugged = true;
-            const rect = this.canvas.getBoundingClientRect();
-            let x = (e.clientX - rect.left)/rect.width;
-            let y = (e.clientY - rect.top)/rect.height;
-            [x,y] = this.controller.processInput(x,y);
-            [x,y] = this.controller.getGrid(x,y);
-            y = Math.floor(y)
-            this.score.selection.drugged_x = x;
-            this.score.selection.drugged_y = y;
-            x = Math.floor(x)
-            this.render();
+        });
+        let clickCount = 0;
+        this.canvas.addEventListener('pointerdown', (e) => {
+            if (e.button == 2) {
+                clickCount++;
+                if (clickCount == 2) {
+                    this.controller.setScore(null);
+                    clickCount = 0;
+                } else {
+                    this.drug_window = {
+                        cx: e.clientX, 
+                        cy: e.clientY, 
+                        cliX: parseFloat(this.canvas.style.left || "0"), 
+                        cliY: parseFloat(this.canvas.style.top || "0")
+                    };
+                }
+                setTimeout(() => clickCount = 0, 300);
+            } else if (e.button == 0) {
+                this.canvas.setPointerCapture(e.pointerId);
+                this.note = false;
+                if (this.hovered.note){
+                    this.note = true;
+                    if (e.ctrlKey) {
+                        this.controller.addSelectedToChosen();
+                    } else if (this.hovered.note && !this.score.selection.selected.includes(this.hovered.note)) {
+                        this.controller.selectedToChosen();
+                    } 
+                } else if (!e.ctrlKey) {
+                    this.score.selection.selected = [];
+                }
+                this.drugged = true;
+                let [x,y] = this.rectInput(e);
+                [x,y] = this.controller.processInput(x,y);
+                [x,y] = this.controller.getGrid(x,y);
+                y = Math.floor(y)
+                this.score.selection.drugged_x = x;
+                this.score.selection.drugged_y = y;
+                x = Math.floor(x)
+                this.render();
+            }
         });
         this.canvas.addEventListener('pointerup', (e) => {
-            this.canvas.releasePointerCapture(e.pointerId);
-            if (e.ctrlKey && !this.note){
-                this.controller.addSelectedToChosen();
-            } else if (this.score.selection.notes.length==0){
-                this.controller.selectedToChosen();
+            if (e.button == 2) {
+                this.drug_window = null;
             } else {
-                this.controller.applyChanges(e.ctrlKey);
+                this.canvas.releasePointerCapture(e.pointerId);
+                this.controller.clearInterval();
+                if (e.ctrlKey && !this.note){
+                    this.controller.addSelectedToChosen();
+                } else if (this.score.selection.selected.length==0){
+                    this.controller.selectedToChosen();
+                } else {
+                    this.controller.applyChanges(e.ctrlKey);
+                }
+                let [x,y] = this.rectInput(e);
+                [x,y] = this.controller.processInput(x,y);
+                [x,y] = this.controller.getMatrix(x,y);
+                this.score.selection.clear();
+                this.drugged = false;
+                this.note = false;
+                this.render();
             }
-            const rect = this.canvas.getBoundingClientRect();
-            let x = (e.clientX - rect.left)/rect.width;
-            let y = (e.clientY - rect.top)/rect.height;
-            [x,y] = this.controller.processInput(x,y);
-            [x,y] = this.controller.getMatrix(x,y);
-            this.score.selection.clear();
-            this.drugged = false;
-            this.note = false;
-            this.render();
         });
         this.canvas.addEventListener('pointerleave', () => {
             this.sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
+            this.drug_window = null;
             this.render();
+            this.controller.clearInterval();
         });
-
+        
         this.render()
     }
     
@@ -186,10 +322,10 @@ export default class ScoreDrawer{
         this.renderPiano();
         this.renderGrid()
         this.renderNotes()
-        if (this.hovered.note && !this.score.selection.notes.includes(this.hovered.note) ||this.hovered.notes.length){
+        if (this.hovered.note && !this.score.selection.selected.includes(this.hovered.note) || this.hovered.notes.length){
             this.renderSelected();
         }
-        if (this.score.selection.notes.length) {
+        if (this.score.selection.selected.length) {
             this.renderChosenNotes();
         }
         this.renderPianoLabels()
@@ -270,8 +406,9 @@ export default class ScoreDrawer{
     }
     renderNotes(){
         this.score.notes.forEach(note => {
-            if (note.pitch < this.score.start_note || note.pitch > this.score.start_note + this.notes_width_count-1) return;
-            if (this.score.selection.notes.includes(note)){
+            // let pitch =  + this.score.selection.offset_pitch
+            // if (note.pitch < this.score.start_note || note.pitch > this.score.start_note + this.notes_width_count-1) return;
+            if (this.score.selection.selected.includes(note)){
                 let n = note.clone();
                 n.start += this.score.selection.offset_start;
                 n.duration += this.score.selection.offset_duration;
@@ -294,7 +431,7 @@ export default class ScoreDrawer{
             this.ctx.closePath();
         } else {
             for (let note of this.hovered.notes){
-                if (this.score.selection.notes.includes(note)) continue;
+                if (this.score.selection.selected.includes(note)) continue;
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "yellow";
                 this.ctx.lineWidth = 2;
@@ -304,27 +441,28 @@ export default class ScoreDrawer{
             if (this.sectorsSelection.x1==-1){
                 return;
             }
-            const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
-            const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
-            let n = [1,3,6,8,10];
-            for (let i=0; i<max-min+1; i++){
-                this.ctx.beginPath();
-                this.ctx.lineWidth = 1;
-                this.ctx.strokeStyle = "yellow";
-                this.ctx.fillStyle = "yellow";
-                if (!n.includes((min+i+this.score.start_note)%12)){
-                    this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-                } else {
-                    this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
-                }
-                this.ctx.closePath();
-            }
+            
+            // const min = Math.min(this.sectorsSelection.y1,this.sectorsSelection.y2);
+            // const max = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2);
+            // let n = [1,3,6,8,10];
+            // for (let i=0; i<max-min+1; i++){
+            //     this.ctx.beginPath();
+            //     this.ctx.lineWidth = 1;
+            //     this.ctx.strokeStyle = "yellow";
+            //     this.ctx.fillStyle = "yellow";
+            //     if (!n.includes((min+i+this.score.start_note)%12)){
+            //         this.ctx.fillRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+            //     } else {
+            //         this.ctx.strokeRect(this.margin_left, this.gridY-(i+min+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
+            //     }
+            //     this.ctx.closePath();
+            // }
         }
     }
     renderHovered(x:number){
         if (!this.hovered.note) return;
         this.ctx.beginPath();
-        if (this.score.selection.notes.length){
+        if (this.score.selection.selected.length){
             this.ctx.strokeStyle = "yellow";
         } else {
             this.ctx.strokeStyle = "blue";
@@ -336,7 +474,7 @@ export default class ScoreDrawer{
         this.ctx.closePath();
     }
     renderChosenNotes(){
-        for (let note of this.score.selection.notes){
+        for (let note of this.score.selection.selected){
             this.ctx.beginPath();
             this.ctx.strokeStyle = "blue";
             this.ctx.fillStyle = "blue";
@@ -361,16 +499,15 @@ export default class ScoreDrawer{
         this.ctx.beginPath();
         this.ctx.strokeStyle = "yellow";
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-y_min*this.note_h, this.note_w*x_len, -this.note_h*y_len);
+        this.ctx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-(y_min-this.score.start_note)*this.note_h, this.note_w*x_len, -this.note_h*y_len);
         this.ctx.closePath();
     }
     renderSelection(){
         this.ctx.beginPath();
         this.ctx.fillStyle = "yellow";
         let s = this.score.selection;
-        this.ctx.fillRect(this.gridX + (s.start +  + s.offset_start)*this.note_w, this.gridY, (s.end - s.start + s.offset_duration)*this.note_w, 2);
-        this.ctx.fillRect(this.gridX + (s.start +  + s.offset_start)*this.note_w, this.gridY-this.height, (s.end - s.start + s.offset_duration)*this.note_w, -2);
+        this.ctx.fillRect(this.gridX + (s.start + s.offset_start)*this.note_w, this.gridY, (s.end - s.start + s.offset_duration)*this.note_w, 2);
+        this.ctx.fillRect(this.gridX + (s.start + s.offset_start)*this.note_w, this.gridY-this.height, (s.end - s.start + s.offset_duration)*this.note_w, -2);
         this.ctx.closePath();
     }
-    
 }

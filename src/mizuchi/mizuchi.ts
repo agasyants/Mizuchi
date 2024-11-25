@@ -5,7 +5,7 @@ import Mix from "./mix";
 import ScoreDrawer from "./score_drawer";
 import MixDrawer from "./mix_drawer";
 import { Mixer } from "./mixer";
-import { Delay, Distortion, Distortion2, Distortion3 } from "./audio_effects";
+import { Delay, Distortion, Distortion2, Distortion3, Smothstep } from "./audio_effects";
 import { Set } from "./CommandPattern";
 // import TrackDrawer from "./track_drawer";
 
@@ -20,6 +20,9 @@ export default class Mizuchi{
         start_input.addEventListener("change", () => {
             mix.start = Number(start_input.value);
         }) 
+        window.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        })
         
         window.addEventListener("keydown", (e) => {
             if (e.code=="KeyS" && e.ctrlKey){
@@ -45,7 +48,7 @@ export default class Mizuchi{
         if (mixCanvas){
             const mixDrawer = new MixDrawer(mixCanvas, mix, oscDrawer, score_drawer);
             let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
-            const audioE = [new Distortion(1,0.8), new Distortion2(1,0.8), new Distortion3(1,f), new Delay(0.5,1,44100)]
+            const audioE = [new Distortion(1,0.8), new Distortion2(1,0.8), new Distortion3(1,f), new Delay(0.5,1,44100), new Smothstep(1)]
             const InputDiv = document.getElementById('Inputs') || document.createElement('div');
 
             for (let effect of audioE){

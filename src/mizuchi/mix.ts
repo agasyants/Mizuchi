@@ -42,7 +42,7 @@ export default class Mix{
             for (let score of track.scores){
                 const newScore = new Score(score.start_time, score.duration);
                 newScore.start_note = score.start_note;
-                // newScore.loop_guration = score.loop_guration;
+                // newScore.loop_duration = score.loop_duration;
                 for (let note of score.notes){
                     newScore.notes.push(new Note(note.pitch, note.start, note.duration));
                 }

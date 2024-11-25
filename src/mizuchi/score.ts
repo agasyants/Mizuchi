@@ -1,4 +1,5 @@
 import Note from "./note";
+import Selection from "./selection";
 
 export default class Score {
     notes:Note[] = [];
@@ -38,7 +39,7 @@ export default class Score {
     move(s:Selection, [start=0,duration=0,pitch=0]:number[]){
         s.start+=start;
         s.end+=start;
-        for (let note of s.notes){
+        for (let note of s.selected){
             note.start += start;
             note.duration += duration;
             note.pitch += pitch;
@@ -56,47 +57,8 @@ export default class Score {
         this.selection.end = end;
         for (let note of this.notes){
             if (note.start >= start && note.start+note.duration <= end){
-                this.selection.notes.push(note);
+                this.selection.selected.push(note);
             }
         }
-    }
-}
-
-export class Selection {
-    start:number;
-    end:number;
-    notes:Note[];
-    offset_pitch:number = 0;
-    offset_start:number = 0;
-    offset_duration:number = 0;
-    drugged_x:number = 0;
-    drugged_y:number = 0;
-    constructor(start:number=0, end:number=0){
-        this.start = start;
-        this.end = end;
-        this.notes = [];
-    }
-    clone(){
-        let clone = new Selection();
-        clone.start = this.start;
-        clone.end = this.end;
-        for (let note of this.notes){
-            clone.notes.push(note.clone());
-        }
-        return clone;
-    }
-    cloneNotes(){
-        let clone = [];
-        for (let note of this.notes){
-            clone.push(note.clone());
-        }
-        return clone;
-    }
-    clear(){
-        this.offset_pitch = 0;
-        this.offset_start = 0;
-        this.offset_duration = 0;
-        this.drugged_x = 0;
-        this.drugged_y = 0;
     }
 }
