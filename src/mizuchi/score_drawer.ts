@@ -3,29 +3,34 @@ import Selection from "./selection";
 import Note from "./note";
 import CommandPattern from "./CommandPattern";
 import score_drawer_controller from "./score_drawer_controller";
+import Drawer from "./Drawer";
 
-export default class ScoreDrawer{
+export default class ScoreDrawer extends Drawer{
     pianoWidth: number = 0.1;
     notes_width_count: number = 24;
     max_note: number = 127 - this.notes_width_count;
+    width:number=0;
+    height:number=0;
 
-    w:number;
-    h:number;
-    margin_top:number;
-    margin_left:number;
-    width:number;
-    height:number;
-    ctx:CanvasRenderingContext2D;
-    note_w:number;
-    note_h:number;
-    gridX:number;
-    gridY:number;
+    note_w:number=0;
+    note_h:number=0;
+    gridX:number=0;
+    gridY:number=0;
     buffer: Selection = new Selection;
     commandPattern:CommandPattern = new CommandPattern();
 
-    hovered:{note:Note|null,notes:Note[],start:boolean,end:boolean} = {note:null,notes:[],start:false,end:false}
+    hovered:{
+        note:Note|null,
+        notes:Note[],
+        start:boolean,
+        end:boolean
+    } = {
+        note:null,
+        notes:[],
+        start:false,
+        end:false
+    }
     drugged:boolean = false;
-    drug_window:{cx:number,cy:number,cliX:number,cliY:number}|null = null;
     note:boolean = false;
     ctrl:boolean = false;
     controller:score_drawer_controller;
@@ -33,99 +38,11 @@ export default class ScoreDrawer{
     sectorsSelection:{x1:number,y1:number,x2:number,y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
 
     constructor(public canvas:HTMLCanvasElement, public score:Score){
+        super(canvas);
+        this.setCanvasSize(canvas.width, canvas.height)
         this.controller = new score_drawer_controller(this);
-        this.w = this.canvas.width = canvas.width * devicePixelRatio;
-        this.h = this.canvas.height = canvas.height * devicePixelRatio;
-        this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
-        this.canvas.style.height = canvas.height / devicePixelRatio + 'px';
-        this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.ctx.translate(0, this.h)
-        this.margin_top = canvas.height/20;
-        this.margin_left = this.margin_top;
-        this.width = (this.w - 2*this.margin_left - this.pianoWidth*canvas.width);
-        this.height = (this.h - 2*this.margin_top);
-        this.note_h = this.height/this.notes_width_count;
-        this.note_w = this.width/score.duration;
-        this.gridX = this.margin_left + this.pianoWidth*this.width;
-        this.gridY = -this.margin_top;
         this.initialize();
-        // const wrapper = document.getElementById('score-canvas-wrapper') as HTMLDivElement;
-        // let isResizing = false;
-        // let resizeEdge = { right: false, bottom: false, corner: false };
-        // let startX = 0;
-        // let startY = 0;
-
-        // const MIN_WIDTH = 50;
-        // const MIN_HEIGHT = 50;
-
-        // // Настройка стилей для wrapper
-        // wrapper.style.position = 'absolute';
-        // wrapper.style.display = 'inline-block';
-        // wrapper.style.border = '1px solid black';
-        // wrapper.style.padding = '10px';
-        // this.canvas.style.display = 'block';
-        // wrapper.style.width = (canvas.width / devicePixelRatio +10) + 'px';
-        // wrapper.style.height = (canvas.height / devicePixelRatio +10) + 'px';
-
-        // // Функция для определения курсора
-        // function getCursorStyle(e: MouseEvent): string {
-        //     const rect = wrapper.getBoundingClientRect();
-        //     const isRightEdge = e.clientX > rect.right - 10 && e.clientX < rect.right;
-        //     const isBottomEdge = e.clientY > rect.bottom - 10 && e.clientY < rect.bottom;
-        //     const isCorner = isRightEdge && isBottomEdge;
-        
-        //     if (isCorner) return 'nwse-resize';
-        //     if (isRightEdge) return 'ew-resize';
-        //     if (isBottomEdge) return 'ns-resize';
-        //     return 'default';
-        // }
-
-        // // Обработчик для изменения курсора
-        // wrapper.addEventListener('mousemove', (e) => {
-        //     if (!isResizing) {
-        //     wrapper.style.cursor = getCursorStyle(e);
-        //     }
-        // });
-        
-        // wrapper.addEventListener('mousedown', (e) => {
-        //     const rect = wrapper.getBoundingClientRect();
-        
-        //     const isRightEdge = e.clientX > rect.right - 10 && e.clientX < rect.right;
-        //     const isBottomEdge = e.clientY > rect.bottom - 10 && e.clientY < rect.bottom;
-        //     const isCorner = isRightEdge && isBottomEdge;
-        
-        //     if (isRightEdge || isBottomEdge) {
-        //     isResizing = true;
-        //     resizeEdge = { right: isRightEdge, bottom: isBottomEdge, corner: isCorner };
-        //     startX = e.clientX;
-        //     startY = e.clientY;
-        //     e.preventDefault();
-        //     }
-        // });
-        
-        // document.addEventListener('mousemove', (e) => {
-        //     if (isResizing) {
-        //       const dx = e.clientX - startX;
-        //       const dy = e.clientY - startY;
-          
-        //       if (resizeEdge.right || resizeEdge.corner) {
-        //         canvas.width = Math.max(MIN_WIDTH, canvas.width + dx);
-        //       }
-          
-        //       if (resizeEdge.bottom || resizeEdge.corner) {
-        //         canvas.height = Math.max(MIN_HEIGHT, canvas.height + dy);
-        //       }
-          
-        //       startX = e.clientX;
-        //       startY = e.clientY;
-        //     }
-        //   });
-        
-        // document.addEventListener('mouseup', () => {
-        //     isResizing = false;
-        //     resizeEdge = { right: false, bottom: false, corner: false };
-        //     wrapper.style.cursor = 'default';
-        // });
+        this.render();
     }
     rectInput(e:MouseEvent){
         const rect = this.canvas.getBoundingClientRect();
@@ -139,14 +56,11 @@ export default class ScoreDrawer{
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.deltaY) {
-                if (e.ctrlKey){
+                if (e.ctrlKey)
                     this.controller.zoom(Math.abs(e.deltaY)/e.deltaY);
-                } else {
-                    this.controller.scroll(Math.abs(e.deltaY)/e.deltaY);
-                }
-            } 
-            // const [x,y] = this.rectInput(e);
-            // this.controller.findNote(x,y, 0.2, e.shiftKey, e.ctrlKey);
+                else
+                    this.controller.scroll(Math.abs(e.deltaY)/e.deltaY);                
+            }
             this.render();
         });
         this.canvas.addEventListener('keyup', (e) => {
@@ -171,11 +85,10 @@ export default class ScoreDrawer{
                 this.controller.paste();
             }
             if (e.code=="KeyZ" && e.ctrlKey){
-                if (e.shiftKey){
+                if (e.shiftKey)
                     this.commandPattern.redo();
-                } else {
+                else 
                     this.commandPattern.undo();
-                } 
             }
             if (e.code=="KeyA" && e.ctrlKey){
                 this.controller.selectAll();
@@ -189,10 +102,14 @@ export default class ScoreDrawer{
             if (e.code=="KeyD" && e.ctrlKey){
                 this.controller.dublicate();
             }
-            if (e.code=="ArrowUp")
+            if (e.code=="ArrowUp"){
                 this.score.selection.offset_pitch+=1;
-            if (e.code=="ArrowDown")
+                this.controller.scroll(-1);
+            }
+            if (e.code=="ArrowDown") {
                 this.score.selection.offset_pitch-=1;
+                this.controller.scroll(1);
+            }
             if (e.code=="ArrowLeft")
                 this.score.selection.offset_start-=1;
             if (e.code=="ArrowRight")
@@ -213,84 +130,40 @@ export default class ScoreDrawer{
             }
         });
         this.canvas.addEventListener('pointermove', (e) => {
-            if (this.drug_window) {
-                let x = this.drug_window.cliX + e.clientX - this.drug_window.cx;
-                let y = this.drug_window.cliY + e.clientY - this.drug_window.cy;
-                const w = this.canvas.width/devicePixelRatio
-                const h = this.canvas.height/devicePixelRatio
-                if (x < 0){
-                    x = 0;
-                    // this.drug_window.cliX = e.clientX;
-                } 
-                if (y < 0){
-                    y = 0;
-                    // this.drug_window.cliY = e.clientY;
-                }
-                if (x > window.innerWidth - w){
-                    x = window.innerWidth - w;
-                    // this.drug_window.cliX = e.clientX;
-                }
-                if (y > window.innerHeight - h){
-                    y = window.innerHeight - h;
-                    // this.drug_window.cliY = e.clientY;
-                }
-                console.log(this.drug_window);
-                
-                this.canvas.style.left = `${x}px`;
-                this.canvas.style.top = `${y}px`;
-            } else {
-                const [x,y] = this.rectInput(e);
-                this.render();
-                this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey);
-            }
+            const [x,y] = this.rectInput(e);
+            this.render();
+            this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey, e.altKey);
         });
-        let clickCount = 0;
         this.canvas.addEventListener('pointerdown', (e) => {
-            if (e.button == 2) {
-                clickCount++;
-                if (clickCount == 2) {
-                    this.controller.setScore(null);
-                    clickCount = 0;
-                } else {
-                    this.drug_window = {
-                        cx: e.clientX, 
-                        cy: e.clientY, 
-                        cliX: parseFloat(this.canvas.style.left || "0"), 
-                        cliY: parseFloat(this.canvas.style.top || "0")
-                    };
-                }
-                setTimeout(() => clickCount = 0, 300);
-            } else if (e.button == 0) {
+            if (e.button == 0) {
                 this.canvas.setPointerCapture(e.pointerId);
                 this.note = false;
                 if (this.hovered.note){
                     this.note = true;
-                    if (e.ctrlKey) {
+                    if (e.shiftKey) {
                         this.controller.addSelectedToChosen();
                     } else if (this.hovered.note && !this.score.selection.selected.includes(this.hovered.note)) {
                         this.controller.selectedToChosen();
                     } 
-                } else if (!e.ctrlKey) {
+                } else if (!e.shiftKey) {
                     this.score.selection.selected = [];
                 }
                 this.drugged = true;
                 let [x,y] = this.rectInput(e);
                 [x,y] = this.controller.processInput(x,y);
                 [x,y] = this.controller.getGrid(x,y);
-                y = Math.floor(y)
+                y = Math.floor(y);
                 this.score.selection.drugged_x = x;
                 this.score.selection.drugged_y = y;
-                x = Math.floor(x)
+                x = Math.floor(x);
                 this.render();
             }
         });
         this.canvas.addEventListener('pointerup', (e) => {
-            if (e.button == 2) {
-                this.drug_window = null;
-            } else {
+            if (e.button == 0) {
                 this.canvas.releasePointerCapture(e.pointerId);
                 this.controller.clearInterval();
-                if (e.ctrlKey && !this.note){
+                if (e.shiftKey && !this.note){
                     this.controller.addSelectedToChosen();
                 } else if (this.score.selection.selected.length==0){
                     this.controller.selectedToChosen();
@@ -308,14 +181,24 @@ export default class ScoreDrawer{
         });
         this.canvas.addEventListener('pointerleave', () => {
             this.sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
-            this.drug_window = null;
             this.render();
             this.controller.clearInterval();
         });
         
         this.render()
     }
-    
+    setCanvasSize(width: number, height: number): void {
+        this.ctx.translate(0, -this.h)
+        super.setCanvasSize(width, height)
+        this.ctx.translate(0, this.h)
+        this.width = (this.w - 2*this.margin_left - this.pianoWidth*this.width);
+        this.height = (this.h - 2*this.margin_top);
+        this.note_h = this.height/this.notes_width_count;
+        this.note_w = this.width/this.score.duration;
+        this.gridX = this.margin_left + this.pianoWidth*this.width;
+        this.gridY = -this.margin_top;
+        this.render();
+    }
     render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.ctx.font = "16px system-ui";

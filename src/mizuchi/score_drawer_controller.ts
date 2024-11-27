@@ -9,23 +9,19 @@ export default class score_drawer_controller {
     constructor(drawer: ScoreDrawer) {
         this.drawer = drawer;
     }
-    setScore(score:Score|null){
-        if (score){
-            this.drawer.score = score;
-            this.drawer.canvas.style.display = 'block';
-            this.drawer.canvas.focus();
-            this.drawer.render();
-        } else {
-            this.drawer.canvas.blur();
-            this.drawer.canvas.style.display = 'none';
-        }
+    setScore(score:Score){
+        this.drawer.score = score;
+        this.drawer.canvas.style.display = 'block';
+        this.drawer.canvas.focus();
+        this.drawer.render();
     }
     scroll(i:number){
         this.drawer.score.start_note -= i;
         if (this.drawer.score.start_note < 0)
             this.drawer.score.start_note = 0;
-        else if (this.drawer.score.start_note > this.drawer.max_note) this.drawer.score.start_note = this.drawer.max_note;
-        else if (this.drawer.drugged){
+        else if (this.drawer.score.start_note > this.drawer.max_note) 
+            this.drawer.score.start_note = this.drawer.max_note;
+        else if (this.drawer.drugged) {
             if (this.drawer.score.selection.selected.length) {
                 this.drawer.score.selection.offset_pitch -= i;
                 this.drawer.score.selection.drugged_y += i;
@@ -232,7 +228,7 @@ export default class score_drawer_controller {
             }
         }
     }
-    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean){
+    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean, alt:boolean){
         [x,y] = this.processInput(x,y);;
         if (x<0) x=0;
         if (x>1) x=1;
@@ -240,7 +236,7 @@ export default class score_drawer_controller {
         if (y>1) y=1;
         
         if (this.drawer.drugged){
-            this.drug(x,y,shift,ctrl);
+            this.drug(x,y,alt,ctrl);
         } else {
             [x, y] = this.getGrid(x,y);
             y = Math.floor(y);

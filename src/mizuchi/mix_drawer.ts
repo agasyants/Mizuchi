@@ -6,6 +6,8 @@ import Track from "./track";
 import AudioEffect from "./audio_effects";
 import Selection from "./selection";
 import CommandPattern, { Create, Delete } from "./CommandPattern";
+import Drawer from "./Drawer";
+import WindowController from "./WindowController";
 
 class sc{
     score:Score;
@@ -16,28 +18,23 @@ class sc{
     }
 }
 
-export default class MixDrawer{
+export default class MixDrawer extends Drawer{
     drugged:boolean = false;
-    w:number;
-    h:number;
-    margin_top:number;
-    margin_left:number;
-    width:number;
-    height:number;
+    width:number=0;
+    height:number=0;
     tracks_number_on_screen:number = 3;
     score_number_on_screen:number = 16;
     instrument_width:number = 0.1;
-    track_h:number;
-    score_h:number;
-    score_w:number;
+    track_h:number=0;
+    score_h:number=0;
+    score_w:number=0;
     len:number = 8;
 
 
     y:number = 0;
-    y_max:number;
+    y_max:number=0;
     x:number = 0;
-    x_max:number;
-    ctx:CanvasRenderingContext2D;
+    x_max:number=0;
 
     hovered:{scores:sc[],track:Track|null,start:boolean,end:boolean} = {scores:[],track:null,start:false,end:false}
     
@@ -47,33 +44,17 @@ export default class MixDrawer{
 
 
     oscDrawer:OscDrawer;
-    scoreDrower:ScoreDrawer;
 
     input_x:number = -1;
     input_y:number = -1;
     grids_in_screen:number = 60;
     scores:Selection = new Selection();
     tracks:Selection = new Selection();
-    constructor(public canvas:HTMLCanvasElement, public mix:Mix, oscDrawer:OscDrawer, scoreDrower:ScoreDrawer){
+    constructor(public canvas:HTMLCanvasElement, public mix:Mix, oscDrawer:OscDrawer, public score_window:WindowController){
+
+        super(canvas);
         this.oscDrawer = oscDrawer;
-        this.scoreDrower = scoreDrower;
-
-        this.w = this.canvas.width = canvas.width * devicePixelRatio;
-        this.h = this.canvas.height = canvas.height * devicePixelRatio;
-        this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
-        this.canvas.style.height = canvas.height / devicePixelRatio + 'px';
-      
-        this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.margin_top = canvas.height/20;
-        this.margin_left = this.margin_top;
-        this.width = (this.w - 2*this.margin_left);
-        this.height = (this.h - 2*this.margin_top);
-        this.track_h = this.height/this.tracks_number_on_screen
-        this.score_h = this.track_h;
-        this.score_w = this.width/this.grids_in_screen;
-
-        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen+1)*this.track_h;
-        this.x_max = (this.mix.tracks[0].scores.length-this.score_number_on_screen)*this.width;
+        this.setCanvasSize(canvas.width,canvas.height); 
 
         canvas.onselectstart = function () { return false; }
         canvas.tabIndex = 0;
@@ -105,7 +86,6 @@ export default class MixDrawer{
         });
         canvas.addEventListener('dblclick', () => {
             this.doubleInput(this.input_x, this.input_y);
-
         });
         canvas.addEventListener('keydown', (e) => {
             if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
@@ -148,13 +128,17 @@ export default class MixDrawer{
                         this.scores.selected.push(this.hovered.scores[0]);
                     else
                         this.scores.selected = [this.hovered.scores[0]];
-                    if (this.scoreDrower.canvas.style.display=='block') {
-                        this.scoreDrower.controller.setScore(this.scores.getLast().score);
+                    let drawer = this.score_window.drawer;
+                    if (drawer instanceof ScoreDrawer) {
+                        if (drawer.canvas.style.display=='block')
+                            drawer.controller.setScore(this.scores.getLast().score);
+
                     }
                     this.mix.start = this.hovered.scores[0].score.start_time/2;
                 } else {
                     this.scores.selected = [];
-                    this.scoreDrower.controller.setScore(null);
+                    this.score_window.close();
+                    // this.scoreDrower.controller.setScore(null);
                 }
             } else if (e.button==2){
                 // if (this.chosenTrack){
@@ -178,6 +162,17 @@ export default class MixDrawer{
             // }
         });
         this.render()
+    }
+    setCanvasSize(width: number, height: number): void {
+        super.setCanvasSize(width, height);
+        this.width = (this.w - 2*this.margin_left);
+        this.height = (this.h - 2*this.margin_top);
+        this.track_h = this.height/this.tracks_number_on_screen
+        this.score_h = this.track_h;
+        this.score_w = this.width/this.grids_in_screen;
+
+        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen+1)*this.track_h;
+        this.x_max = (this.mix.tracks[0].scores.length-this.score_number_on_screen)*this.width;
     }
     render() {
         // need fix
@@ -279,7 +274,6 @@ export default class MixDrawer{
             this.ctx.fillStyle = 'black';
             this.ctx.strokeStyle = 'white';
         }
-        
         this.ctx.fillRect(start_x, start_y, dur_x, this.score_h);
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(start_x, start_y, dur_x, this.score_h);
@@ -325,16 +319,18 @@ export default class MixDrawer{
     }
 
 
-
     doubleInput(x:number, y:number){
         if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
             if (!this.hovered.track) this.commandPattern.addCommand(new Create(this.mix, new Track('track '+ (this.mix.tracks.length+1).toString())));
-            if (this.scores.selected.length){
-                // console.log(this.scores.getLast());
-                if (this.scoreDrower.canvas.style.display=='block') {
-                    this.scoreDrower.controller.setScore(null);
-                } else {
-                    this.scoreDrower.controller.setScore(this.scores.getLast().score);
+            if (this.scores.selected.length) {
+                let drawer = this.score_window.drawer;
+                if (drawer instanceof ScoreDrawer) {
+                    if (drawer.canvas.style.display=='block') {
+                        this.score_window.close();
+                    } else {
+                        drawer.controller.setScore(this.scores.getLast().score);
+                        this.score_window.open();
+                    }
                 }
             }
             this.find();

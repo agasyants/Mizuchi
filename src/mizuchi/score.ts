@@ -22,7 +22,7 @@ export default class Score {
     }
     private update(new_note:Note) {
         for (let i = 0; i < this.notes.length; i++){
-            if (new_note.start < this.notes[i].start && new_note.start + new_note.duration > this.notes[i].start){
+            if (new_note.start < this.notes[i].start && new_note.start + new_note.duration > this.notes[i].start && new_note.pitch == this.notes[i].pitch){
                 this.notes.splice(i, 1);
             }
         }

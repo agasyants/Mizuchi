@@ -7,7 +7,8 @@ import MixDrawer from "./mix_drawer";
 import { Mixer } from "./mixer";
 import { Delay, Distortion, Distortion2, Distortion3, Smothstep } from "./audio_effects";
 import { Set } from "./CommandPattern";
-// import TrackDrawer from "./track_drawer";
+import WindowController from "./WindowController";
+
 
 export default class Mizuchi{
     constructor(){
@@ -43,10 +44,12 @@ export default class Mizuchi{
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
         const score_drawer = new ScoreDrawer(scoreCanvas, mix.tracks[0].scores[0]);
+        const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
+        // console.log(score_window);
 
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;
         if (mixCanvas){
-            const mixDrawer = new MixDrawer(mixCanvas, mix, oscDrawer, score_drawer);
+            const mixDrawer = new MixDrawer(mixCanvas, mix, oscDrawer, score_window);
             let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
             const audioE = [new Distortion(1,0.8), new Distortion2(1,0.8), new Distortion3(1,f), new Delay(0.5,1,44100), new Smothstep(1)]
             const InputDiv = document.getElementById('Inputs') || document.createElement('div');

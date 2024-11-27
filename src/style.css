@@ -29,10 +29,8 @@ button{
     padding: 0px;
 }
 #ScoreCanvas{
-    position: absolute;
-    display: none;
-    top: 0px;
-    left: 0px;
+    position: relative;
+    margin: 5px;
 }
 canvas:focus{
     outline: rgb(0, 119, 255) solid 2px;

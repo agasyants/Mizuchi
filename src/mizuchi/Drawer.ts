@@ -1,22 +1,21 @@
-export default class ScoreDrawer{
-    w:number;
-    h:number;
-    margin_top:number;
-    margin_left:number;
-    width:number;
-    height:number;
+export default abstract class Drawer{
+    w:number=0;
+    h:number=0;
+    margin_top:number=0;
+    margin_left:number=0;
     ctx:CanvasRenderingContext2D;
 
     constructor(public canvas:HTMLCanvasElement){
-        this.w = this.canvas.width = canvas.width * devicePixelRatio;
-        this.h = this.canvas.height = canvas.height * devicePixelRatio;
-        this.canvas.style.width = canvas.width / devicePixelRatio + 'px';
-        this.canvas.style.height = canvas.height / devicePixelRatio + 'px';
         this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
-        this.ctx.translate(0, this.h)
-        this.margin_top = canvas.height/20;
-        this.margin_left = this.margin_top;
-        this.width = this.w - 2*this.margin_left;
-        this.height = this.h - 2*this.margin_top;
     }
+    abstract render():void
+    setCanvasSize(width:number, height:number):void{
+        this.w = this.canvas.width = width * devicePixelRatio;
+        this.h = this.canvas.height = height * devicePixelRatio;        
+        this.canvas.style.width = this.canvas.width / devicePixelRatio + 'px';
+        this.canvas.style.height = this.canvas.height / devicePixelRatio + 'px';
+        this.margin_top = this.canvas.height/20;
+        this.margin_left = this.margin_top;
+    }
+
 }
