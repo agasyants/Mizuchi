@@ -1,7 +1,7 @@
-import Score from "./score";
-import Selection from "./selection";
-import Note from "./note";
-import CommandPattern from "./CommandPattern";
+import Score from "../data/score";
+import Selection from "../classes/selection";
+import Note from "../classes/note";
+import CommandPattern from "../classes/CommandPattern";
 import score_drawer_controller from "./score_drawer_controller";
 import Drawer from "./Drawer";
 
@@ -131,8 +131,9 @@ export default class ScoreDrawer extends Drawer{
         });
         this.canvas.addEventListener('pointermove', (e) => {
             const [x,y] = this.rectInput(e);
+            if (this.stopRender) return;
             this.render();
-            this.controller.findNote(x, y, 0.2, e.shiftKey, e.ctrlKey, e.altKey);
+            this.controller.findNote(x, y, 0.2, e.ctrlKey, e.altKey);
         });
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.button == 0) {
@@ -201,7 +202,6 @@ export default class ScoreDrawer extends Drawer{
     }
     render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
-        this.ctx.font = "16px system-ui";
         this.renderPiano();
         this.renderGrid()
         this.renderNotes()
@@ -227,6 +227,7 @@ export default class ScoreDrawer extends Drawer{
     }
     renderPiano(){
         let n = [1,3,6,8,10]
+        this.ctx.lineWidth = 3;
         for (let i = 0; i < this.notes_width_count; i++){
             if (!n.includes((i+this.score.start_note)%12)){
                 this.ctx.beginPath();
@@ -247,9 +248,11 @@ export default class ScoreDrawer extends Drawer{
         this.ctx.lineWidth = 2;
         for (let i = 0; i < this.notes_width_count; i++){
             this.ctx.beginPath();
+            let k = Math.floor(Math.min(this.height,this.width)/30);
+            this.ctx.font = k+"px system-ui";
             this.ctx.strokeStyle = "red";
-            this.ctx.lineWidth = 1.6;
-            this.ctx.strokeText(Note.numberToPitch(this.score.start_note+i), this.margin_left+5, -this.margin_top - i*this.note_h-this.note_h*0.2);
+            this.ctx.lineWidth = k/10;
+            this.ctx.strokeText(Note.numberToPitch(this.score.start_note+i), this.margin_left+k*0.3, -this.margin_top - i*this.note_h-this.note_h*0.2);
             this.ctx.lineWidth = 1;
         }
     }

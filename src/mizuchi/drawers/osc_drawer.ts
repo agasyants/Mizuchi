@@ -1,5 +1,5 @@
-import OscFunction, { BasicPoint, HandlePoint, Point } from "./osc_function";
-import  CommandPattern,{ Create, Delete, Move } from "./CommandPattern";
+import OscFunction, { BasicPoint, HandlePoint, Point } from "../data/osc_function";
+import  CommandPattern,{ Create, Delete, Move } from "../classes/CommandPattern";
 
 export default class OscDrawer{
     commandPattern:CommandPattern;
@@ -328,7 +328,7 @@ export default class OscDrawer{
         if (this.chosenPoint!=null){
             if (this.chosenPoint instanceof BasicPoint && this.chosenPoint.x_move && this.chosenPoint.y_move){
                 let points = this.oscFunction.getAroundPoints(this.chosenPoint);
-                this.commandPattern.addCommand(new Delete(this.oscFunction,points));
+                this.commandPattern.addCommand(new Delete(this.oscFunction, points));
             } else if (this.chosenPoint instanceof HandlePoint){
                 if (this.chosenPoint.xl == 0.5 && this.chosenPoint.yl == 0.5){
                     this.addPoint(this.chosenPoint.x,this.chosenPoint.y);

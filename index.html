@@ -3,26 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image" href="./src/img/UzumeLogo2.png" />
+    <link rel="stylesheet" href="./src/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mizuchi</title>
+    <title> Mizuchi </title>
   </head>
   <body>
-    <div id="app">
-      <div id="Inputs">
-        <input type="number" value="120" id="bpm">
-        <input type="number" value="0" id="start">
-        <button id="Generate">
-            Generate
-        </button>
-        <button id="Test">
-            Test
-        </button>
+    <div id="app" >
+        <div style="background-color: white; display: flex; flex: 0 0 50px">
+            <img id="app_image" src="src/img/UzumeLogo2.png">
+            <h1 style="margin: 5px;">
+                Mizuchi
+            </h1>
+            <input type="number" value="120" id="bpm" style="width: 40px; height: 12px; margin: 19px;">
+            <div id="Inputs">
+                <input type="number" value="0" id="start">
+                <button id="Generate">
+                    Generate
+                </button>
+                <button id="Test">
+                    Test
+                </button>
+            </div>
+        </div>
+        <div id="mix-canvas-wrapper" style="flex: 1 1 auto;">
+            <canvas id="MixCanvas" style="background-color: black;"></canvas>
+        </div>
     </div>
-    <div style="display: flex;">
+    <div style="display: flex; position: absolute;">
         <div style="padding: 5px;">
             <canvas id="OscCanvas" height="250" width="375" style="background-color: black;"></canvas>
         </div>
-        <div class="Presets">
+        <!-- <div class="Presets">
             <button id="Sine">
                 Sine
             </button>
@@ -35,16 +46,10 @@
             <button id="Saw">
                 Saw
             </button>
-        </div>
-        <div>
-            <canvas id="EnvelopeCanvas" height="250" width="375" style="background-color: black;"></canvas>
-        </div>
+        </div> -->
     </div>
     <div id="score-canvas-wrapper" style="position: absolute;">
         <canvas id="ScoreCanvas" style="background-color: black;"></canvas>
-    </div>
-    <div style="padding: 5px; padding-top: 120px;">
-        <canvas id="MixCanvas" height="200" width="1000" style="background-color: black;"></canvas>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

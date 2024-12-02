@@ -1,6 +1,6 @@
-import {Delay} from "./audio_effects";
-import Mix from "./mix";
-import Note from "./note";
+import {Delay} from "../classes/audio_effects";
+import Mix from "../data/mix";
+import Note from "../classes/note";
 
 
 export class Mixer {

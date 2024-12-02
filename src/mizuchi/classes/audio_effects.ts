@@ -1,4 +1,4 @@
-import OscFunction from "./osc_function";
+import OscFunction from "../data/osc_function";
 
 export default class AudioEffect{
     public name:string;

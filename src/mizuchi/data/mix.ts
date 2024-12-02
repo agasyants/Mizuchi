@@ -2,9 +2,10 @@ import Score from "./score";
 import Track from "./track";
 import Instrument from "./instrument";
 import Oscillator from "./oscillator";
-import Note from "./note";
+import Note from "../classes/note";
+import { sc, tr } from "../drawers/mix_drawer";
 import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
-import AudioEffect from "./audio_effects";
+import AudioEffect from "../classes/audio_effects";
 
 export default class Mix{
     tracks:Track[] = [];
@@ -51,20 +52,45 @@ export default class Mix{
             this.tracks.push(newTrack);
         }
     }
-    create(track:any, index:number=-1){
-        if (index==-1) {
-            this.tracks.push(track);
-        } else {
-            this.tracks.splice(index, 0, track);
+    create(sel:any){
+        if (sel[0] instanceof tr){
+            this.createTracks(sel);
+        } else if (sel[0] instanceof sc){
+            this.createScores(sel);
         }
     }
-    delete(track:Track){
-        let index = this.tracks.indexOf(track);
-        if (index > -1) { 
-            this.tracks.splice(index, 1);
+    createTracks(tracks:tr[]){
+        for (let i = tracks.length-1; i>=0; i--){
+            console.log(tracks[i]);
+            
+            this.tracks.splice(tracks[i].index, 0, tracks[i].track);
         }
-        return index;
+    }
+    createScores(scores:sc[]){
+        for (let score of scores){
+            this.tracks[score.index].scores.push(score.score);
+        }
+    }
+    delete(sel:any){
+        if (sel[0] instanceof tr){
+            this.deleteTracks(sel);
+        } else if (sel[0] instanceof sc){
+            this.deleteScores(sel);
+        }
 
+    }
+    deleteScores(scores:sc[]){
+        for (let score of scores){
+            let index = this.tracks[score.index].scores.indexOf(score.score);
+            if (index > -1) {
+                this.tracks[score.index].scores.splice(index, 1);
+            }
+        }
+    }
+    deleteTracks(tracks:tr[]){
+        for (let track of tracks) {
+            this.tracks.splice(track.index, 1);
+        }
     }
     addAudioEffect(effect:AudioEffect){
         for (let track of this.tracks){

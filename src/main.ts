@@ -1,4 +1,4 @@
-import Mizuchi from "./mizuchi";
+import Mizuchi from "./mizuchi/main";
 import "./style.css";
 
 new Mizuchi()

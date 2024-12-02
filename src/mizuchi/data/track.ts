@@ -1,7 +1,7 @@
 import Instrument from "./instrument";
 import Score from "./score";
-import Note from "./note";
-import AudioEffect from "./audio_effects";
+import Note from "../classes/note";
+import AudioEffect from "../classes/audio_effects";
 
 export default class Track {
     inst:Instrument;

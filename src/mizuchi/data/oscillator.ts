@@ -1,4 +1,4 @@
-import Note from "./note";
+import Note from "../classes/note";
 import OscFunction from "./osc_function";
 
 export default class Oscillator {

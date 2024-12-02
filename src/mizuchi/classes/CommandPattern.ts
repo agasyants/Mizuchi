@@ -59,10 +59,9 @@ export class Create extends Command{
 }
 
 export class Delete extends Command{
-    place:number;
     constructor(public subject:any, public object:any){
         super();
-        this.place = this.do();
+        this.do();
     }
     do(){
         console.log("Delete"+this.object);
@@ -70,8 +69,9 @@ export class Delete extends Command{
     }
     undo(){
         console.log("Create"+this.object);
-        this.subject.create(this.object, this.place);
-    }}
+        this.subject.create(this.object);
+    }
+}
 
 export class Move extends Command{
     constructor(public subject:any, public object:any, public offset:number[]){

@@ -1,7 +1,7 @@
 import ScoreDrawer from "./score_drawer";
-import Note from "./note";
-import Score from "./score";
-import { Complex, Create, Delete, Move } from "./CommandPattern";
+import Note from "../classes/note";
+import Score from "../data/score";
+import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
 
 export default class score_drawer_controller {
     private drawer: ScoreDrawer;
@@ -171,12 +171,10 @@ export default class score_drawer_controller {
     drug(x:number, y:number, shift:boolean, ctrl:boolean){
         [x, y] = this.getGrid(x, y);
         if (y<2){
-            console.log(100*Math.pow(y/2,2));
             this.clearInterval();
             this.scrollInterval = setInterval(() => this.scroll(1), 100*Math.pow(y/2,2));
         } else if (y>=this.drawer.notes_width_count-2){
             this.clearInterval();
-            console.log(100*Math.pow((y-this.drawer.notes_width_count)/2,2));
             this.scrollInterval = setInterval(() => this.scroll(-1), 100*Math.pow((y-this.drawer.notes_width_count)/2,2));
         } else {
             this.clearInterval();
@@ -228,7 +226,7 @@ export default class score_drawer_controller {
             }
         }
     }
-    findNote(x:number, y:number, range:number, shift:boolean, ctrl:boolean, alt:boolean){
+    findNote(x:number, y:number, range:number, ctrl:boolean, alt:boolean){
         [x,y] = this.processInput(x,y);;
         if (x<0) x=0;
         if (x>1) x=1;

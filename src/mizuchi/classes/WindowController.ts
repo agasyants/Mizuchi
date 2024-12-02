@@ -1,4 +1,4 @@
-import Drawer from "./Drawer";
+import Drawer from "../drawers/Drawer";
 
 export default class WindowController {
     drawer: Drawer;
@@ -54,8 +54,10 @@ export default class WindowController {
     
     clickCount = 0;
     private onMouseDown(event: MouseEvent) {
+        this.drawer.canvas.focus();
         if (this.isResizing.Bottom||this.isResizing.Right||this.isResizing.Left||this.isResizing.Top) return;
         if (event.button == 2) {
+            this.drawer.stopRender=true;
             this.clickCount++;
             if (this.clickCount == 2) { // if double click close the window
                 this.close();
@@ -90,6 +92,7 @@ export default class WindowController {
     }
   
     private onMouseUp(event: MouseEvent) {
+        this.drawer.stopRender=false;
         if (event.button == 2)
             this.dragWindow = null;
     }
@@ -193,9 +196,10 @@ export default class WindowController {
   
     public open() {
         this.container.style.display = "block";
-        this.drawer.canvas.style.display = "block"
+        this.drawer.canvas.style.display = "block";
         const rect = this.container.getBoundingClientRect();
         this.drawer.setCanvasSize(rect.width-this.range, rect.height-this.range);
+        this.drawer.canvas.focus();
         this.drawer.render();
     }
 }

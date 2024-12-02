@@ -1,5 +1,5 @@
-import Note from "./note";
-import Selection from "./selection";
+import Note from "../classes/note";
+import Selection from "../classes/selection";
 
 export default class Score {
     notes:Note[] = [];

@@ -1,5 +1,5 @@
 import Oscillator from "./oscillator";
-import Note from "./note";
+import Note from "../classes/note";
 
 export default class Instrument {
     osc:Oscillator;
