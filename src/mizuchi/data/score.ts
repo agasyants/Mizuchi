@@ -36,7 +36,12 @@ export default class Score {
         this.duration = score.duration+scoreDelt;
         this.sort();
     }
-    move(s:Selection, [start=0,duration=0,pitch=0]:number[]){
+    move(s:Selection, [start=0,duration=0,pitch=0]:number[],reverse:boolean){
+        if (reverse){
+            start*=-1;
+            duration*=-1;
+            pitch*=-1;
+        }
         s.start+=start;
         s.end+=start;
         for (let note of s.selected){
@@ -60,5 +65,10 @@ export default class Score {
                 this.selection.selected.push(note);
             }
         }
+    }
+    clone(){
+        let score = new Score(this.start_time, this.duration);
+        score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
+        return score;
     }
 }

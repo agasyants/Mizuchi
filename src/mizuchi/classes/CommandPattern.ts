@@ -65,7 +65,7 @@ export class Delete extends Command{
     }
     do(){
         console.log("Delete"+this.object);
-        return this.subject.delete(this.object);
+        this.subject.delete(this.object);
     }
     undo(){
         console.log("Create"+this.object);
@@ -80,15 +80,11 @@ export class Move extends Command{
     }
     do(){
         console.log("Move "+this.offset);
-        this.subject.move(this.object, this.offset);
+        this.subject.move(this.object, this.offset, false);
     }
     undo(){
-        let un = []
-        for (let i=0; i<this.offset.length; i++){
-            un.push(-this.offset[i]);
-        }
-        console.log("Move "+this.offset);
-        this.subject.move(this.object, un);
+        console.log("unMove "+this.offset);
+        this.subject.move(this.object, this.offset, true);
     }
 }
 

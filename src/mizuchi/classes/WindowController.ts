@@ -5,6 +5,7 @@ export default class WindowController {
     private container: HTMLDivElement;
     private maxWidth: number = 200; // Minimum allowed width for resizing
     private maxHeight: number = 200; // Minimum allowed height for resizing
+    lastCall:number=0;
     private isResizing:{
         Right:boolean, 
         Left:boolean, 
@@ -177,12 +178,18 @@ export default class WindowController {
             }
     
             // Apply canvas
-            this.drawer.setCanvasSize(
-                newWidth-this.range,
-                newHeight-this.range );
+            
+            this.debounceSetSize(newWidth-this.range, newHeight-this.range);
         }
     }
     
+    debounceSetSize(w:number,h:number){
+        const now = Date.now();
+        if (now - this.lastCall >= 16) {
+            this.lastCall = now;
+            this.drawer.setCanvasSize(w,h);
+        }
+    }
   
     private onResizeEnd() {
         this.isResizing = {Right: false, Left: false, Top: false, Bottom: false};

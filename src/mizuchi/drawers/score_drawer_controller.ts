@@ -64,7 +64,7 @@ export default class score_drawer_controller {
         if (ctrl){
             if (s.offset_start || s.offset_duration || s.offset_pitch) {
                 let commands = [];
-                let notes = s.cloneNotes();
+                let notes = s.cloneContent();
                 commands.push(new Move(this.drawer.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
                 commands.push(new Create(this.drawer.score, notes));
                 this.drawer.commandPattern.addCommand(new Complex(commands));
@@ -74,6 +74,7 @@ export default class score_drawer_controller {
                 this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
             } 
         }
+        this.drawer.update_mix();
         s.clear();
     }
     zoom(i:number){
@@ -144,6 +145,7 @@ export default class score_drawer_controller {
             this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.start_note,x,1)]));
         }        
         this.drawer.hovered.notes = [];
+        this.drawer.update_mix();
         this.drawer.render();
     }
     getMatrix(x:number,y:number){

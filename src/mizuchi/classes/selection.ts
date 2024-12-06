@@ -21,10 +21,10 @@ export default class Selection {
         }
         return clone;
     }
-    cloneNotes(){
+    cloneContent(){
         let clone = [];
-        for (let note of this.selected){
-            clone.push(note.clone());
+        for (let element of this.selected){
+            clone.push(element.clone());
         }
         return clone;
     }

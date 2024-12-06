@@ -4,7 +4,11 @@ export default class OscFunction{
     constructor(paste:any=[[new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)], this.handles = [new HandlePoint(0.5,0)]]){
         this.set(paste);
     }
-    move(point:Point, [x,y]:number[]):void{
+    move(point:Point, [x,y]:number[], reverse:boolean):void{
+        if (reverse){
+            x = -x;
+            y = -y;
+        }
         x += point.x;
         y += point.y; 
         if (point instanceof BasicPoint){

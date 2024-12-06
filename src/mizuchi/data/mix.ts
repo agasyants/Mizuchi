@@ -53,43 +53,49 @@ export default class Mix{
         }
     }
     create(sel:any){
-        if (sel[0] instanceof tr){
-            this.createTracks(sel);
-        } else if (sel[0] instanceof sc){
-            this.createScores(sel);
-        }
-    }
-    createTracks(tracks:tr[]){
-        for (let i = tracks.length-1; i>=0; i--){
-            console.log(tracks[i]);
-            
-            this.tracks.splice(tracks[i].index, 0, tracks[i].track);
-        }
-    }
-    createScores(scores:sc[]){
-        for (let score of scores){
-            this.tracks[score.index].scores.push(score.score);
+        if (sel instanceof tr){
+            this.tracks.splice(sel.index, 0, sel.track);
+        } else if (sel instanceof sc){
+            this.tracks[sel.index].scores.push(sel.score);
         }
     }
     delete(sel:any){
-        if (sel[0] instanceof tr){
-            this.deleteTracks(sel);
-        } else if (sel[0] instanceof sc){
-            this.deleteScores(sel);
-        }
-
-    }
-    deleteScores(scores:sc[]){
-        for (let score of scores){
-            let index = this.tracks[score.index].scores.indexOf(score.score);
+        if (sel instanceof tr){
+            this.tracks.splice(sel.index, 1);
+        } else if (sel instanceof sc){
+            let index = this.tracks[sel.index].scores.indexOf(sel.score);
             if (index > -1) {
-                this.tracks[score.index].scores.splice(index, 1);
+                this.tracks[sel.index].scores.splice(index, 1);
             }
         }
     }
-    deleteTracks(tracks:tr[]){
-        for (let track of tracks) {
-            this.tracks.splice(track.index, 1);
+    move(sel:any, offset:number[], reverse:boolean){
+        if (sel[0] instanceof tr){
+            for (let track of sel){
+                let index = this.tracks.indexOf(track.track);
+                if (index > -1) {
+                    this.tracks.splice(index, 1);
+                    this.tracks.splice(index+offset[2], 0, track.track);
+                }
+            }
+        } else if (sel[0] instanceof sc){
+            for (let sc of sel){
+                const index = this.tracks[sc.index].scores.indexOf(sc.score);
+                if (index > -1) {
+                    this.tracks[sc.index].scores.splice(index, 1);
+                    if (reverse){
+                        sc.score.start_time -= offset[0];
+                        sc.score.duration -= offset[1];
+                        sc.index -= offset[2];                        
+                    } else {
+                        sc.score.start_time += offset[0];
+                        sc.score.duration += offset[1];
+                        sc.index += offset[2];
+                    }
+                    console.log(sc,this.tracks);
+                    this.tracks[sc.index].scores.push(sc.score);
+                }
+            }
         }
     }
     addAudioEffect(effect:AudioEffect){
