@@ -15,7 +15,7 @@ export default abstract class Drawer{
         this.h = this.canvas.height = height * devicePixelRatio;
         this.canvas.style.width = width + 'px';
         this.canvas.style.height = height + 'px';
-        this.margin_top = this.canvas.height/k;
+        this.margin_top = Math.min(this.canvas.height,this.canvas.width)/k;
         this.margin_left = this.margin_top;
     }
 }

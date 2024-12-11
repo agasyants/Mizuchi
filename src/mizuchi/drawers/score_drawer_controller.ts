@@ -5,9 +5,11 @@ import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
 
 export default class score_drawer_controller {
     private drawer: ScoreDrawer;
+    max_note: number;
     private scrollInterval: any = null;
-    constructor(drawer: ScoreDrawer) {
+    constructor(drawer:ScoreDrawer){
         this.drawer = drawer;
+        this.max_note = 127 - this.drawer.notes_width_count;
     }
     setScore(score:Score){
         this.drawer.score = score;
@@ -19,11 +21,11 @@ export default class score_drawer_controller {
         this.drawer.score.start_note -= i;
         if (this.drawer.score.start_note < 0)
             this.drawer.score.start_note = 0;
-        else if (this.drawer.score.start_note > this.drawer.max_note) 
-            this.drawer.score.start_note = this.drawer.max_note;
+        else if (this.drawer.score.start_note > this.max_note) 
+            this.drawer.score.start_note = this.max_note;
         else if (this.drawer.drugged) {
-            if (this.drawer.score.selection.selected.length) {
-                this.drawer.score.selection.offset_pitch -= i;
+            if (this.drawer.score.selection.elements.length) {
+                this.drawer.score.selection.offset.pitch -= i;
                 this.drawer.score.selection.drugged_y += i;
             } else {                
                 this.drawer.sectorsSelection.y2 -= i;
@@ -37,7 +39,7 @@ export default class score_drawer_controller {
     }
     dublicate(){
         let paste = [];
-        for (let note of this.drawer.score.selection.selected){
+        for (let note of this.drawer.score.selection.elements){
             paste.push(note.clone());
         }
         let s = this.drawer.score.selection;
@@ -46,7 +48,7 @@ export default class score_drawer_controller {
     }
     paste(){
         let paste = [];
-        for (let note of this.drawer.buffer.selected){
+        for (let note of this.drawer.buffer.elements){
             paste.push(new Note(note.pitch, note.start + this.drawer.score.selection.start, note.duration))
         }
         this.drawer.commandPattern.addCommand(new Create(this.drawer.score, paste));
@@ -56,95 +58,91 @@ export default class score_drawer_controller {
         this.delete();
     }
     delete(){
-        this.drawer.commandPattern.addCommand(new Delete(this.drawer.score, this.drawer.score.selection.selected));
-        this.drawer.score.selection.selected = [];
+        this.drawer.commandPattern.addCommand(new Delete(this.drawer.score, this.drawer.score.selection.elements));
+        this.drawer.score.selection.elements = [];
     }
     applyChanges(ctrl:boolean){
-        let s = this.drawer.score.selection;
+        const s = this.drawer.score.selection;
         if (ctrl){
-            if (s.offset_start || s.offset_duration || s.offset_pitch) {
-                let commands = [];
-                let notes = s.cloneContent();
-                commands.push(new Move(this.drawer.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
+            if (s.isShifted()) {
+                const commands = [];
+                const notes = s.cloneContent();
+                commands.push(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
                 commands.push(new Create(this.drawer.score, notes));
                 this.drawer.commandPattern.addCommand(new Complex(commands));
             } 
         } else {
-            if (s.offset_start || s.offset_duration || s.offset_pitch) {
-                this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s, [s.offset_start, s.offset_duration, s.offset_pitch]));
+            if (s.offset.start || s.offset.duration || s.offset.pitch) {
+                this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
             } 
         }
         this.drawer.update_mix();
         s.clear();
     }
     zoom(i:number){
-        if (this.drawer.score.start_note >= this.drawer.max_note && this.drawer.score.start_note <= 0 && i==1) return;
+        if (this.drawer.score.start_note >= this.max_note && this.drawer.score.start_note <= 0 && i==1) return;
         this.drawer.notes_width_count += i*2;
-        if (this.drawer.score.start_note >= this.drawer.max_note){ 
+        if (this.drawer.score.start_note >= this.max_note){ 
             this.drawer.score.start_note -= i*2;
         } else if (this.drawer.score.start_note > 0) {
             this.drawer.score.start_note -= i
         }
         if (this.drawer.drugged){
-            this.drawer.score.selection.offset_pitch += (this.drawer.sectorsSelection.y1-i);
-            this.drawer.score.selection.offset_start += this.drawer.sectorsSelection.x1;
+            this.drawer.score.selection.offset.pitch += (this.drawer.sectorsSelection.y1-i);
+            this.drawer.score.selection.offset.start += this.drawer.sectorsSelection.x1;
         }
-        this.drawer.max_note = 127 - this.drawer.notes_width_count;
+        this.max_note = 127 - this.drawer.notes_width_count;
         this.drawer.note_h = this.drawer.height/this.drawer.notes_width_count;
         this.drawer.render();
     }
     selectAll(){
-        this.drawer.score.selection.selected = [];
+        this.drawer.score.selection.elements = [];
         for (let note of this.drawer.score.notes){
-            this.drawer.score.selection.selected.push(note);
+            this.drawer.score.selection.elements.push(note);
             this.drawer.score.selection.start = Math.min(this.drawer.score.selection.start, note.start);
             this.drawer.score.selection.end = Math.max(this.drawer.score.selection.end, note.start+note.duration);
         }
     }
     selectedToChosen(){
-        if (this.drawer.hovered.note){
-            this.drawer.score.selection.selected = [this.drawer.hovered.note]
-        } else {
-            this.drawer.score.selection.selected = this.drawer.hovered.notes;
-        }
-        this.drawer.hovered.notes = [];
+        this.drawer.score.selection.elements = this.drawer.hovered.elements;
+        this.drawer.hovered.elements = [];
         this.drawer.score.selection.start = this.drawer.sectorsSelection.x1;
         this.drawer.score.selection.end = this.drawer.sectorsSelection.x2+1;
-        for (let note of this.drawer.score.selection.selected){
+        for (let note of this.drawer.score.selection.elements){
             this.drawer.score.selection.start = Math.min(this.drawer.score.selection.start, note.start);
             this.drawer.score.selection.end = Math.max(this.drawer.score.selection.end, note.start+note.duration);
         }
     }
     addSelectedToChosen(){
-        let s = this.drawer.score.selection;
+        const s = this.drawer.score.selection;
         s.start = Math.min(s.start, this.drawer.sectorsSelection.x1);
         s.end = Math.max(s.end, this.drawer.sectorsSelection.x2+1);
-        let notes = this.drawer.hovered.notes;
-        if (this.drawer.hovered.note){
-            notes = notes.concat([this.drawer.hovered.note])
-        }
-        for (let note of notes){
-            if (s.selected.includes(note)) {  
-                s.selected.splice(s.selected.indexOf(note), 1);
+        for (let note of this.drawer.hovered.elements){
+            if (s.elements.includes(note)) {  
+                s.elements.splice(s.elements.indexOf(note), 1);
                 s.start = Math.min(s.start, note.start);
                 s.end = Math.max(s.end, note.start+note.duration);
             } else {
                 s.start = Math.min(s.start, note.start);
                 s.end = Math.max(s.end, note.start+note.duration);
-                s.selected.push(note);
+                s.elements.push(note);
             }
         }
-        this.drawer.hovered.notes = [];
+        this.drawer.hovered.elements = [];
     }
     doubleInput(x:number, y:number){
-        if (this.drawer.hovered.note) {
+        if (this.drawer.hovered.elements.length) {
             this.delete();
         } else {
             [x,y] = this.processInput(x, y);
+            if (x<0) return;
+            if (x>1) x=0.99;
+            if (y<0) y=0;
+            if (y>1) y=0.99;
             [x,y] = this.getMatrix(x, y);
             this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.start_note,x,1)]));
         }        
-        this.drawer.hovered.notes = [];
+        this.drawer.hovered.elements = [];
         this.drawer.update_mix();
         this.drawer.render();
     }
@@ -159,7 +157,7 @@ export default class score_drawer_controller {
         y = 1-(y-this.drawer.margin_top*2/this.drawer.canvas.width)*this.drawer.canvas.height/this.drawer.height;
         return [x,y];
     }
-    round(x:number,shift:boolean){
+    private round(x:number,shift:boolean){
         if (!shift)
             return Math.round(x);
         return x;
@@ -170,7 +168,7 @@ export default class score_drawer_controller {
             this.scrollInterval = null;
         }
     }
-    drug(x:number, y:number, shift:boolean, ctrl:boolean){
+    private drug(x:number, y:number, shift:boolean, ctrl:boolean){
         [x, y] = this.getGrid(x, y);
         if (y<2){
             this.clearInterval();
@@ -182,90 +180,97 @@ export default class score_drawer_controller {
             this.clearInterval();
         }
         y = Math.floor(y);
-        if (!shift) {
-            x = Math.round(x);
-        }
-        if (this.drawer.score.selection.selected.length && this.drawer.hovered.note){
+        if (this.drawer.score.selection.elements.length && this.drawer.score.selection.elements.includes(this.drawer.hovered.elements[0])){
             let s = this.drawer.score.selection;
-            let str = this.drawer.hovered.note.start % 1;
-            let dur = (this.drawer.hovered.note.start + this.drawer.hovered.note.duration) % 1;
+            let str = this.drawer.hovered.elements[0].start % 1;
+            let dur = (this.drawer.hovered.elements[0].start + this.drawer.hovered.elements[0].duration) % 1;
             if (this.drawer.hovered.start && !ctrl) {
-                s.offset_start = x - this.round(s.drugged_x, shift) - str;
-                s.offset_duration = this.round(s.drugged_x, shift) - x + str;
+                s.offset.start = this.round(x - s.drugged_x, shift) - str;
+                s.offset.duration = this.round(s.drugged_x - x, shift) + str;
             } else if (this.drawer.hovered.end && !ctrl) {
-                s.offset_duration = this.round(x - s.drugged_x, shift) - dur;
+                s.offset.duration = this.round(x - s.drugged_x, shift) - dur;
             } else {
-                s.offset_start = this.round(x - s.drugged_x+0.5,shift) - str;
-                s.offset_pitch = y - s.drugged_y;
+                s.offset.start = this.round(x - s.drugged_x,shift) - str;
+                s.offset.pitch = y - s.drugged_y;
             }
-            if (shift) {
-                x = Math.round(x+0.5)
+            if (!shift) {
+                x = Math.floor(x)
             }
             this.setSS1(x, y);
             this.setSS2(x, y);
         } else {
-            this.setSS2(x, y);
+            this.setSS2(Math.floor(x), y);
             this.select();
         }
     }
-    setSS1(x:number, y:number){
+    private setSS1(x:number, y:number){
         this.drawer.sectorsSelection.x1 = x;
         this.drawer.sectorsSelection.y1 = y+this.drawer.score.start_note;
     }
-    setSS2(x:number, y:number){
+    private setSS2(x:number, y:number){
         this.drawer.sectorsSelection.x2 = x;
         this.drawer.sectorsSelection.y2 = y+this.drawer.score.start_note;
     }
-    select(){
-        this.drawer.hovered.notes = [];
+    private select(){
+        this.drawer.hovered.elements = [];
         let x_min = Math.min(this.drawer.sectorsSelection.x1,this.drawer.sectorsSelection.x2); 
         let x_max = Math.max(this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2);
         let y_min = Math.min(this.drawer.sectorsSelection.y1,this.drawer.sectorsSelection.y2)-this.drawer.score.start_note;
         let y_max = Math.max(this.drawer.sectorsSelection.y1, this.drawer.sectorsSelection.y2)-this.drawer.score.start_note;
         for (let note of this.drawer.score.notes){
             if ((x_min <= note.start+note.duration-1 && note.start <= x_max) && (y_min<=note.pitch-this.drawer.score.start_note && y_max >= note.pitch-this.drawer.score.start_note)){
-                this.drawer.hovered.notes.push(note);
+                this.drawer.hovered.elements.push(note);
             }
         }
-    }
-    findNote(x:number, y:number, range:number, ctrl:boolean, alt:boolean){
-        [x,y] = this.processInput(x,y);;
-        if (x<0) x=0;
-        if (x>1) x=1;
-        if (y<0) y=0;
-        if (y>1) y=1;
         
-        if (this.drawer.drugged){
+    }
+    hitScan(x:number, y:number, range:number, ctrl:boolean, alt:boolean){
+        [x,y] = this.processInput(x,y);
+        
+        if (x<0) x=-0.01;
+        if (x>1) x=0.99;
+        if (y<0) y=0;
+        if (y>1) y=0.99;
+        
+        if (this.drawer.drugged){ // if drugging
             this.drug(x,y,alt,ctrl);
         } else {
             [x, y] = this.getGrid(x,y);
             y = Math.floor(y);
-            for (let note of this.drawer.score.notes){
+            for (let note of this.drawer.score.notes){ // notes hit scan
                 this.drawer.hovered.start = false;
                 this.drawer.hovered.end = false;
-                this.drawer.hovered.note = null;
+                this.drawer.hovered.elements = [];
                 if (y == note.pitch-this.drawer.score.start_note){
                     let s = note.start;
-                    if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){
+                    let flag = false;
+                    if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){ // check left side
                         this.drawer.hovered.start = true;
-                        this.drawer.hovered.note = note;
-                        return;
+                        this.drawer.hovered.elements = [note];
+                        flag = true;
                     }
-                    s = note.start+note.duration;
-                    if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){
+                    s += note.duration;
+                    if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){ // check right side
                         this.drawer.hovered.end = true;
-                        this.drawer.hovered.note = note;
-                        return;
+                        this.drawer.hovered.elements = [note];
+                        flag = true;
                     }
-                    if (x >= note.start && x <= note.start+note.duration){
-                        this.drawer.hovered.note = note;
+                    if (x >= note.start && x <= s){ // check middle side
+                        this.drawer.hovered.elements = [note];
+                        flag = true;
+                    }
+                    if (flag) {
+                        this.set(x,y);
                         return;
                     }
                 }
             }
-            x = Math.floor(x);
-            this.setSS1(x, y);
-            this.setSS2(x, y);
+            this.set(x,y);
         }
+    }
+    private set(x:number, y:number){
+        x = Math.floor(x);
+        this.setSS1(x, y);
+        this.setSS2(x, y);
     }
 }

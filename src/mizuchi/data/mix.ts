@@ -3,9 +3,9 @@ import Track from "./track";
 import Instrument from "./instrument";
 import Oscillator from "./oscillator";
 import Note from "../classes/note";
-import { sc, tr } from "../drawers/mix_drawer";
 import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
 import AudioEffect from "../classes/audio_effects";
+import Selection, { ScoreSelection, TrackSelection } from "../classes/selection";
 
 export default class Mix{
     tracks:Track[] = [];
@@ -52,49 +52,62 @@ export default class Mix{
             this.tracks.push(newTrack);
         }
     }
-    create(sel:any){
-        if (sel instanceof tr){
-            this.tracks.splice(sel.index, 0, sel.track);
-        } else if (sel instanceof sc){
-            this.tracks[sel.index].scores.push(sel.score);
+    create(sel:Track|Score, pos:number=-1){
+        if (sel instanceof Track){
+            if (pos==-1) pos = this.tracks.length;
+            this.tracks.splice(pos, 0, sel);
+        } else if (sel instanceof Score){
+            this.tracks[pos].scores.push(sel);
         }
     }
-    delete(sel:any){
-        if (sel instanceof tr){
-            this.tracks.splice(sel.index, 1);
-        } else if (sel instanceof sc){
-            let index = this.tracks[sel.index].scores.indexOf(sel.score);
-            if (index > -1) {
-                this.tracks[sel.index].scores.splice(index, 1);
+    delete(sel:Track|Score){
+        if (sel instanceof Track){
+            const index = this.tracks.indexOf(sel);
+            this.tracks.splice(this.tracks.indexOf(sel), 1);
+            return index;
+        } else if (sel instanceof Score){
+            for (let track of this.tracks){
+                const index = track.scores.indexOf(sel);
+                if (index > -1) {
+                    track.scores.splice(index, 1);
+                    return this.tracks.indexOf(track);
+                }
             }
         }
     }
-    move(sel:any, offset:number[], reverse:boolean){
-        if (sel[0] instanceof tr){
-            for (let track of sel){
-                let index = this.tracks.indexOf(track.track);
+    move(sel:Selection, offset:number[], reverse:boolean){
+        let start;
+        let dur;
+        let y;
+        if (reverse){
+            start = -offset[0];
+            dur = -offset[1];
+            y = -offset[2];                        
+        } else {
+            start = offset[0];
+            dur = offset[1];
+            y = offset[2];
+        }
+        if (sel instanceof TrackSelection){
+            for (let track of sel.elements){
+                let index = this.tracks.indexOf(track);
                 if (index > -1) {
                     this.tracks.splice(index, 1);
-                    this.tracks.splice(index+offset[2], 0, track.track);
+                    this.tracks.splice(index+offset[2], 0, track);
                 }
             }
-        } else if (sel[0] instanceof sc){
-            for (let sc of sel){
-                const index = this.tracks[sc.index].scores.indexOf(sc.score);
-                if (index > -1) {
-                    this.tracks[sc.index].scores.splice(index, 1);
-                    if (reverse){
-                        sc.score.start_time -= offset[0];
-                        sc.score.duration -= offset[1];
-                        sc.index -= offset[2];                        
-                    } else {
-                        sc.score.start_time += offset[0];
-                        sc.score.duration += offset[1];
-                        sc.index += offset[2];
-                    }
-                    console.log(sc,this.tracks);
-                    this.tracks[sc.index].scores.push(sc.score);
-                }
+        } else if (sel instanceof ScoreSelection){
+            sel.start += start;
+            sel.end += start;
+            for (let i = 0; i < sel.elements.length; i++){
+                console.log(i,sel.elements.length);
+                
+                const score = sel.elements[i];
+                this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
+                score.start_time += start;
+                score.duration += dur;
+                sel.track_index[i] += y;
+                this.tracks[sel.track_index[i]].scores.push(score);
             }
         }
     }

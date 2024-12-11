@@ -44,7 +44,7 @@ export default class Score {
         }
         s.start+=start;
         s.end+=start;
-        for (let note of s.selected){
+        for (let note of s.elements){
             note.start += start;
             note.duration += duration;
             note.pitch += pitch;
@@ -62,7 +62,7 @@ export default class Score {
         this.selection.end = end;
         for (let note of this.notes){
             if (note.start >= start && note.start+note.duration <= end){
-                this.selection.selected.push(note);
+                this.selection.elements.push(note);
             }
         }
     }

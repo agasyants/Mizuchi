@@ -44,13 +44,13 @@ export class Complex extends Command{
 }
 
 export class Create extends Command{
-    constructor(public subject:any, public object:any){
+    constructor(public subject:any, public object:any, public place:number=-1){
         super();
         this.do();
     }
     do(){
         console.log("Create"+this.object);
-        this.subject.create(this.object);
+        this.subject.create(this.object, this.place);
     }
     undo(){
         console.log("Delete"+this.object);
@@ -59,17 +59,18 @@ export class Create extends Command{
 }
 
 export class Delete extends Command{
+    place:number;
     constructor(public subject:any, public object:any){
         super();
-        this.do();
+        this.place = this.do();
     }
     do(){
         console.log("Delete"+this.object);
-        this.subject.delete(this.object);
+        return this.subject.delete(this.object);
     }
     undo(){
         console.log("Create"+this.object);
-        this.subject.create(this.object);
+        this.subject.create(this.object, this.place);
     }
 }
 
