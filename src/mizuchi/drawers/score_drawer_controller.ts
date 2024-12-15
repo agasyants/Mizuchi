@@ -103,33 +103,6 @@ export default class score_drawer_controller {
             this.drawer.score.selection.end = Math.max(this.drawer.score.selection.end, note.start+note.duration);
         }
     }
-    selectedToChosen(){
-        this.drawer.score.selection.elements = this.drawer.hovered.elements;
-        this.drawer.hovered.elements = [];
-        this.drawer.score.selection.start = this.drawer.sectorsSelection.x1;
-        this.drawer.score.selection.end = this.drawer.sectorsSelection.x2+1;
-        for (let note of this.drawer.score.selection.elements){
-            this.drawer.score.selection.start = Math.min(this.drawer.score.selection.start, note.start);
-            this.drawer.score.selection.end = Math.max(this.drawer.score.selection.end, note.start+note.duration);
-        }
-    }
-    addSelectedToChosen(){
-        const s = this.drawer.score.selection;
-        s.start = Math.min(s.start, this.drawer.sectorsSelection.x1);
-        s.end = Math.max(s.end, this.drawer.sectorsSelection.x2+1);
-        for (let note of this.drawer.hovered.elements){
-            if (s.elements.includes(note)) {  
-                s.elements.splice(s.elements.indexOf(note), 1);
-                s.start = Math.min(s.start, note.start);
-                s.end = Math.max(s.end, note.start+note.duration);
-            } else {
-                s.start = Math.min(s.start, note.start);
-                s.end = Math.max(s.end, note.start+note.duration);
-                s.elements.push(note);
-            }
-        }
-        this.drawer.hovered.elements = [];
-    }
     doubleInput(x:number, y:number){
         if (this.drawer.hovered.elements.length) {
             this.delete();

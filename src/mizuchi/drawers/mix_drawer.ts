@@ -4,8 +4,8 @@ import OscDrawer from "../drawers/osc_drawer";
 import ScoreDrawer from "./score_drawer";
 import Track from "../data/track";
 import AudioEffect from "../classes/audio_effects";
-import { TrackSelection, ScoreSelection} from "../classes/selection";
-import CommandPattern, { Complex, Create, Delete, Move } from "../classes/CommandPattern";
+// import { TrackSelection, ScoreSelection} from "../classes/selection";
+import CommandPattern, { Complex, Create, Delete, Move, Select } from "../classes/CommandPattern";
 import Drawer from "./Drawer";
 import WindowController from "../classes/WindowController";
 
@@ -14,7 +14,6 @@ export default class MixDrawer extends Drawer{
     drugged:boolean = false;
     width:number=0;
     height:number=0;
-    tracks_number_on_screen:number = 7;
     score_number_on_screen:number = 40;
     instrument_width:number = 0.1;
     track_h:number=0;
@@ -42,8 +41,6 @@ export default class MixDrawer extends Drawer{
 
     input_x:number = -1;
     input_y:number = -1;
-    scores:ScoreSelection = new ScoreSelection();
-    tracks:TrackSelection = new TrackSelection();
     constructor(public canvas:HTMLCanvasElement, public mix:Mix,  oscDrawer:OscDrawer, public score_window:WindowController, width:number, height:number)
     {
         super(canvas);
@@ -68,7 +65,7 @@ export default class MixDrawer extends Drawer{
                 if (e.ctrlKey){
                     const [x,] = this.processInput(this.input_x, this.input_y);
                     const delta_size = x * this.width * 0.1;
-                    console.log(delta_size,this.score_number_on_screen);
+                    // console.log(delta_size,this.score_number_on_screen);
                     if (y/Math.abs(y)>0){
                         this.score_number_on_screen *= 1.1;
                         this.x-=delta_size;
@@ -76,7 +73,7 @@ export default class MixDrawer extends Drawer{
                         this.score_number_on_screen *= 0.9;
                         this.x+=delta_size;
                     }
-                    console.log(delta_size,this.score_number_on_screen);
+                    // console.log(delta_size,this.score_number_on_screen);
                     // this.x -= y;
                     // if (this.x > this.x_max) this.x = this.x_max;
                     if (this.x < 0) this.x = 0;
@@ -122,23 +119,24 @@ export default class MixDrawer extends Drawer{
                 e.preventDefault();
             }
             if (e.code=="Delete" || e.code=="Backspace"){
-                if (this.scores.elements.length){  // delete elements scores
+                if (this.mix.selected.scores.elements.length){  // delete elements scores
                     let commands = [];
-                    for (let i = 0; i < this.scores.elements.length; i++){
-                        commands.push(new Delete(this.mix, this.scores.elements[i]));
-                        this.scores.track_index.splice(i, 1);
+                    for (let i = 0; i < this.mix.selected.scores.elements.length; i++){
+                        commands.push(new Delete(this.mix, this.mix.selected.scores.elements[i]));
+                        this.mix.selected.scores.track_index.splice(i, 1);
                     }
                     this.commandPattern.addCommand(new Complex(commands));
-                    this.scores.elements = [];          
+                    //
+                    this.mix.selected.scores.elements = [];          
                 } 
-                else if (this.tracks.elements.length){ // delete elements tracks
+                else if (this.mix.selected.tracks.elements.length){ // delete elements tracks
                     let commands = [];
-                    for (let i = 0; i < this.tracks.elements.length; i++){
-                        commands.push(new Delete(this.mix, this.tracks.elements[i]));
-                        this.tracks.index.splice(i, 1);
+                    for (let i = 0; i < this.mix.selected.tracks.elements.length; i++){
+                        commands.push(new Delete(this.mix, this.mix.selected.tracks.elements[i]));
+                        this.mix.selected.tracks.index.splice(i, 1);
                     }
                     this.commandPattern.addCommand(new Complex(commands));
-                    this.tracks.elements = [];
+                    this.mix.selected.tracks.elements = [];
                     this.calcHeights();
                 }
                 this.calcMaxes();
@@ -168,38 +166,44 @@ export default class MixDrawer extends Drawer{
                 this.canvas.setPointerCapture(e.pointerId);
                 this.drugged = true;
                 if (this.hovered.track){ // select track
-                    if (this.w-this.margin_left > this.x && this.input_x > (this.margin_left+this.width)){
-                        if (!e.shiftKey){
-                            this.tracks.elements = [];
-                            this.tracks.index = [];
+                    if (this.w-this.margin_left > this.x && this.input_x > (this.margin_left + this.width)){
+                        if (!e.shiftKey && this.mix.selected.tracks.elements.length) {
+                            this.commandPattern.addCommand(new Select(this.mix, this.mix.selected.tracks.elements));
                         }
-                        this.tracks.elements.push(this.hovered.track);
-                        this.tracks.index.push(this.mix.tracks.indexOf(this.hovered.track));
+                        this.commandPattern.addCommand(new Select(this.mix, [this.hovered.track]));
                         this.oscDrawer.oscFunction = this.hovered.track.inst.osc.oscFunction;
                     }
                 } 
                 if (this.hovered.scores.length) { // select score
                     if (e.shiftKey) {
-                        this.addSelectedToChosen();
+                        this.commandPattern.addCommand(new Select(this.mix, this.hovered.scores.slice()));
                     } else {
                         let f = false;
-                        for (let score of this.scores.elements) {
+                        for (let score of this.mix.selected.scores.elements) {
                             if (score == this.hovered.scores[0]) f = true;
                         }
-                        if (!f) this.selectedToChosen();
+                        if (!f) {
+                            const commands = [];
+                            commands.push(new Select(this.mix, this.mix.selected.scores.elements.slice()));
+                            commands.push(new Select(this.mix, this.hovered.scores.slice()));
+                            this.commandPattern.addCommand(new Complex(commands));
+                        }
                     }
                     let [x, y] = this.processInput(this.input_x, this.input_y);
                     [x,y] = this.getMatrix(x,y);
-                    this.scores.drugged_x = x;
-                    this.scores.drugged_y = y;
+                    this.mix.selected.scores.drugged_x = x;
+                    this.mix.selected.scores.drugged_y = y;
                     const drawer = this.score_window.drawer;
                     if (drawer instanceof ScoreDrawer) {
                         if (drawer.canvas.style.display=='block'){
-                            drawer.controller.setScore(this.scores.getLast());
+                            drawer.controller.setScore(this.mix.selected.scores.getLast());
                         }
                     }
                 } else {
-                    if (!e.shiftKey) this.scores.elements = [];
+                    if (!e.shiftKey && this.mix.selected.scores.elements.length) {
+                        this.commandPattern.addCommand(new Select(this.mix, this.mix.selected.scores.elements.slice()));
+                        // this.mix.selected.scores.elements = [];
+                    }
                     this.score_window.close();
                 }
             }
@@ -210,16 +214,16 @@ export default class MixDrawer extends Drawer{
             this.drugged = false;
             let ss = this.sectorsSelection;
             if (e.shiftKey && (ss.x2-ss.x1) && (ss.y2-ss.y1)){
-                this.addSelectedToChosen();
+                this.commandPattern.addCommand(new Select(this.mix, this.hovered.scores));
                 this.hovered.scores = [];
-            } else if (this.scores.elements.length==0) {
-                this.selectedToChosen();
+            } else if (this.mix.selected.scores.elements.length==0 && this.hovered.scores.length) {
+                this.commandPattern.addCommand(new Select(this.mix, this.hovered.scores));
                 this.hovered.scores = [];
             } else {
                 this.applyChanges();
             }
-            if (this.scores.end-this.scores.start){
-                this.mix.start = this.scores.start/2;
+            if (this.mix.selected.scores.end-this.mix.selected.scores.start){
+                this.mix.start = this.mix.selected.scores.start/2;
             } else {
                 this.mix.start = this.sectorsSelection.x1*4;
             }
@@ -242,65 +246,23 @@ export default class MixDrawer extends Drawer{
         // this.canvas.style.height = height + 'px';
         this.width = (1-this.instrument_width)*this.w - 2*this.margin_left;
         this.height = (this.h - 2*this.margin_top);
-        this.track_h = this.height/this.tracks_number_on_screen
+        this.track_h = this.height/this.mix.tracks_number_on_screen
         this.score_h = this.track_h;
         this.score_w = this.width/this.score_number_on_screen;
         this.calcMaxes();
     }
-    selectedToChosen(){
-        this.scores.elements = this.hovered.scores;
-        this.scores.track_index = this.hovered.pos;
-        if (this.sectorsSelection.x1!=-1){
-            this.scores.start = this.sectorsSelection.x1*this.len;
-            this.scores.end = (this.sectorsSelection.x2+1)*this.len;
-        } else {
-            this.scores.start = this.hovered.scores[0].start_time;
-            this.scores.end = this.hovered.scores[0].start_time+this.hovered.scores[0].duration;
-        }
-        for (let score of this.scores.elements){
-            this.scores.start = Math.min(this.scores.start, score.start_time);
-            this.scores.end = Math.max(this.scores.end, score.start_time + score.duration);
-        }
-    }
-    addSelectedToChosen(){
-        const s = this.scores;
-        if (this.sectorsSelection.x1!=-1){
-            s.start = Math.min(s.start, this.sectorsSelection.x1);
-            s.end = Math.max(s.end, this.sectorsSelection.x2+1);
-        }
-        // if (this.hovered.scores.length){
-        //     this.scores.elements = this.scores.elements.concat(this.hovered.scores)
-        // }
-        for (let i = 0; i < this.hovered.scores.length; i++){
-            const score = this.hovered.scores[i];
-            if (s.elements.includes(score)) {  
-                const index = s.elements.indexOf(score);
-                s.elements.splice(index, 1);
-                s.track_index.splice(index, 1);
-                s.start = Math.min(s.start, score.start_time);
-                s.end = Math.max(s.end, score.start_time+score.duration);
-            } else {
-                s.start = Math.min(s.start, score.start_time);
-                s.end = Math.max(s.end, score.start_time + score.duration);
-                s.elements.push(score);
-                s.track_index.push(this.hovered.pos[i]);
-            }
-        }
-    }
     applyChanges(){
-        if (this.scores.offset.start || this.scores.offset.pitch || this.scores.offset.duration){
+        if (this.mix.selected.scores.offset.start || this.mix.selected.scores.offset.pitch || this.mix.selected.scores.offset.duration){
             let commands = [];
             if (this.ctrl){
-                for (let i = 0; i < this.scores.elements.length; i++){
-                    commands.push(new Create(this.mix, this.scores.elements[i].clone(), this.scores.track_index[i]));
+                for (let i = 0; i < this.mix.selected.scores.elements.length; i++){
+                    commands.push(new Create(this.mix, this.mix.selected.scores.elements[i].clone(), this.mix.selected.scores.track_index[i]));
                 }
             }
-            console.log(this.scores);
-            
-            commands.push(new Move(this.mix, this.scores, [this.scores.offset.start, this.scores.offset.duration, this.scores.offset.pitch]));
+            commands.push(new Move(this.mix, this.mix.selected.scores, [this.mix.selected.scores.offset.start, this.mix.selected.scores.offset.duration, this.mix.selected.scores.offset.pitch]));
             this.commandPattern.addCommand(new Complex(commands));
             this.calcMinMax();
-            this.scores.clear();
+            this.mix.selected.scores.clear();
         }
     }
     calcHeights(){
@@ -313,7 +275,7 @@ export default class MixDrawer extends Drawer{
         console.log(this.heights);
     }
     calcMaxes(){
-        this.y_max = (this.mix.tracks.length-this.tracks_number_on_screen+2)*this.track_h;
+        this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
         if (this.y_max<0) this.y_max = 0;
         this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
         if (this.x_max<0) this.x_max = 0;
@@ -339,7 +301,7 @@ export default class MixDrawer extends Drawer{
         let h = 0;
         for (let i = 0; i < this.mix.tracks.length; i++){
             for (let score of this.mix.tracks[i].scores){
-                if (this.scores.elements.includes(score)){
+                if (this.mix.selected.scores.elements.includes(score)){
                     this.renderScore(i, score,'rgba(255,255,255,0.3)','rgba(255,255,255,0.4)');
                 } else {
                     this.renderScore(i, score);
@@ -348,13 +310,21 @@ export default class MixDrawer extends Drawer{
             this.renderTrack(h,this.mix.tracks[i].renderHeight);
             h += this.mix.tracks[i].renderHeight;
         }
-        if (!(this.drugged && this.hovered.scores.length==1 && this.scores.elements.includes(this.hovered.scores[0]))) this.renderHovered();
+        if (!(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))) this.renderHovered();
         this.renderSelected();
         this.renderMovedScores();
-        this.renderTime();
         this.renderFrame();
         this.renderSelection();
-        if (this.hovered.track && !(this.sectorsSelection.x1==-1) && !(this.drugged && this.hovered.scores.length==1 && this.scores.elements.includes(this.hovered.scores[0]))) this.renderSector();
+        if (this.hovered.track && !(this.sectorsSelection.x1==-1) && !(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))) this.renderSector();
+        for (let i = 0; i < this.mix.tracks.length; i++){
+            this.renderInst(i,'black','white');
+        }
+        if (this.mix.selected.tracks.elements.length){
+            for (let i = 0; i < this.mix.selected.tracks.elements.length; i++){
+                this.renderInst(this.mix.selected.tracks.index[i],'black','yellow');
+            }
+        } 
+        this.renderTime();
     }
     renderBack(){
         for (let j = 0; j < this.score_number_on_screen; j++){
@@ -378,7 +348,7 @@ export default class MixDrawer extends Drawer{
         this.ctx.lineWidth = 3;
         let x = this.margin_left+this.mix.start*this.score_w/4-this.x;
         this.ctx.moveTo(x, this.margin_top);
-        this.ctx.lineTo(x, this.margin_top+this.height);
+        this.ctx.lineTo(x, this.margin_top-20);
         this.ctx.stroke();
         this.ctx.closePath();
     }
@@ -406,7 +376,6 @@ export default class MixDrawer extends Drawer{
         this.ctx.strokeRect(this.margin_left, this.margin_top+i*this.track_h-this.y, this.width, this.track_h*h);
         this.ctx.stroke();
         this.ctx.closePath();
-        this.renderInst(i,'black','white');
     }
     renderInst(i:number, fillColor:string, strokeColor:string){
         let inst_left = (1-this.instrument_width)*this.w-this.margin_left;
@@ -426,9 +395,9 @@ export default class MixDrawer extends Drawer{
         let duration = score.duration;
         let height = this.heights[i];
         if (drug){
-            start += this.scores.offset.start;
-            duration += this.scores.offset.duration;
-            height = this.heights[i+this.scores.offset.pitch];
+            start += this.mix.selected.scores.offset.start;
+            duration += this.mix.selected.scores.offset.duration;
+            height = this.heights[i+this.mix.selected.scores.offset.pitch];
         }
         const start_x = this.margin_left + this.score_w*start/this.len-this.x;
         const dur_x = this.score_w*duration/this.len;
@@ -487,27 +456,22 @@ export default class MixDrawer extends Drawer{
     }
     renderSelected(){
         if (!this.drugged){
-            for (let i = 0; i < this.scores.elements.length; i++){
-                this.renderScore(this.scores.track_index[i], this.scores.elements[i],'blue','blue',3);
-            }
-        }
-        if (this.tracks.elements.length){
-            for (let i = 0; i < this.tracks.elements.length; i++){
-                this.renderInst(this.tracks.index[i],'black','yellow');
+            for (let i = 0; i < this.mix.selected.scores.elements.length; i++){
+                this.renderScore(this.mix.selected.scores.track_index[i], this.mix.selected.scores.elements[i],'blue','blue',3);
             }
         }
     }
     private renderMovedScores(){        
-        if (this.scores.isShifted() || this.drugged){
-            for (let i = 0; i < this.scores.elements.length; i++){
-                this.renderScore(this.scores.track_index[i], this.scores.elements[i], 'blue', 'blue', 3, true);
+        if (this.mix.selected.scores.isShifted() || this.drugged){
+            for (let i = 0; i < this.mix.selected.scores.elements.length; i++){
+                this.renderScore(this.mix.selected.scores.track_index[i], this.mix.selected.scores.elements[i], 'blue', 'blue', 3, true);
             }
         }
     }
     private renderSelection(){
         this.ctx.beginPath();
         this.ctx.fillStyle = "yellow";
-        const sel = this.scores;
+        const sel = this.mix.selected.scores;
         this.ctx.fillRect(this.margin_left+sel.start*this.score_w/this.len, this.margin_top-5, (sel.end-sel.start)*this.score_w/this.len,-4);
         this.ctx.closePath();
     }
@@ -519,13 +483,13 @@ export default class MixDrawer extends Drawer{
                 this.calcMaxes();
                 this.calcHeights();
                 this.render();
-            } else if (this.scores.elements.length) {
+            } else if (this.mix.selected.scores.elements.length) {
                 const drawer = this.score_window.drawer;
                 if (drawer instanceof ScoreDrawer) {
                     if (drawer.canvas.style.display=='block') {
                         this.score_window.close();
                     } else {
-                        drawer.controller.setScore(this.scores.getLast());
+                        drawer.controller.setScore(this.mix.selected.scores.getLast());
                         this.score_window.open();
                     }
                 }
@@ -540,7 +504,7 @@ export default class MixDrawer extends Drawer{
         }
     }
     getMatrix(x:number,y:number){
-        return [Math.floor((x+this.x/this.width)*this.score_number_on_screen), Math.floor((y+this.y/this.height)*this.tracks_number_on_screen)];
+        return [Math.floor((x+this.x/this.width)*this.score_number_on_screen), Math.floor((y+this.y/this.height)*this.mix.tracks_number_on_screen)];
     }
     processInput(x:number, y:number){
         x = (x - this.margin_left)/this.width;
@@ -561,8 +525,8 @@ export default class MixDrawer extends Drawer{
         // if (!shift) {
         //     x = Math.round(x);
         // }
-        if (this.scores.elements.length && this.hovered.scores.length && !shift){
-            let s = this.scores;
+        if (this.mix.selected.scores.elements.length && this.hovered.scores.length && !shift){
+            let s = this.mix.selected.scores;
             // let str = this.hovered.scores[0].score.start_time % 1;
             // let dur = (this.hovered.note.start + this.hovered.note.duration) % 1;
             // if (this.hovered.start && !ctrl) {
@@ -584,7 +548,7 @@ export default class MixDrawer extends Drawer{
             this.setSS1(x, y);
             this.setSS2(x, y);
         } 
-        // else if (this.tracks.elements.length && this.hovered.track) {
+        // else if (this.mix.selected.tracks.elements.length && this.hovered.track) {
         //     console.log('bbb');
 
         // } 
@@ -672,7 +636,7 @@ export default class MixDrawer extends Drawer{
         this.sectorsSelection.y2 = -1;
     }
     addAudioEffect(effect:AudioEffect){
-        for (let track of this.tracks.elements){
+        for (let track of this.mix.selected.tracks.elements){
             track.audioEffects.push(effect);
         }
     }

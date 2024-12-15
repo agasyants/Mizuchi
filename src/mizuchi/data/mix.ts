@@ -12,6 +12,8 @@ export default class Mix{
     max_score:number = 4;
     bpm:number = 120;
     start:number = 0;
+    selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
+    tracks_number_on_screen:number = 7;
     constructor(){
         let data = localStorage.getItem('key');
         if (data){
@@ -100,14 +102,65 @@ export default class Mix{
             sel.start += start;
             sel.end += start;
             for (let i = 0; i < sel.elements.length; i++){
-                console.log(i,sel.elements.length);
-                
                 const score = sel.elements[i];
                 this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
                 score.start_time += start;
                 score.duration += dur;
                 sel.track_index[i] += y;
                 this.tracks[sel.track_index[i]].scores.push(score);
+            }
+        }
+    }
+    select(input: Track[] | Score[]) {
+        if (input.every(item => item instanceof Track))
+            this.selectTracks(input);
+        else if (input.every(item => item instanceof Score))
+            this.selectScores(input);
+        else
+            console.error('Invalid input: must be an array of Tracks or Scores.');
+    }
+    selectTracks(tracks:Track[]){
+        if (tracks.length){
+            for (let track of tracks){
+                const index = this.selected.tracks.elements.indexOf(track);
+                if (index > -1) {
+                    this.selected.tracks.elements.splice(index, 1);
+                    this.selected.tracks.index.splice(index, 1);
+                } else {
+                    this.selected.tracks.elements.push(track);
+                    this.selected.tracks.index.push(this.tracks.indexOf(track));
+                }
+            }
+        }
+    }
+    selectScores(scores:Score[]){
+        if (scores.length){
+            for (let score of scores){
+                const index = this.selected.scores.elements.indexOf(score);
+                if (index > -1) {
+                    this.selected.scores.elements.splice(index, 1);
+                    this.selected.scores.track_index.splice(index, 1);
+                } else {
+                    this.selected.scores.elements.push(score);
+                    // Find track index for the score
+                    for(let i = 0; i < this.tracks.length; i++) {
+                        if (this.tracks[i].scores.includes(score)) {
+                            this.selected.scores.track_index.push(i);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (this.selected.scores.elements.length){
+                this.selected.scores.start = this.selected.scores.elements[0].start_time;
+                this.selected.scores.end = this.selected.scores.elements[0].start_time + this.selected.scores.elements[0].duration;
+                for (let i = 1; i < this.selected.scores.elements.length; i++){
+                    if (this.selected.scores.elements[i].start_time < this.selected.scores.start) this.selected.scores.start = this.selected.scores.elements[i].start_time;
+                    if (this.selected.scores.elements[i].start_time + this.selected.scores.elements[i].duration > this.selected.scores.end) this.selected.scores.end = this.selected.scores.elements[i].start_time + this.selected.scores.elements[i].duration;
+                }
+            } else {
+                this.selected.scores.start = 0;
+                this.selected.scores.end = 0;
             }
         }
     }

@@ -50,16 +50,30 @@ export class NoteSelection extends Selection {
 }
 
 export class ScoreSelection extends Selection {
-    elements:Score[]=[];
-    track_index:number[]=[];
+    elements:Score[] = [];
+    track_index:number[] = [];
+    min:number = 0;
+    max:number = 0;
     constructor(){
         super();
+    }
+    set(score:Score[], index:number[]){
+        this.elements = score;
+        this.track_index = index;
+        this.min = Math.min(...index);
+        this.max = Math.max(...index);
+    }
+    add(score:Score, index:number){
+        this.elements.push(score);
+        this.track_index.push(index);
+        this.min = Math.min(this.min, index);
+        this.max = Math.max(this.max, index);
     }
 }
 
 export class TrackSelection extends Selection {
-    elements:Track[]=[];
-    index:number[]=[];
+    elements:Track[] = [];
+    index:number[] = [];
     constructor(){
         super();
     }

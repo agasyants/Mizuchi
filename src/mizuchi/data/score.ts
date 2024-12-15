@@ -57,13 +57,37 @@ export default class Score {
             this.notes.splice(this.notes.indexOf(note), 1);
         });
     }
-    select(start:number, end:number){
-        this.selection.start = start;
-        this.selection.end = end;
-        for (let note of this.notes){
-            if (note.start >= start && note.start+note.duration <= end){
+    // select(start:number, end:number){
+    //     this.selection.start = start;
+    //     this.selection.end = end;
+    //     for (let note of this.notes){
+    //         if (note.start >= start && note.start+note.duration <= end){
+    //             this.selection.elements.push(note);
+    //         }
+    //     }
+    // }
+    select(notes:Note[]){
+        if (this.selection.elements.length == 0){
+            this.selection.start = notes[0].start;
+            this.selection.end = notes[0].start;
+        } else {
+            this.selection.start = Math.min(this.selection.start, notes[0].start);
+            this.selection.end = Math.max(this.selection.end, notes[0].start);
+        }
+        for (let note of notes){
+            if (this.selection.elements.includes(note)) {  
+                this.selection.elements.splice(this.selection.elements.indexOf(note), 1);
+                this.selection.start = Math.min(this.selection.start, note.start);
+                this.selection.end = Math.max(this.selection.end, note.start+note.duration);
+            } else {
+                this.selection.start = Math.min(this.selection.start, note.start);
+                this.selection.end = Math.max(this.selection.end, note.start+note.duration);
                 this.selection.elements.push(note);
             }
+        }
+        if (this.selection.elements.length == 0){
+            this.selection.start = 0;
+            this.selection.end = 0;
         }
     }
     clone(){

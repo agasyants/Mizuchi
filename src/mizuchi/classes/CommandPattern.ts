@@ -90,18 +90,17 @@ export class Move extends Command{
 }
 
 export class Select extends Command {
-    un:any;
     constructor(public subject:any, public object:any){
         super();
-        this.un = this.do();
+        this.do();
     }
     do(){
-        console.log("Select");
-        return this.subject.select(this.object);
+        console.log("Select", this.object.length);
+        this.subject.select(this.object);
     }
     undo(){
-        console.log("Unselect");
-        this.subject.unselect(this.un);
+        console.log("Unselect", this.object.length);
+        this.subject.select(this.object);
     }
 }
 
