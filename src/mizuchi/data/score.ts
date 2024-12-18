@@ -4,22 +4,25 @@ import Selection from "../classes/selection";
 export default class Score {
     notes:Note[] = [];
     start_note: number = 16;
-    loop_guration: number = 64;
     selection: Selection = new Selection;
-    constructor(public start_time:number, public duration:number = 32){}
+    constructor(public start_time:number, 
+        public duration:number = 32, 
+        public loop_duration:number = 64, 
+        public relative_start:number = 0){
+    }
     create(notes:Note[]) {
         for (let new_note of notes){
             this.notes.push(new_note);
             this.update(new_note);
         }
-        this.sort();
+        // this.sort();
         // this.update();
     }
-    private sort(){
-        this.notes.sort((a, b) => {
-            return a.start - b.start;
-        });
-    }
+    // private sort(){
+    //     this.notes.sort((a, b) => {
+    //         return a.start - b.start;
+    //     });
+    // }
     private update(new_note:Note) {
         for (let i = 0; i < this.notes.length; i++){
             if (new_note.start < this.notes[i].start && new_note.start + new_note.duration > this.notes[i].start && new_note.pitch == this.notes[i].pitch){
@@ -34,7 +37,7 @@ export default class Score {
             this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
         }); 
         this.duration = score.duration+scoreDelt;
-        this.sort();
+        // this.sort();
     }
     move(s:Selection, [start=0,duration=0,pitch=0]:number[],reverse:boolean){
         if (reverse){
@@ -50,22 +53,13 @@ export default class Score {
             note.pitch += pitch;
             this.update(note);
         }
-        this.sort();
+        // this.sort();
     }
     delete(notes:Note[]) {
         notes.forEach(note => {
             this.notes.splice(this.notes.indexOf(note), 1);
         });
     }
-    // select(start:number, end:number){
-    //     this.selection.start = start;
-    //     this.selection.end = end;
-    //     for (let note of this.notes){
-    //         if (note.start >= start && note.start+note.duration <= end){
-    //             this.selection.elements.push(note);
-    //         }
-    //     }
-    // }
     select(notes:Note[]){
         if (this.selection.elements.length == 0){
             this.selection.start = notes[0].start;
@@ -94,5 +88,15 @@ export default class Score {
         let score = new Score(this.start_time, this.duration);
         score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
         return score;
+    }
+    getNotes(start:number){
+        const notes = [];
+        for (let i = 0; i < Math.ceil(this.duration/this.loop_duration); i++){
+            for (let note of this.notes){
+                if (note.start + i*this.loop_duration < this.duration){
+                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*i, note.duration));
+                }
+            }
+        } return notes;
     }
 }

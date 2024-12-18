@@ -52,6 +52,7 @@ export class NoteSelection extends Selection {
 export class ScoreSelection extends Selection {
     elements:Score[] = [];
     track_index:number[] = [];
+    offset:{start:number, duration:number, loop_duration:number, pitch:number, rel:number} = {start:0, duration:0, loop_duration:0, pitch:0, rel:0};
     min:number = 0;
     max:number = 0;
     constructor(){

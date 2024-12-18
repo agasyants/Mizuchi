@@ -38,12 +38,12 @@ export default class score_drawer_controller {
         this.drawer.buffer = this.drawer.score.selection.clone();
     }
     dublicate(){
-        let paste = [];
-        for (let note of this.drawer.score.selection.elements){
+        const paste = [];
+        const s = this.drawer.score.selection;
+        for (let note of s.elements){
             paste.push(note.clone());
         }
-        let s = this.drawer.score.selection;
-        let commands = [new Move(this.drawer.score, s, [s.end-s.start,0,0]), new Create(this.drawer.score, paste)]
+        const commands = [new Move(this.drawer.score, s, [s.end-s.start,0,0]), new Create(this.drawer.score, paste)]
         this.drawer.commandPattern.addCommand(new Complex(commands))
     }
     paste(){
@@ -120,10 +120,10 @@ export default class score_drawer_controller {
         this.drawer.render();
     }
     getMatrix(x:number,y:number){
-        return [Math.floor(x*this.drawer.score.duration), Math.floor(y*this.drawer.notes_width_count)];
+        return [Math.floor(x*this.drawer.duration), Math.floor(y*this.drawer.notes_width_count)];
     }
     getGrid(x:number, y:number){
-        return [x*this.drawer.score.duration, y*this.drawer.notes_width_count];
+        return [x*this.drawer.duration, y*this.drawer.notes_width_count];
     }
     processInput(x:number, y:number){
         x = (x - this.drawer.margin_left/this.drawer.canvas.width) * this.drawer.canvas.width/this.drawer.width - this.drawer.pianoWidth;
@@ -143,14 +143,16 @@ export default class score_drawer_controller {
     }
     private drug(x:number, y:number, shift:boolean, ctrl:boolean){
         [x, y] = this.getGrid(x, y);
-        if (y<2){
-            this.clearInterval();
-            this.scrollInterval = setInterval(() => this.scroll(1), 100*Math.pow(y/2,2));
-        } else if (y>=this.drawer.notes_width_count-2){
-            this.clearInterval();
-            this.scrollInterval = setInterval(() => this.scroll(-1), 100*Math.pow((y-this.drawer.notes_width_count)/2,2));
-        } else {
-            this.clearInterval();
+        if (!this.drawer.hovered.start && !this.drawer.hovered.end){
+            if (y<2){
+                this.clearInterval();
+                this.scrollInterval = setInterval(() => this.scroll(1), 100*Math.pow(y/2,2));
+            } else if (y>=this.drawer.notes_width_count-2){
+                this.clearInterval();
+                this.scrollInterval = setInterval(() => this.scroll(-1), 100*Math.pow((y-this.drawer.notes_width_count)/2,2));
+            } else {
+                this.clearInterval();
+            }
         }
         y = Math.floor(y);
         if (this.drawer.score.selection.elements.length && this.drawer.score.selection.elements.includes(this.drawer.hovered.elements[0])){
@@ -219,20 +221,18 @@ export default class score_drawer_controller {
                     let flag = false;
                     if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){ // check left side
                         this.drawer.hovered.start = true;
-                        this.drawer.hovered.elements = [note];
                         flag = true;
                     }
                     s += note.duration;
                     if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){ // check right side
                         this.drawer.hovered.end = true;
-                        this.drawer.hovered.elements = [note];
                         flag = true;
                     }
                     if (x >= note.start && x <= s){ // check middle side
-                        this.drawer.hovered.elements = [note];
                         flag = true;
                     }
                     if (flag) {
+                        this.drawer.hovered.elements = [note];
                         this.set(x,y);
                         return;
                     }

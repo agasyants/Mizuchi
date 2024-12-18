@@ -13,7 +13,7 @@ export default class Mix{
     bpm:number = 120;
     start:number = 0;
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
-    tracks_number_on_screen:number = 7;
+    tracks_number_on_screen:number = 6;
     constructor(){
         let data = localStorage.getItem('key');
         if (data){
@@ -43,9 +43,8 @@ export default class Mix{
             const newInst = new Instrument(newOsc);
             const newTrack = new Track(track.name, newInst);
             for (let score of track.scores){
-                const newScore = new Score(score.start_time, score.duration);
+                const newScore = new Score(score.start_time, score.duration, score.loop_duration, score.relative_start);
                 newScore.start_note = score.start_note;
-                // newScore.loop_duration = score.loop_duration;
                 for (let note of score.notes){
                     newScore.notes.push(new Note(note.pitch, note.start, note.duration));
                 }
@@ -77,25 +76,20 @@ export default class Mix{
             }
         }
     }
-    move(sel:Selection, offset:number[], reverse:boolean){
-        let start;
-        let dur;
-        let y;
+    move(sel:Selection, [start, dur, loop, y, rel]:number[], reverse:boolean){
         if (reverse){
-            start = -offset[0];
-            dur = -offset[1];
-            y = -offset[2];                        
-        } else {
-            start = offset[0];
-            dur = offset[1];
-            y = offset[2];
+            rel = -rel;
+            start = -start;
+            dur = -dur;
+            loop = -loop;
+            y = -y;             
         }
         if (sel instanceof TrackSelection){
             for (let track of sel.elements){
-                let index = this.tracks.indexOf(track);
+                const index = this.tracks.indexOf(track);
                 if (index > -1) {
                     this.tracks.splice(index, 1);
-                    this.tracks.splice(index+offset[2], 0, track);
+                    this.tracks.splice(index+y, 0, track);
                 }
             }
         } else if (sel instanceof ScoreSelection){
@@ -106,7 +100,9 @@ export default class Mix{
                 this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
                 score.start_time += start;
                 score.duration += dur;
+                score.loop_duration += loop;
                 sel.track_index[i] += y;
+                score.relative_start += rel;
                 this.tracks[sel.track_index[i]].scores.push(score);
             }
         }

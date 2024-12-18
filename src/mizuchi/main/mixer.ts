@@ -38,8 +38,8 @@ export class Mixer {
     }
 
     private async generateAndPlayChunks(totalLength: number) {
-        let k = Math.round(this.mix.start*30/this.mix.bpm*this.sampleRate);
-        let mixed = new Array;
+        const k = Math.round(this.mix.start*30/this.mix.bpm*this.sampleRate);
+        const mixed = new Array;
         for (let i = 0; i < this.mix.tracks.length; i++) {
             let track = [new Array];
             for (let j = 0; j < this.mix.tracks[i].audioEffects.length; j++) {

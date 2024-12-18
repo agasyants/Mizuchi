@@ -14,11 +14,6 @@ export default class Track {
         this.name = name;
         this.inst = inst;
     }
-    create(x:any){
-        if (x instanceof Score){
-            this.addScore(x);
-        }
-    }
     addScore(score:Score){
         this.scores.push(score);
     }
@@ -28,11 +23,7 @@ export default class Track {
     getFullScore():Note[] {
         let full_score:Note[] = [];
         for (let score of this.scores){
-            for (let note of score.notes){
-                if (note.start<score.duration) {
-                    full_score.push(new Note(note.pitch, note.start+score.start_time, note.duration));
-                }
-            }
+            full_score = full_score.concat(score.getNotes(score.start_time));
         } 
         return full_score;
     }
