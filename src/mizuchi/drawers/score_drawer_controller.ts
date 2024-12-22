@@ -1,7 +1,7 @@
 import ScoreDrawer from "./score_drawer";
 import Note from "../classes/note";
 import Score from "../data/score";
-import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
+import { Complex, Create, Delete, Move, Select } from "../classes/CommandPattern";
 
 export default class score_drawer_controller {
     private drawer: ScoreDrawer;
@@ -18,11 +18,11 @@ export default class score_drawer_controller {
         this.drawer.render();
     }
     scroll(i:number){
-        this.drawer.score.start_note -= i;
-        if (this.drawer.score.start_note < 0)
-            this.drawer.score.start_note = 0;
-        else if (this.drawer.score.start_note > this.max_note) 
-            this.drawer.score.start_note = this.max_note;
+        this.drawer.score.lowest_note -= i;
+        if (this.drawer.score.lowest_note < 0)
+            this.drawer.score.lowest_note = 0;
+        else if (this.drawer.score.lowest_note > this.max_note) 
+            this.drawer.score.lowest_note = this.max_note;
         else if (this.drawer.drugged) {
             if (this.drawer.score.selection.elements.length) {
                 this.drawer.score.selection.offset.pitch -= i;
@@ -58,8 +58,10 @@ export default class score_drawer_controller {
         this.delete();
     }
     delete(){
-        this.drawer.commandPattern.addCommand(new Delete(this.drawer.score, this.drawer.score.selection.elements));
-        this.drawer.score.selection.elements = [];
+        const commands = [];
+        commands.push(new Delete(this.drawer.score, this.drawer.score.selection.elements.slice()));
+        commands.unshift(new Select(this.drawer.score, this.drawer.score.selection.elements.slice()));
+        this.drawer.commandPattern.addCommand(new Complex(commands));
     }
     applyChanges(ctrl:boolean){
         const s = this.drawer.score.selection;
@@ -80,12 +82,12 @@ export default class score_drawer_controller {
         s.clear();
     }
     zoom(i:number){
-        if (this.drawer.score.start_note >= this.max_note && this.drawer.score.start_note <= 0 && i==1) return;
+        if (this.drawer.score.lowest_note >= this.max_note && this.drawer.score.lowest_note <= 0 && i==1) return;
         this.drawer.notes_width_count += i*2;
-        if (this.drawer.score.start_note >= this.max_note){ 
-            this.drawer.score.start_note -= i*2;
-        } else if (this.drawer.score.start_note > 0) {
-            this.drawer.score.start_note -= i
+        if (this.drawer.score.lowest_note >= this.max_note){ 
+            this.drawer.score.lowest_note -= i*2;
+        } else if (this.drawer.score.lowest_note > 0) {
+            this.drawer.score.lowest_note -= i
         }
         if (this.drawer.drugged){
             this.drawer.score.selection.offset.pitch += (this.drawer.sectorsSelection.y1-i);
@@ -113,7 +115,7 @@ export default class score_drawer_controller {
             if (y<0) y=0;
             if (y>1) y=0.99;
             [x,y] = this.getMatrix(x, y);
-            this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.start_note,x,1)]));
+            this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.lowest_note,x,1)]));
         }        
         this.drawer.hovered.elements = [];
         this.drawer.update_mix();
@@ -180,20 +182,20 @@ export default class score_drawer_controller {
     }
     private setSS1(x:number, y:number){
         this.drawer.sectorsSelection.x1 = x;
-        this.drawer.sectorsSelection.y1 = y+this.drawer.score.start_note;
+        this.drawer.sectorsSelection.y1 = y+this.drawer.score.lowest_note;
     }
     private setSS2(x:number, y:number){
         this.drawer.sectorsSelection.x2 = x;
-        this.drawer.sectorsSelection.y2 = y+this.drawer.score.start_note;
+        this.drawer.sectorsSelection.y2 = y+this.drawer.score.lowest_note;
     }
     private select(){
         this.drawer.hovered.elements = [];
         let x_min = Math.min(this.drawer.sectorsSelection.x1,this.drawer.sectorsSelection.x2); 
         let x_max = Math.max(this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2);
-        let y_min = Math.min(this.drawer.sectorsSelection.y1,this.drawer.sectorsSelection.y2)-this.drawer.score.start_note;
-        let y_max = Math.max(this.drawer.sectorsSelection.y1, this.drawer.sectorsSelection.y2)-this.drawer.score.start_note;
+        let y_min = Math.min(this.drawer.sectorsSelection.y1,this.drawer.sectorsSelection.y2)-this.drawer.score.lowest_note;
+        let y_max = Math.max(this.drawer.sectorsSelection.y1, this.drawer.sectorsSelection.y2)-this.drawer.score.lowest_note;
         for (let note of this.drawer.score.notes){
-            if ((x_min <= note.start+note.duration-1 && note.start <= x_max) && (y_min<=note.pitch-this.drawer.score.start_note && y_max >= note.pitch-this.drawer.score.start_note)){
+            if ((x_min <= note.start+note.duration-1 && note.start <= x_max) && (y_min<=note.pitch-this.drawer.score.lowest_note && y_max >= note.pitch-this.drawer.score.lowest_note)){
                 this.drawer.hovered.elements.push(note);
             }
         }
@@ -216,7 +218,7 @@ export default class score_drawer_controller {
                 this.drawer.hovered.start = false;
                 this.drawer.hovered.end = false;
                 this.drawer.hovered.elements = [];
-                if (y == note.pitch-this.drawer.score.start_note){
+                if (y == note.pitch-this.drawer.score.lowest_note){
                     let s = note.start;
                     let flag = false;
                     if ((x-s<=range && x-s>=0) || (s-x<=range && s-x>=0)){ // check left side

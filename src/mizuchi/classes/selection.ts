@@ -58,6 +58,15 @@ export class ScoreSelection extends Selection {
     constructor(){
         super();
     }
+    clear(){
+        this.offset.pitch = 0;
+        this.offset.start = 0;
+        this.offset.duration = 0;
+        this.drugged_x = 0;
+        this.drugged_y = 0;
+        this.offset.rel = 0;
+        this.offset.loop_duration = 0;
+    }
     set(score:Score[], index:number[]){
         this.elements = score;
         this.track_index = index;

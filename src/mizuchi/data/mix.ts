@@ -9,7 +9,6 @@ import Selection, { ScoreSelection, TrackSelection } from "../classes/selection"
 
 export default class Mix{
     tracks:Track[] = [];
-    max_score:number = 4;
     bpm:number = 120;
     start:number = 0;
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
@@ -29,7 +28,6 @@ export default class Mix{
     load(data:any){
         console.log(data);
         this.bpm = data.bpm;
-        this.max_score = data.max_score;
         for (let track of data.tracks){
             const newFunc = new OscFunction();
             let newBasics:BasicPoint[] = [];
@@ -43,8 +41,8 @@ export default class Mix{
             const newInst = new Instrument(newOsc);
             const newTrack = new Track(track.name, newInst);
             for (let score of track.scores){
-                const newScore = new Score(score.start_time, score.duration, score.loop_duration, score.relative_start);
-                newScore.start_note = score.start_note;
+                const newScore = new Score(score.absolute_start, score.duration, score.loop_duration, score.relative_start);
+                newScore.lowest_note = score.lowest_note;
                 for (let note of score.notes){
                     newScore.notes.push(new Note(note.pitch, note.start, note.duration));
                 }
@@ -98,11 +96,11 @@ export default class Mix{
             for (let i = 0; i < sel.elements.length; i++){
                 const score = sel.elements[i];
                 this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
-                score.start_time += start;
+                score.absolute_start += start;
                 score.duration += dur;
                 score.loop_duration += loop;
                 sel.track_index[i] += y;
-                score.relative_start += rel;
+                score.relative_start = (score.relative_start + rel) % score.loop_duration;
                 this.tracks[sel.track_index[i]].scores.push(score);
             }
         }
@@ -148,11 +146,11 @@ export default class Mix{
                 }
             }
             if (this.selected.scores.elements.length){
-                this.selected.scores.start = this.selected.scores.elements[0].start_time;
-                this.selected.scores.end = this.selected.scores.elements[0].start_time + this.selected.scores.elements[0].duration;
+                this.selected.scores.start = this.selected.scores.elements[0].absolute_start;
+                this.selected.scores.end = this.selected.scores.elements[0].absolute_start + this.selected.scores.elements[0].duration;
                 for (let i = 1; i < this.selected.scores.elements.length; i++){
-                    if (this.selected.scores.elements[i].start_time < this.selected.scores.start) this.selected.scores.start = this.selected.scores.elements[i].start_time;
-                    if (this.selected.scores.elements[i].start_time + this.selected.scores.elements[i].duration > this.selected.scores.end) this.selected.scores.end = this.selected.scores.elements[i].start_time + this.selected.scores.elements[i].duration;
+                    if (this.selected.scores.elements[i].absolute_start < this.selected.scores.start) this.selected.scores.start = this.selected.scores.elements[i].absolute_start;
+                    if (this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration > this.selected.scores.end) this.selected.scores.end = this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration;
                 }
             } else {
                 this.selected.scores.start = 0;

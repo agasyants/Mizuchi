@@ -249,7 +249,7 @@ export default class ScoreDrawer extends Drawer{
         let n = [1,3,6,8,10]
         this.ctx.lineWidth = 3;
         for (let i = 0; i < this.notes_width_count; i++){
-            if (!n.includes((i+this.score.start_note)%12)){
+            if (!n.includes((i+this.score.lowest_note)%12)){
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "red";
                 this.ctx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);
@@ -272,7 +272,7 @@ export default class ScoreDrawer extends Drawer{
             this.ctx.font = k+"px system-ui";
             this.ctx.strokeStyle = "red";
             this.ctx.lineWidth = k/10;
-            this.ctx.strokeText(Note.numberToPitch(this.score.start_note+i), this.margin_left+k*0.3, -this.margin_top - i*this.note_h-this.note_h*0.2);
+            this.ctx.strokeText(Note.numberToPitch(this.score.lowest_note+i), this.margin_left+k*0.3, -this.margin_top - i*this.note_h-this.note_h*0.2);
             this.ctx.lineWidth = 1;
         }
     }
@@ -282,7 +282,7 @@ export default class ScoreDrawer extends Drawer{
         if (this.score.selection.offset.pitch){
             for (let i = 0; i < this.notes_width_count; i++){
                 this.ctx.beginPath();
-                if (n.includes((i+this.score.start_note)%12))
+                if (n.includes((i+this.score.lowest_note)%12))
                     this.ctx.fillStyle = "rgba(255,100,100,0.2)";
                 else
                     this.ctx.fillStyle = "black";
@@ -331,10 +331,10 @@ export default class ScoreDrawer extends Drawer{
     private renderNote(n:Note){
         this.ctx.beginPath();
         this.ctx.fillStyle = "red";
-        this.ctx.fillRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.start_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
+        this.ctx.fillRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.lowest_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.start_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
+        this.ctx.strokeRect(this.gridX + n.start*this.note_w, this.gridY-(n.pitch-this.score.lowest_note+1)*this.note_h, n.duration*this.note_w, this.note_h);
         this.ctx.closePath();
     }
     private renderNotes(){
@@ -359,7 +359,7 @@ export default class ScoreDrawer extends Drawer{
             this.ctx.beginPath();
             this.ctx.strokeStyle = "yellow";
             this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+            this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.lowest_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
             this.ctx.closePath();
         } else {
             for (let note of this.hovered.elements){
@@ -367,7 +367,7 @@ export default class ScoreDrawer extends Drawer{
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "yellow";
                 this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.start_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
+                this.ctx.strokeRect(this.gridX + note.start*this.note_w, this.gridY-(note.pitch-this.score.lowest_note+1)*this.note_h, note.duration*this.note_w, this.note_h);
                 this.ctx.closePath();
             }
             // if (this.sectorsSelection.x1==-1){
@@ -384,8 +384,8 @@ export default class ScoreDrawer extends Drawer{
             this.ctx.strokeStyle = "blue";
         }
         this.ctx.lineWidth = 4;
-        this.ctx.moveTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.elements[0].pitch-this.score.start_note)*this.note_h+2);
-        this.ctx.lineTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.elements[0].pitch-this.score.start_note+1)*this.note_h-2);
+        this.ctx.moveTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.elements[0].pitch-this.score.lowest_note)*this.note_h+2);
+        this.ctx.lineTo(this.gridX + x*this.note_w, this.gridY-(this.hovered.elements[0].pitch-this.score.lowest_note+1)*this.note_h-2);
         this.ctx.stroke()
         this.ctx.closePath();
     }
@@ -396,7 +396,7 @@ export default class ScoreDrawer extends Drawer{
             this.ctx.fillStyle = "blue";
             this.ctx.lineWidth = 2;
             const x = this.gridX + (note.start+this.score.selection.offset.start)*this.note_w;
-            const y = this.gridY-(note.pitch-this.score.start_note+1+this.score.selection.offset.pitch)*this.note_h;
+            const y = this.gridY-(note.pitch-this.score.lowest_note+1+this.score.selection.offset.pitch)*this.note_h;
             this.ctx.strokeRect(x, y, (note.duration+this.score.selection.offset.duration)*this.note_w, this.note_h);
             const n = [1,3,6,8,10];
             if (n.includes((note.pitch+this.score.selection.offset.pitch)%12)){
@@ -417,9 +417,9 @@ export default class ScoreDrawer extends Drawer{
         this.ctx.strokeStyle = "yellow";
         this.ctx.lineWidth = 2;
         if (!(ss.x2==-1 || ss.y2==-1 || (this.hovered.elements.length && ss.x1==ss.x2 && ss.y1==ss.y2))){
-            this.ctx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-(y_min-this.score.start_note)*this.note_h, this.note_w*x_len, -this.note_h*y_len);
+            this.ctx.strokeRect(this.gridX + x_min*this.note_w, this.gridY-(y_min-this.score.lowest_note)*this.note_h, this.note_w*x_len, -this.note_h*y_len);
         }
-        for (let i = y_min-this.score.start_note; i < y_min+y_len-this.score.start_note; i++){
+        for (let i = y_min-this.score.lowest_note; i < y_min+y_len-this.score.lowest_note; i++){
             this.ctx.beginPath();
             this.ctx.strokeStyle = "red";
             this.ctx.strokeRect(this.margin_left, -this.margin_top - (i+1)*this.note_h, this.pianoWidth*this.width, this.note_h);

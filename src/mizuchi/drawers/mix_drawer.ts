@@ -28,6 +28,8 @@ export default class MixDrawer extends Drawer{
     x_max:number=0;
 
     ctrl:boolean = false;
+    
+    slicerMode:boolean = false;
 
     hovered: {scores:Score[],pos:number[],track:Track|null,start:boolean,end:boolean} = {
         scores:[], 
@@ -123,6 +125,9 @@ export default class MixDrawer extends Drawer{
         canvas.addEventListener('keydown', (e) => {
             if (e.code=="ControlLeft"){
                 this.ctrl = true;
+            }
+            if (e.code=="KeyQ"){
+                this.slicerMode = !this.slicerMode;
             }
             if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
                 e.stopPropagation();
@@ -343,13 +348,13 @@ export default class MixDrawer extends Drawer{
         if (s.max - s.min === 0) {
             let dur = 0;
             const new_score = new Score(s.start, s.end-s.start, s.end-s.start);
-            let start_note = 0;
+            let lowest_note = 0;
             for (let score of s.elements){
-                start_note += score.start_note;
+                lowest_note += score.lowest_note;
                 new_score.create(score.getNotes(dur));
                 dur += score.duration;
             } 
-            new_score.start_note = Math.floor(start_note/s.elements.length);
+            new_score.lowest_note = Math.floor(lowest_note/s.elements.length);
             this.commandPattern.addCommand(new Create(this.mix, new_score, s.track_index[0]));
             this.delete();
         }
@@ -455,15 +460,18 @@ export default class MixDrawer extends Drawer{
         this.ctx.closePath();
     }
     private renderScore(i:number, score:Score, strokeColor:string = 'white', fillColor:string = 'white', lineWidth:number=2, drug:boolean=false) {
-        let start = score.start_time;
+        let start = score.absolute_start;
         let duration = score.duration;
         let loop = score.loop_duration;
         let height = this.heights[i];
+        let rel = score.relative_start;
+        
         if (drug){
             start += this.mix.selected.scores.offset.start;
             duration += this.mix.selected.scores.offset.duration;
             loop += this.mix.selected.scores.offset.loop_duration;
             height = this.heights[i+this.mix.selected.scores.offset.pitch];
+            rel = (rel + this.mix.selected.scores.offset.rel + loop)%loop;
         }
         let start_x = this.margin_left + this.score_w*start/this.len-this.x;
         const dur_x = this.score_w*duration/this.len;
@@ -475,25 +483,34 @@ export default class MixDrawer extends Drawer{
         this.ctx.strokeStyle = strokeColor;
         this.ctx.fillStyle = fillColor;
         this.ctx.strokeRect(start_x, start_y, dur_x, dur_y);
+        start_x -= this.score_w/this.len*rel;
 
         const m = this.tracks_min_max[i][0]-3;
         const M = this.tracks_min_max[i][1]+2;
         const nh = this.score_h/(M-m)-1;
         const k = this.score_w/8;
         
+        let sx = start_x;
+        // if (this.mix.selected.scores.elements.includes(score))
+        //     console.log(rel, Math.ceil((duration+rel)/loop)-1);
         for (let j = 0; j < Math.ceil(duration/loop); j++){
             for (let note of score.notes) {
-                if (note.start + j*loop < duration){
-                    const y = start_y + this.score_h*(1-(note.pitch-m)/(M-m));
+                const y = start_y + this.score_h*(1-(note.pitch-m)/(M-m));
+                if (note.start < rel && note.start + (j+1)*loop - rel < duration) {
+                    this.ctx.fillRect(start_x + note.start*k + loop*this.score_w/this.len, y, note.duration*k, nh);
+                } else if (note.start + j*loop - rel < duration && (duration > loop || note.start > rel)) {
                     this.ctx.fillRect(start_x + note.start*k, y, note.duration*k, nh);
                 }
             }
-            this.ctx.moveTo(start_x, start_y);
-            this.ctx.lineTo(start_x, start_y+20);
-            this.ctx.moveTo(start_x, start_y+dur_y);
-            this.ctx.lineTo(start_x, start_y+dur_y-20);
-            this.ctx.stroke();
             start_x += loop*this.score_w/this.len;
+        }
+        for (let j = 0; j < Math.ceil((duration+rel)/loop)-1; j++){
+            sx += loop*this.score_w/this.len;   
+            this.ctx.moveTo(sx, start_y);
+            this.ctx.lineTo(sx, start_y+20);
+            this.ctx.moveTo(sx, start_y+dur_y);
+            this.ctx.lineTo(sx, start_y+dur_y-20);
+            this.ctx.stroke();
         }
         this.ctx.closePath();
     }
@@ -507,7 +524,12 @@ export default class MixDrawer extends Drawer{
         const y_len = Math.max(this.sectorsSelection.y1, this.sectorsSelection.y2)-y_min+1;
         const x = this.margin_left + x_min*this.score_w-this.x;
         const y = this.margin_top + y_min*this.score_h-this.y;
-        const w = x_len*this.score_w;
+        let w;
+        if (this.slicerMode){
+            w = (x_len-1)*this.score_w;
+        } else {
+            w = x_len*this.score_w;
+        }
         const h = y_len*this.score_h;
         this.ctx.beginPath();
         this.ctx.strokeStyle = "yellow";
@@ -548,8 +570,8 @@ export default class MixDrawer extends Drawer{
     private renderHoveredStartEnd(){
         for (let i = 0; i < this.hovered.scores.length; i++){
             this.ctx.beginPath();
-            let start = this.hovered.scores[0].start_time;
-            let end = this.hovered.scores[0].start_time+this.hovered.scores[0].duration;
+            let start = this.hovered.scores[0].absolute_start;
+            let end = this.hovered.scores[0].absolute_start+this.hovered.scores[0].duration;
             if (this.mix.selected.scores.elements.includes(this.hovered.scores[0])) {
                 this.ctx.fillStyle = 'yellow';
                 start += this.mix.selected.scores.offset.start;
@@ -622,8 +644,9 @@ export default class MixDrawer extends Drawer{
         // }
         if (this.mix.selected.scores.elements.length && this.hovered.scores.length && !shift){
             const s = this.mix.selected.scores;
-            const str = this.hovered.scores[0].start_time % 1;
-            const dur = (this.hovered.scores[0].start_time + this.hovered.scores[0].duration) % 1;
+            const str = this.hovered.scores[0].absolute_start % 1;
+            const dur = (this.hovered.scores[0].absolute_start + this.hovered.scores[0].duration) % 1;
+
             if (this.hovered.start) {
                 s.offset.start = (x - this.round(s.drugged_x, shift) - str)*this.len;
                 s.offset.duration = (this.round(s.drugged_x, shift) - x + str)*this.len;
@@ -631,7 +654,7 @@ export default class MixDrawer extends Drawer{
                     s.offset.loop_duration = s.offset.duration;
                 } else {
                     s.offset.loop_duration = 0;
-                    s.offset.rel = 0;
+                    s.offset.rel = s.offset.start % s.elements[0].loop_duration;
                 }
             } else if (this.hovered.end) {
                 s.offset.duration = (this.round(x - s.drugged_x, shift) - dur)*this.len;
@@ -647,6 +670,7 @@ export default class MixDrawer extends Drawer{
                 }
                 s.offset.pitch = y - s.drugged_y;
             }
+            
             if (alt) {
                 x = Math.round(x+0.5)
             }
@@ -671,9 +695,9 @@ export default class MixDrawer extends Drawer{
         const x_max = Math.max(ss.x1, ss.x2) * this.len;
         const y_min = Math.min(ss.y1,ss.y2);
         const y_max = Math.max(ss.y1, ss.y2);
-        for (let i=0; i < this.mix.tracks.length; i++){
+        for (let i = 0; i < this.mix.tracks.length; i++){
             for (let score of this.mix.tracks[i].scores){
-                if ((x_min <= score.start_time+score.duration-1 && score.start_time <= x_max) && (y_min<=i && y_max >= i)){
+                if ((x_min <= score.absolute_start + score.duration-1 && score.absolute_start <= x_max) && (y_min <= i && y_max >= i)){
                     this.hovered.scores.push(score);
                     this.hovered.pos.push(i)
                 }
@@ -698,6 +722,9 @@ export default class MixDrawer extends Drawer{
         if (y>1) y=0.99;
         [x,y] = this.getMatrix(x,y);
         const xr = x*8;
+        if (this.slicerMode){
+            x += this.score_w/2/this.width*this.score_number_on_screen;
+        }
         x = Math.floor(x);
         y = Math.floor(y);
         if (this.drugged) {
@@ -712,7 +739,7 @@ export default class MixDrawer extends Drawer{
                     for (let score of this.mix.tracks[i].scores) {
                         this.hovered.end = false;
                         this.hovered.start = false;
-                        const start = score.start_time;
+                        const start = score.absolute_start;
                         const end = start + score.duration;
                         // console.log(start, xr, end);
                         if (start <= xr && xr <= start+range){

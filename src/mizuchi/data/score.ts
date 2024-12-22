@@ -3,9 +3,9 @@ import Selection from "../classes/selection";
 
 export default class Score {
     notes:Note[] = [];
-    start_note: number = 16;
+    lowest_note: number = 16;
     selection: Selection = new Selection;
-    constructor(public start_time:number, 
+    constructor(public absolute_start:number, 
         public duration:number = 32, 
         public loop_duration:number = 64, 
         public relative_start:number = 0){
@@ -32,7 +32,7 @@ export default class Score {
         
     }
     addScore(score:Score){
-        const scoreDelt = this.start_time-score.start_time
+        const scoreDelt = this.absolute_start-score.absolute_start
         score.notes.forEach(note => {
             this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
         }); 
@@ -85,7 +85,7 @@ export default class Score {
         }
     }
     clone(){
-        let score = new Score(this.start_time, this.duration);
+        let score = new Score(this.absolute_start, this.duration);
         score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
         return score;
     }
