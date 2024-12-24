@@ -1,21 +1,22 @@
 import Note from "../classes/note";
-import OscDrawer from "../drawers/osc_drawer";
+// import OscDrawer from "../drawers/osc_drawer";
 import OscFunction, { BasicPoint, HandlePoint } from "../data/osc_function";
 import Mix from "../data/mix";
 import ScoreDrawer from "../drawers/score_drawer";
 import MixDrawer from "../drawers/mix_drawer";
-import { Mixer } from "./mixer";
-import { Delay, Distortion, Distortion2, Distortion3, Smothstep } from "../classes/audio_effects";
-import { Set } from "../classes/CommandPattern";
+// import Mixer from "./mixer";
+// import { Delay, Distortion, Distortion2, Distortion3, Smothstep } from "../classes/audio_effects";
+// import { Set } from "../classes/CommandPattern";
+import MixerWorklet from "./MixerWorklet";
 import WindowController from "../classes/WindowController";
+import { NoteInput, MixNode } from "../classes/node";
+import { OutputSignal } from "../classes/Output";
+import { InputSignal } from "../classes/Input";
 
 
 export default class Mizuchi{
     constructor(){
-        const OscCanvas = document.getElementById('OscCanvas') as HTMLCanvasElement;
-        // if (!OscCanvas) return;
         let mix:Mix = new Mix();
-        const mixer: Mixer = new Mixer(mix);
 
         const start_input = document.getElementById('start') as HTMLInputElement;
         start_input.addEventListener("change", () => {
@@ -24,23 +25,12 @@ export default class Mizuchi{
         window.addEventListener("contextmenu", (e) => {
             e.preventDefault();
         })
-        
-        window.addEventListener("keydown", (e) => {
-            if (e.code=="KeyS" && e.ctrlKey){
-                e.preventDefault();
-                mix.save();
-            }
-            if (e.code=="Space"){
-                e.preventDefault();
-                mixer.toggle();
-            }
-        });
 
         const TestButton = document.getElementById('Test') || document.createElement('div');
         TestButton.addEventListener('click', () => {
         })
 
-        const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
+        // const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
         const score_drawer = new ScoreDrawer(scoreCanvas, mix.tracks[0].scores[0]);
@@ -50,41 +40,66 @@ export default class Mizuchi{
         const mix_div = document.getElementById('mix-canvas-wrapper') as HTMLDivElement;
         if (mixCanvas && mix_div){
             const rect = mix_div.getBoundingClientRect();
-            const mixDrawer = new MixDrawer(mixCanvas, mix, oscDrawer, score_window, rect.width, rect.height);
-            let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
-            const audioE = [new Distortion(1,0.8), new Distortion2(1,0.8), new Distortion3(1,f), new Delay(0.5,1,44100), new Smothstep(1)]
-            const InputDiv = document.getElementById('Inputs') || document.createElement('div');
-            for (let effect of audioE){
-                const PlayButton = document.createElement('button');
-                PlayButton.textContent = effect.name;
-                PlayButton.addEventListener('click', () => {
-                    mixDrawer.addAudioEffect(effect);
-                })  
-                InputDiv.appendChild(PlayButton);
+            const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, rect.width, rect.height);
+            const mixer = new MixerWorklet(mix, mixDrawer);
+            mix.outputNode.inputs = [new InputSignal(mix.outputNode)];
+            mix.nodes = [new MixNode(0,0)]
+            mix.outputNode.inputs[0].connected = mix.nodes[0].output;
+            // let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
+            for (let track of mix.tracks) {
+                const node = new NoteInput(0,0,track,mix,new OscFunction([new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)]));
+                node.output = new OutputSignal(node); 
+                node.output.connected = track.outputNode.inputs[0];
+                track.nodes.push(node);
+                track.outputNode.inputs[0].connected = node.output;
+                mix.nodes[0].inputs.push(new InputSignal(mix.nodes[0]));
+                mix.nodes[0].inputs[mix.nodes[0].inputs.length-1].connected = node.output;
+                const TestButton = document.getElementById("Test");
+                if (TestButton){
+                    TestButton.addEventListener("click", () => {
+                        console.log(track.name);
+                        for (let playback=0; playback<12; playback++){
+                            mix.playback = playback*mix.sampleRate
+                            console.log(node.get());
+                        }
+                    })
+                }
             }
+            console.log(mix.tracks);  
+            
+            window.addEventListener("keydown", (e) => {
+                if (e.code=="KeyS" && e.ctrlKey){
+                    e.preventDefault();
+                    mix.save();
+                }
+                if (e.code=="Space"){
+                    e.preventDefault();
+                    mixer.toggle();
+                }
+            });          
         }
-        const SinePreset = document.getElementById('Sine') || document.createElement('div');
-        SinePreset.addEventListener('click', () => {
-            oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0,0), new BasicPoint(0.25,1), new BasicPoint(0.5,0), new BasicPoint(0.75,-1), new BasicPoint(1,0)], [new HandlePoint(0,1,0,1), new HandlePoint(0.5,1,1,0),new HandlePoint(0.5,-1,0,1),new HandlePoint(1,-1,1,0)]]));
-            oscDrawer.render();
-        });
-        const SawPreset = document.getElementById('Saw') || document.createElement('div');
-        SawPreset.addEventListener('click', () => {
-            oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1),new BasicPoint(1, 0)], [new HandlePoint(0.25,0.5), new HandlePoint(0.5,0), new HandlePoint(0.75,-0.5)]]));
-            oscDrawer.render();
-        });
-        const SquarePreset = document.getElementById('Square') || document.createElement('div');
-        SquarePreset.addEventListener('click', () => {
-            oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0, 1), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1), new BasicPoint(1, -1),new BasicPoint(1, 0)], [new HandlePoint(0,0.5), new HandlePoint(0.25,1),new HandlePoint(0.5,0),new HandlePoint(0.75,-1),new HandlePoint(1,-0.5)]]));
-            oscDrawer.render();
-        });
-        const TrianglePreset = document.getElementById('Triangle') || document.createElement('div');
-        TrianglePreset.addEventListener('click', () => {
-            oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)]]));
-            oscDrawer.render();
-        });
-    
         
+        // const SinePreset = document.getElementById('Sine') || document.createElement('div');
+        // SinePreset.addEventListener('click', () => {
+        //     oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0,0), new BasicPoint(0.25,1), new BasicPoint(0.5,0), new BasicPoint(0.75,-1), new BasicPoint(1,0)], [new HandlePoint(0,1,0,1), new HandlePoint(0.5,1,1,0),new HandlePoint(0.5,-1,0,1),new HandlePoint(1,-1,1,0)]]));
+        //     oscDrawer.render();
+        // });
+        // const SawPreset = document.getElementById('Saw') || document.createElement('div');
+        // SawPreset.addEventListener('click', () => {
+        //     oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1),new BasicPoint(1, 0)], [new HandlePoint(0.25,0.5), new HandlePoint(0.5,0), new HandlePoint(0.75,-0.5)]]));
+        //     oscDrawer.render();
+        // });
+        // const SquarePreset = document.getElementById('Square') || document.createElement('div');
+        // SquarePreset.addEventListener('click', () => {
+        //     oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0, 1), new BasicPoint(0.5, 1), new BasicPoint(0.5, -1), new BasicPoint(1, -1),new BasicPoint(1, 0)], [new HandlePoint(0,0.5), new HandlePoint(0.25,1),new HandlePoint(0.5,0),new HandlePoint(0.75,-1),new HandlePoint(1,-0.5)]]));
+        //     oscDrawer.render();
+        // });
+        // const TrianglePreset = document.getElementById('Triangle') || document.createElement('div');
+        // TrianglePreset.addEventListener('click', () => {
+        //     oscDrawer.commandPattern.addCommand(new Set(oscDrawer.oscFunction, [[new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)]]));
+        //     oscDrawer.render();
+        // });
+    
         const BPM = <HTMLInputElement>document.getElementById('bpm');
         if (BPM) BPM.value = String(mix.bpm);
         if (BPM){

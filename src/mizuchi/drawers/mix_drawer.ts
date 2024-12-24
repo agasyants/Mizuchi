@@ -1,9 +1,9 @@
 import Mix from "../data/mix";
 import Score from "../data/score";
-import OscDrawer from "../drawers/osc_drawer";
+// import OscDrawer from "../drawers/osc_drawer";
 import ScoreDrawer from "./score_drawer";
 import Track from "../data/track";
-import AudioEffect from "../classes/audio_effects";
+// import AudioEffect from "../classes/audio_effects";
 // import { TrackSelection, ScoreSelection} from "../classes/selection";
 import CommandPattern, { Complex, Create, Delete, Move, Select } from "../classes/CommandPattern";
 import Drawer from "./Drawer";
@@ -45,20 +45,17 @@ export default class MixDrawer extends Drawer{
 
     tracks_min_max:number[][] = [];
 
-    oscDrawer:OscDrawer;
 
     input_x:number = -1;
     input_y:number = -1;
     constructor(
         public canvas:HTMLCanvasElement, 
-        public mix:Mix,  
-        oscDrawer:OscDrawer,
+        public mix:Mix,
         public score_window:WindowController, 
         width:number, 
         height:number)
     {
         super(canvas);
-        this.oscDrawer = oscDrawer;
         this.setCanvasSize(width,height);
         this.calcMinMax();
         this.calcHeights();
@@ -176,7 +173,7 @@ export default class MixDrawer extends Drawer{
                             this.commandPattern.addCommand(new Select(this.mix, this.mix.selected.tracks.elements));
                         }
                         this.commandPattern.addCommand(new Select(this.mix, [this.hovered.track]));
-                        this.oscDrawer.oscFunction = this.hovered.track.inst.osc.oscFunction;
+                        // this.oscDrawer.oscFunction = this.hovered.track.inst.osc.oscFunction;
                     }
                 } 
                 if (this.hovered.scores.length) { // select score
@@ -359,7 +356,10 @@ export default class MixDrawer extends Drawer{
             this.delete();
         }
     }
-    render() {
+    render(){
+        requestAnimationFrame(()=>{this._render()});
+    }
+    _render() {
         this.ctx.clearRect(0, 0, this.w, this.h);
         this.ctx.font = "16px system-ui";
         this.renderBack();
@@ -412,14 +412,23 @@ export default class MixDrawer extends Drawer{
         this.ctx.strokeRect(this.margin_left+this.width, this.margin_top, this.w*this.instrument_width, this.height);
     }
     private renderTime(){
+        const x1 = this.margin_left + this.mix.start*this.score_w/4 - this.x;
+        const x2 = this.margin_left + this.mix.playback/(this.mix.sampleRate/this.mix.bpm*120)*this.score_w - this.x;
+        // console.log(this.mix.playback);
         this.ctx.beginPath();
         this.ctx.strokeStyle = 'yellow';
         this.ctx.lineWidth = 3;
-        let x = this.margin_left+this.mix.start*this.score_w/4-this.x;
-        this.ctx.moveTo(x, this.margin_top);
-        this.ctx.lineTo(x, this.margin_top-20);
+        this.ctx.moveTo(x1, this.margin_top);
+        this.ctx.lineTo(x1, this.margin_top-20);
         this.ctx.stroke();
         this.ctx.closePath();
+
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = 'blue';
+        this.ctx.lineWidth = 3;
+        this.ctx.moveTo(x2, this.margin_top);
+        this.ctx.lineTo(x2, this.margin_top-20);
+        this.ctx.stroke();
     }
     private renderFrame(){
         this.ctx.beginPath();
@@ -789,9 +798,9 @@ export default class MixDrawer extends Drawer{
         this.sectorsSelection.x2 = -1;
         this.sectorsSelection.y2 = -1;
     }
-    addAudioEffect(effect:AudioEffect){
-        for (let track of this.mix.selected.tracks.elements){
-            track.audioEffects.push(effect);
-        }
-    }
+    // addAudioEffect(effect:AudioEffect){
+    //     for (let track of this.mix.selected.tracks.elements){
+    //         track.audioEffects.push(effect);
+    //     }
+    // }
 } 

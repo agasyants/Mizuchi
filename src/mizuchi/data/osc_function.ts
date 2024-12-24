@@ -1,8 +1,8 @@
 export default class OscFunction{
     basics: BasicPoint[] = [];
     handles: HandlePoint[] = [];
-    constructor(paste:any=[[new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)], this.handles = [new HandlePoint(0.5,0)]]){
-        this.set(paste);
+    constructor(basics:BasicPoint[]=[new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)], handles:HandlePoint[] = [new HandlePoint(0.5,0)]){
+        this.set(basics,handles);
     }
     move(point:Point, [x,y]:number[], reverse:boolean):void{
         if (reverse){
@@ -70,14 +70,14 @@ export default class OscFunction{
         }
         return [x,y];
     }
-    set(paste:[BasicPoint[], HandlePoint[]]){
+    set(basics:BasicPoint[], handles:HandlePoint[]){
         let result = [this.basics,this.handles]
         this.basics = [];
         this.handles = [];
-        for (let basic of paste[0]){
+        for (let basic of basics){
             this.basics.push(basic.clone())
         }
-        for (let handle of paste[1]){
+        for (let handle of handles){
             this.handles.push(handle.clone())
         }
         return result;

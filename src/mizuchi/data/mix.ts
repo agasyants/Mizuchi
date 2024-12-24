@@ -1,16 +1,19 @@
 import Score from "./score";
 import Track from "./track";
-import Instrument from "./instrument";
-import Oscillator from "./oscillator";
 import Note from "../classes/note";
-import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
-import AudioEffect from "../classes/audio_effects";
+import Node, { OutputNode} from "../classes/node"; 
+// import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
+// import AudioEffect from "../classes/audio_effects";
 import Selection, { ScoreSelection, TrackSelection } from "../classes/selection";
 
 export default class Mix{
     tracks:Track[] = [];
+    nodes:Node[]=[];
+    outputNode:Node = new OutputNode(0,0);
     bpm:number = 120;
     start:number = 0;
+    playback:number = 0;
+    sampleRate:number = 44100;
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
     tracks_number_on_screen:number = 6;
     constructor(){
@@ -29,17 +32,15 @@ export default class Mix{
         console.log(data);
         this.bpm = data.bpm;
         for (let track of data.tracks){
-            const newFunc = new OscFunction();
-            let newBasics:BasicPoint[] = [];
-            for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
-            newBasics[0].x_move = false;
-            newBasics[newBasics.length-1].x_move = false;
-            let newHandles:HandlePoint[] = [];
-            for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
-            newFunc.set([newBasics,newHandles]);
-            const newOsc = new Oscillator(newFunc);
-            const newInst = new Instrument(newOsc);
-            const newTrack = new Track(track.name, newInst);
+            // const newFunc = new OscFunction();
+            // let newBasics:BasicPoint[] = [];
+            // for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
+            // newBasics[0].x_move = false;
+            // newBasics[newBasics.length-1].x_move = false;
+            // let newHandles:HandlePoint[] = [];
+            // for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
+            // newFunc.set(newBasics,newHandles);
+            const newTrack = new Track(track.name);
             for (let score of track.scores){
                 const newScore = new Score(score.absolute_start, score.duration, score.loop_duration, score.relative_start);
                 newScore.lowest_note = score.lowest_note;
@@ -156,11 +157,6 @@ export default class Mix{
                 this.selected.scores.start = 0;
                 this.selected.scores.end = 0;
             }
-        }
-    }
-    addAudioEffect(effect:AudioEffect){
-        for (let track of this.tracks){
-            track.audioEffects.push(effect);
         }
     }
 }
