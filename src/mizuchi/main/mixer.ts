@@ -7,6 +7,9 @@ export default class Mixer {
     private audioCtx: AudioContext | null = null;
     private mix: Mix;
     private mixDrawer: MixDrawer;
+    private counter = 0;
+    private totalLength = 0;
+    private chunk_buffer = 4;
 
     constructor(mix: Mix, mixDrawer: MixDrawer) {
         this.mix = mix;
@@ -26,8 +29,13 @@ export default class Mixer {
     private async play(length: number = 128) {
         this.audioCtx = new AudioContext();
         this.mix.sampleRate = this.audioCtx.sampleRate;
-        this.chunkLength = 20000;
-        this.generateAndPlayChunks(Math.round(length * 30 / this.mix.bpm * this.mix.sampleRate));
+        this.chunkLength = 1000;
+        this.counter = 0;
+        this.totalLength = 0;
+        this.mix.playback = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
+        this.totalLength = Math.round(length * 30 / this.mix.bpm * this.mix.sampleRate);
+        for (let i=0; i<this.chunk_buffer; i++)
+            this.generateChunk();
     }
 
     private async stop() {
@@ -37,46 +45,38 @@ export default class Mixer {
         }
     }
 
-    private async generateAndPlayChunks(totalLength: number) {
-        const k = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
-        const mixed: number[] = new Array();
-        console.log(mixed);
-    
-        for (let i = k; i < totalLength; i++) {
-            if (!this.audioCtx) return;
-            this.mix.playback = i;
-            if (i%10000==0)
-                this.mixDrawer.render();
-            // Генерация чанка каждые `chunkLength` отсчетов
-            if ((i - k) % this.chunkLength === 0 && i !== k) {
-                console.log("chunk");
-                let chunk: Float32Array = new Float32Array(this.chunkLength);
-    
-                for (let c = 0; c < this.chunkLength; c++) {    
-                    chunk[c] = mixed[c]; // Нормализация
-                }
-    
-                this.toBuffer(chunk, i - k);
-                await new Promise(resolve => setTimeout(resolve, 0));
-    
-                // Очищаем обработанные данные
-                mixed.splice(0, this.chunkLength);
+    private async generateChunk() {
+        const chunk: Float32Array = new Float32Array(this.chunkLength);
+        for (let i = 0; i < this.chunkLength; i++) {
+            if (this.mix.playback > this.totalLength) {
+                this.stop();
+                return;
             }
-            
-            // Генерация данных для каждого трека
-            mixed.push(this.mix.outputNode.get());
-            
-        }
+            if (!this.audioCtx) return;
+            this.mix.playback++;
+            if (i % 10000 == 0)
+                this.mixDrawer.render();
+            chunk[i] = this.mix.outputNode.get();
+        } 
+        console.log("chunk");
+        this.counter++;
+        this.toBuffer(chunk);
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
-    
 
-    private toBuffer(array: Float32Array, shift:number) {
+    private toBuffer(array: Float32Array) {
         if (!this.audioCtx) return;
-        let buffer = this.audioCtx.createBuffer(1, this.chunkLength, this.audioCtx.sampleRate);
+        const buffer = this.audioCtx.createBuffer(1, this.chunkLength, this.audioCtx.sampleRate);
         buffer.copyToChannel(array, 0);
-        let source = this.audioCtx.createBufferSource();
+        const source = this.audioCtx.createBufferSource();
         source.buffer = buffer;
         source.connect(this.audioCtx.destination);
-        source.start((shift-this.chunkLength)/this.mix.sampleRate);
+        source.start((this.mix.playback-this.chunkLength)/this.mix.sampleRate);
+        source.addEventListener("ended", () => {
+            this.counter-=1;
+            source.disconnect();
+            if (this.counter == this.chunk_buffer-1)
+                this.generateChunk();
+        })
     }
 }

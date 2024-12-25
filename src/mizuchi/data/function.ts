@@ -1,10 +1,30 @@
-import { Point, BasicPoint, HandlePoint } from "./function";
 
-export default class OscFunction{
+
+export default class Function {
     basics: BasicPoint[] = [];
     handles: HandlePoint[] = [];
-    constructor(basics:BasicPoint[]=[new BasicPoint(0, 0, false, false), new BasicPoint(1, 0, false, false)], handles:HandlePoint[] = [new HandlePoint(0.5,0)]){
+    x_min:number;
+    x_max:number;
+    y_min:number;
+    y_max:number;
+    constructor(x_min:number,x_max:number,y_min:number,y_max:number,basics:BasicPoint[], handles:HandlePoint[]){
         this.set(basics,handles);
+        this.x_min = x_min;
+        this.x_max = x_max;
+        this.y_min = y_min;
+        this.y_max = y_max;
+    }
+    set(basics:BasicPoint[], handles:HandlePoint[]){
+        let result = [this.basics,this.handles]
+        this.basics = [];
+        this.handles = [];
+        for (let basic of basics){
+            this.basics.push(basic.clone())
+        }
+        for (let handle of handles){
+            this.handles.push(handle.clone())
+        }
+        return result;
     }
     move(point:Point, [x,y]:number[], reverse:boolean):void{
         if (reverse){
@@ -72,18 +92,6 @@ export default class OscFunction{
         }
         return [x,y];
     }
-    set(basics:BasicPoint[], handles:HandlePoint[]){
-        let result = [this.basics,this.handles]
-        this.basics = [];
-        this.handles = [];
-        for (let basic of basics){
-            this.basics.push(basic.clone())
-        }
-        for (let handle of handles){
-            this.handles.push(handle.clone())
-        }
-        return result;
-    }
     copy():[BasicPoint[], HandlePoint[]]{
         let basics = [];
         let handles = [];
@@ -136,34 +144,6 @@ export default class OscFunction{
         this.handles.splice(num-1, 2, new HandlePoint(0,0));
         this.setHandleAbsByRelPos(num-1);
     }
-    getSample(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
-        for (let j = 0; j < basics.length-1; j++){
-            if (basics[j+1].x == i){
-                return basics[j+1].y;
-            }
-            if (basics[j].x <= i && i <= basics[j+1].x){
-                let p0 = basics[j];
-                let p1 = handles[j];
-                let p2 = basics[j+1];
-                let A = p0.x - 2*p1.x + p2.x;
-                let B = 2*(p1.x-p0.x);
-                let C = p0.x-i;
-                let t = 0;
-                if (A == 0 || (p1.xl==0.5 && p1.yl==0.5)) {
-                    t = (i-p0.x)/(p2.x-p0.x);
-                } else {
-                    let D = B*B - 4*A*C;
-                    let sqrtDiscriminant = Math.sqrt(D);
-                    let t1 = (-B + sqrtDiscriminant) / (2 * A);
-                    let t2 = (-B - sqrtDiscriminant) / (2 * A);
-                    let tValues = [t1, t2].filter(t => t >= 0 && t <= 1);
-                    t = tValues[0];
-                }
-                return Math.pow(1-t,2)*p0.y + 2*t*p1.y*(1-t) + t*t*p2.y;
-            }
-        }
-        return -1;
-    }
     getItest(i:number):number{
         return (Math.acos(Math.cos(i * Math.PI*2)) - (Math.PI / 2)) / (Math.PI / 2) * 2 - 1;
     }
@@ -193,5 +173,46 @@ export default class OscFunction{
         let x = this.basics[num].x + (this.basics[num+1].x-this.basics[num].x)*this.handles[num].xl - point.x;
         let y = this.basics[num].y + (this.basics[num+1].y-this.basics[num].y)*this.handles[num].yl - point.y;
         return [x,y];
+    }
+}
+
+export class Point{
+    x:number;
+    y:number;
+    constructor(x:number, y:number){
+        this.x = x;
+        this.y = y;
+    }
+    getLength(x:number, y:number):number{
+        return Math.sqrt(Math.pow(this.x-x, 2) + Math.pow(this.y-y, 2));
+    }
+    clone():Point{
+        return new Point(this.x, this.y);
+    }
+}
+
+export class BasicPoint extends Point{
+    x_move:boolean;
+    y_move:boolean;
+    constructor(x:number, y:number, x_move:boolean=true, y_move:boolean=true){
+        super(x, y);
+        this.x_move = x_move;
+        this.y_move = y_move;
+    }
+    clone():BasicPoint{
+        return new BasicPoint(this.x, this.y, this.x_move, this.y_move);
+    }
+}
+
+export class HandlePoint extends Point{
+    xl:number;
+    yl:number;
+    constructor(x:number, y:number, xl:number = 0.5, yl:number = 0.5){
+        super(x, y);
+        this.xl = xl;
+        this.yl = yl;
+    }
+    clone():HandlePoint{
+        return new HandlePoint(this.x, this.y, this.xl, this.yl);
     }
 }

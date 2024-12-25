@@ -1,17 +1,16 @@
 import Note from "../classes/note";
 // import OscDrawer from "../drawers/osc_drawer";
-import OscFunction, { BasicPoint, HandlePoint } from "../data/osc_function";
+import { BasicPoint, HandlePoint } from "../data/function";
 import Mix from "../data/mix";
 import ScoreDrawer from "../drawers/score_drawer";
 import MixDrawer from "../drawers/mix_drawer";
-// import Mixer from "./mixer";
+import Mixer from "./mixer";
 // import { Delay, Distortion, Distortion2, Distortion3, Smothstep } from "../classes/audio_effects";
 // import { Set } from "../classes/CommandPattern";
-import MixerWorklet from "./MixerWorklet";
+// import MixerWorklet from "./MixerWorklet";
 import WindowController from "../classes/WindowController";
-import { NoteInput, MixNode } from "../classes/node";
-import { OutputSignal } from "../classes/Output";
-import { InputSignal } from "../classes/Input";
+import { NoteInput, SumNode } from "../classes/node";
+import Mapping from "../data/mapping_function";
 
 
 export default class Mizuchi{
@@ -41,19 +40,17 @@ export default class Mizuchi{
         if (mixCanvas && mix_div){
             const rect = mix_div.getBoundingClientRect();
             const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, rect.width, rect.height);
-            const mixer = new MixerWorklet(mix, mixDrawer);
-            mix.outputNode.inputs = [new InputSignal(mix.outputNode)];
-            mix.nodes = [new MixNode(0,0)]
-            mix.outputNode.inputs[0].connected = mix.nodes[0].output;
+            const mixer = new Mixer(mix, mixDrawer);
+            const mixNode = new SumNode(0,0);
+            mix.nodes = [mixNode]
+            mix.outputNode.setInput(0, mixNode.output);
             // let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
+            let i = 0;
             for (let track of mix.tracks) {
-                const node = new NoteInput(0,0,track,mix,new OscFunction([new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)]));
-                node.output = new OutputSignal(node); 
+                const node = new NoteInput(0,0,track,mix,new Mapping(0,1,-1,1,[new BasicPoint(0, 0), new BasicPoint(0.25, 1),new BasicPoint(0.75, -1), new BasicPoint(1,0)], [new HandlePoint(0.125,0.5), new HandlePoint(0.5,0),new HandlePoint(0.875,-0.5)])); 
                 node.output.connected = track.outputNode.inputs[0];
                 track.nodes.push(node);
-                track.outputNode.inputs[0].connected = node.output;
-                mix.nodes[0].inputs.push(new InputSignal(mix.nodes[0]));
-                mix.nodes[0].inputs[mix.nodes[0].inputs.length-1].connected = node.output;
+                mixNode.addInput(node.output);
                 const TestButton = document.getElementById("Test");
                 if (TestButton){
                     TestButton.addEventListener("click", () => {
@@ -63,9 +60,9 @@ export default class Mizuchi{
                             console.log(node.get());
                         }
                     })
-                }
+                } i++;
             }
-            console.log(mix.tracks);  
+            console.log(mix.outputNode);  
             
             window.addEventListener("keydown", (e) => {
                 if (e.code=="KeyS" && e.ctrlKey){

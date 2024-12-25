@@ -1,5 +1,5 @@
+import Mapping from "../data/mapping_function";
 import Mix from "../data/mix";
-import OscFunction from "../data/osc_function";
 import Track from "../data/track";
 import Input, { InputSignal } from "./Input";
 import Note from "./note";
@@ -8,20 +8,26 @@ import Output, { OutputSignal } from "./Output";
 export default abstract class Node{
     x:number;
     y:number;
-    inputs: Input[]=[];
-    output: Output|null = null;
-    window: number|null = null;
-    constructor(x:number, y:number){
+    inputs: Input[] = [];
+    output: Output;
+    window: number[] = [];
+    constructor(x:number, y:number, inputs_count:number){
         this.x = x;
         this.y = y;
+        this.output = new OutputSignal(this);
+        for (let i = 0; i < inputs_count; i++){
+            this.inputs.push(new InputSignal(this));
+        }
     }
     abstract get():any
+    setInput(index:number, out:Output){
+        this.inputs[index].connected = out;
+    }
 }
 
 export class OutputNode extends Node {
     constructor(x:number, y:number){
-        super(x, y);
-        this.inputs = [new InputSignal(this)];
+        super(x, y, 1);
     }
     get():number{
         return this.inputs[0].get();
@@ -29,9 +35,8 @@ export class OutputNode extends Node {
 }
 
 export class NoteInput extends Node {
-    constructor(x:number, y:number, public track:Track, public mix:Mix, public osc:OscFunction){
-        super(x, y);
-        this.output = new OutputSignal(this);
+    constructor(x:number, y:number, public track:Track, public mix:Mix, public osc:Mapping){
+        super(x, y, 0);
     }
     get():number{
         const SPS = this.mix.sampleRate/this.mix.bpm*120/8;
@@ -40,7 +45,7 @@ export class NoteInput extends Node {
         let sum:number = 0;
         for (let note of founded){
             const t = this.mix.sampleRate/note.getFrequency();
-            sum += this.osc.getSample((this.mix.playback-note.start*SPS)%t/t);
+            sum += this.osc.getSample((this.mix.playback-note.start*SPS) % t / t);
         }
         return sum/founded.length;
     }
@@ -50,7 +55,7 @@ export class NoteInput extends Node {
             if (score.absolute_start <= rel_time && rel_time < score.absolute_start + score.duration) {
                 rel_time -= score.absolute_start;
                 for (let note of score.notes){
-                    if (note.start <= rel_time && note.start + note.duration > rel_time){
+                    if (note.start <= rel_time && rel_time < note.start + note.duration){
                         notes.push(note);
                     } else if (note.start > rel_time){
                         return notes;
@@ -62,10 +67,9 @@ export class NoteInput extends Node {
     }
 }
 
-export class MixNode extends Node {
+export class SumNode extends Node {
     constructor(x:number, y:number){
-        super(x, y);
-        this.output = new OutputSignal(this);
+        super(x, y, 0);
     }
     get():number{
         let sum = 0;
@@ -73,5 +77,34 @@ export class MixNode extends Node {
             sum += input.get();
         }
         return sum/this.inputs.length;
+    }
+    addInput(connected:Output){
+        if (connected instanceof OutputSignal){
+            const input = new InputSignal(this);
+            input.connected = connected;
+            this.inputs.push(input);
+        }
+    }
+}
+
+export class MixNode extends Node {
+    dryWet:number = 0.5;
+    constructor(x:number, y:number){
+        super(x, y, 2);
+    }
+    get(){
+        return this.inputs[0].get()*this.dryWet + this.inputs[1].get()*(1-this.dryWet);
+    }
+}
+
+export class DelayNode extends Node {
+    windowLenght = 44100;
+    constructor(x:number, y:number){
+        super(x, y, 1);
+        this.window.fill(0, 0, this.windowLenght)
+    }
+    get(){
+        this.window.push(this.inputs[0].get());
+        return this.window.shift();
     }
 }
