@@ -1,9 +1,15 @@
 export default class CommandPattern{
-    public commands:Command[] = [];
-    public undoCommands:Command[] = [];
-    public addCommand(command:Command){
-        this.commands.push(command);
-        this.undoCommands = [];
+    private commands:Command[] = [];
+    private undoCommands:Command[] = [];
+    private recording:boolean = false;
+    private recordingBuffer:Command[] = [];
+    addCommand(command:Command){
+        if (this.recording) {
+            this.recordingBuffer.push(command);
+        } else {
+            this.commands.push(command);
+            this.undoCommands = [];
+        }
         // save
     }
     undo(){
@@ -20,6 +26,15 @@ export default class CommandPattern{
             command.do();
         }
     }
+    recordOpen(){
+        this.recording = true;
+    }
+    recordClose(){
+        this.recording = false;
+        this.addCommand(new Complex(this.recordingBuffer));
+        // console.log(this.recordingBuffer);
+        this.recordingBuffer = [];
+    }
 }
 
 export class Command{
@@ -28,23 +43,24 @@ export class Command{
 }
 
 export class Complex extends Command{
-    constructor(public commands:Command[]){
+    constructor(private commands:Command[]){
+        // console.log("Complex");
         super();
     }
     do(){
-        console.log("Complex DO");
+        // console.log("Complex DO");
         for (let i=0; i<this.commands.length; i++)
             this.commands[i].do();
     }
     undo(){
-        console.log("Complex UNDO");
+        // console.log("Complex UNDO");
         for (let i=this.commands.length-1; i>=0; i--)
             this.commands[i].undo();
     }
 }
 
 export class Create extends Command{
-    constructor(public subject:any, public object:any, public place:number=-1){
+    constructor(private subject:any, private object:any, private place:number=-1){
         super();
         this.do();
     }
@@ -60,7 +76,7 @@ export class Create extends Command{
 
 export class Delete extends Command{
     place:number;
-    constructor(public subject:any, public object:any){
+    constructor(private subject:any, private object:any){
         super();
         this.place = this.do();
     }
@@ -75,38 +91,38 @@ export class Delete extends Command{
 }
 
 export class Move extends Command{
-    constructor(public subject:any, public object:any, public offset:number[]){
+    constructor(private subject:any, private object:any, private offset:number[]){
         super();
         this.do();
     }
     do(){
-        console.log("Move "+this.offset);
+        console.log("Move "+ this.offset);
         this.subject.move(this.object, this.offset, false);
     }
     undo(){
-        console.log("unMove "+this.offset);
+        console.log("unMove "+ this.offset);
         this.subject.move(this.object, this.offset, true);
     }
 }
 
 export class Select extends Command {
-    constructor(public subject:any, public object:any){
+    constructor(private subject:any, private object:any, private start:number, private end:number){
         super();
         this.do();
     }
     do(){
         console.log("Select", this.object.length);
-        this.subject.select(this.object);
+        this.subject.select(this.object, this.start, this.end);
     }
     undo(){
         console.log("Unselect", this.object.length);
-        this.subject.select(this.object);
+        this.subject.select(this.object, this.start, this.end);
     }
 }
 
 export class Set extends Command{
     un:any;
-    constructor(public subject:any, public object:any){
+    constructor(private subject:any, private object:any){
         super();
         this.un = this.do();
     }

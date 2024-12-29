@@ -54,10 +54,10 @@ export class NoteInput extends Node {
         for (let score of this.track.scores){
             if (score.absolute_start <= rel_time && rel_time < score.absolute_start + score.duration) {
                 rel_time -= score.absolute_start;
-                for (let note of score.notes){
+                for (let note of score.getNotes()){
                     if (note.start <= rel_time && rel_time < note.start + note.duration){
                         notes.push(note);
-                    } else if (note.start > rel_time){
+                    } else if (note.start >= rel_time){
                         return notes;
                     }
                 } return notes;

@@ -7,7 +7,7 @@ export default class Score {
     selection: Selection = new Selection;
     constructor(public absolute_start:number, 
         public duration:number = 32, 
-        public loop_duration:number = 64, 
+        public loop_duration:number = 32, 
         public relative_start:number = 0){
     }
     create(notes:Note[]) {
@@ -29,7 +29,6 @@ export default class Score {
                 this.notes.splice(i, 1);
             }
         }
-        
     }
     addScore(score:Score){
         const scoreDelt = this.absolute_start-score.absolute_start
@@ -60,10 +59,12 @@ export default class Score {
             this.notes.splice(this.notes.indexOf(note), 1);
         });
     }
-    select(notes:Note[]){
+    select(notes:Note[],start:number,end:number){
+        console.log(start,end);
+        
         if (this.selection.elements.length == 0){
-            this.selection.start = notes[0].start;
-            this.selection.end = notes[0].start;
+            this.selection.start = Math.min(start,end);
+            this.selection.end = Math.max(start,end)+1;
         } else {
             this.selection.start = Math.min(this.selection.start, notes[0].start);
             this.selection.end = Math.max(this.selection.end, notes[0].start);
@@ -89,12 +90,18 @@ export default class Score {
         score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
         return score;
     }
-    getNotes(start:number){
-        const notes = [];
+    getNotes(start:number = 0):Note[]{
+        const notes:Note[] = [];
         for (let i = 0; i < Math.ceil(this.duration/this.loop_duration); i++){
             for (let note of this.notes){
-                if (note.start + i*this.loop_duration < this.duration){
-                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*i, note.duration));
+                // if (note.start + i*this.loop_duration < this.duration){
+                //     notes.push(new Note(note.pitch, note.start+start+this.loop_duration*i, note.duration));
+                // }
+                if (note.start < this.relative_start && note.start + (i+1)*this.loop_duration - this.relative_start < this.duration) {
+                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration));
+                } 
+                else if (note.start + i*this.loop_duration - this.relative_start < this.duration && (this.duration > this.loop_duration || note.start >= this.relative_start)) {
+                    notes.push(new Note(note.pitch, note.start+start-this.relative_start+this.loop_duration*i, note.duration));
                 }
             }
         } return notes;

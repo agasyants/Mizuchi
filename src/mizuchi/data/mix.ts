@@ -93,7 +93,7 @@ export default class Mix{
             }
         } else if (sel instanceof ScoreSelection){
             sel.start += start;
-            sel.end += start;
+            sel.end =  sel.end+start+dur;
             for (let i = 0; i < sel.elements.length; i++){
                 const score = sel.elements[i];
                 this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
@@ -101,16 +101,17 @@ export default class Mix{
                 score.duration += dur;
                 score.loop_duration += loop;
                 sel.track_index[i] += y;
-                score.relative_start = (score.relative_start + rel) % score.loop_duration;
+                score.relative_start = (score.loop_duration + score.relative_start + rel) % score.loop_duration;
                 this.tracks[sel.track_index[i]].scores.push(score);
+                
             }
         }
     }
-    select(input: Track[] | Score[]) {
+    select(input: Track[]|Score[], start:number, end:number) {
         if (input.every(item => item instanceof Track))
             this.selectTracks(input);
         else if (input.every(item => item instanceof Score))
-            this.selectScores(input);
+            this.selectScores(input, start, end);
         else
             console.error('Invalid input: must be an array of Tracks or Scores.');
     }
@@ -128,7 +129,8 @@ export default class Mix{
             }
         }
     }
-    selectScores(scores:Score[]){
+    selectScores(scores:Score[], start:number, end:number){
+        console.log(start,end);
         if (scores.length){
             for (let score of scores){
                 const index = this.selected.scores.elements.indexOf(score);
@@ -146,17 +148,18 @@ export default class Mix{
                     }
                 }
             }
-            if (this.selected.scores.elements.length){
-                this.selected.scores.start = this.selected.scores.elements[0].absolute_start;
-                this.selected.scores.end = this.selected.scores.elements[0].absolute_start + this.selected.scores.elements[0].duration;
-                for (let i = 1; i < this.selected.scores.elements.length; i++){
+            // Find start and end
+            // if (this.selected.scores.elements.length){
+                this.selected.scores.start = Math.min(start,end)*8;
+                this.selected.scores.end = (Math.max(start,end)+1)*8;
+                for (let i = 0; i < this.selected.scores.elements.length; i++){
                     if (this.selected.scores.elements[i].absolute_start < this.selected.scores.start) this.selected.scores.start = this.selected.scores.elements[i].absolute_start;
                     if (this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration > this.selected.scores.end) this.selected.scores.end = this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration;
                 }
-            } else {
-                this.selected.scores.start = 0;
-                this.selected.scores.end = 0;
-            }
+            // } else {
+            //     this.selected.scores.start = 0;
+            //     this.selected.scores.end = 0;
+            // }
         }
     }
 }

@@ -9,7 +9,8 @@ export default class Mixer {
     private mixDrawer: MixDrawer;
     private counter = 0;
     private totalLength = 0;
-    private chunk_buffer = 4;
+    private readonly chunk_buffer = 5;
+    private start = 0;
 
     constructor(mix: Mix, mixDrawer: MixDrawer) {
         this.mix = mix;
@@ -31,10 +32,11 @@ export default class Mixer {
         this.mix.sampleRate = this.audioCtx.sampleRate;
         this.chunkLength = 1000;
         this.counter = 0;
-        this.totalLength = 0;
-        this.mix.playback = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
+        this.totalLength = 0; 
+        this.start = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
+        this.mix.playback = this.start;
         this.totalLength = Math.round(length * 30 / this.mix.bpm * this.mix.sampleRate);
-        for (let i=0; i<this.chunk_buffer; i++)
+        for (let i = 0; i < this.chunk_buffer; i++)
             this.generateChunk();
     }
 
@@ -71,9 +73,9 @@ export default class Mixer {
         const source = this.audioCtx.createBufferSource();
         source.buffer = buffer;
         source.connect(this.audioCtx.destination);
-        source.start((this.mix.playback-this.chunkLength)/this.mix.sampleRate);
+        source.start((this.mix.playback-this.chunkLength-this.start)/this.mix.sampleRate);
         source.addEventListener("ended", () => {
-            this.counter-=1;
+            this.counter -= 1;
             source.disconnect();
             if (this.counter == this.chunk_buffer-1)
                 this.generateChunk();

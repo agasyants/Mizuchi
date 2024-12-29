@@ -144,20 +144,20 @@ export default class ScoreDrawer extends Drawer{
                 if (this.hovered.elements.length){
                     this.note = true;
                     if (e.shiftKey) {
-                        this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice()));
+                        this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                         this.hovered.elements = [];
                     } else if (this.hovered.elements.length && !this.score.selection.elements.includes(this.hovered.elements[0])) {
                         if (this.score.selection.elements.length){
                             const commands = [];
-                            commands.push(new Select(this.score, this.score.selection.elements.slice()));
-                            commands.push(new Select(this.score, this.hovered.elements.slice()));
+                            commands.push(new Select(this.score, this.score.selection.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
+                            commands.push(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                             this.commandPattern.addCommand(new Complex(commands));
                         } else {
-                            this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice()));
+                            this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                         }
                     } 
                 } else if (!e.shiftKey && this.score.selection.elements.length) {
-                    this.commandPattern.addCommand(new Select(this.score, this.score.selection.elements.slice()));
+                    this.commandPattern.addCommand(new Select(this.score, this.score.selection.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                 }
                 this.drugged = true;
                 let [x,y] = this.rectInput(e);
@@ -175,16 +175,16 @@ export default class ScoreDrawer extends Drawer{
                 this.canvas.releasePointerCapture(e.pointerId);
                 this.controller.clearInterval();
                 if (e.shiftKey && !this.note && this.hovered.elements.length){
-                    this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice()));
+                    this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                     this.hovered.elements = [];
                 } else if (this.score.selection.elements.length==0 && this.hovered.elements.length){
                     if (this.score.selection.elements.length){
                         const commands = [];
-                        commands.push(new Select(this.score, this.score.selection.elements.slice()));
-                        commands.push(new Select(this.score, this.hovered.elements.slice()));
+                        commands.push(new Select(this.score, this.score.selection.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
+                        commands.push(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                         this.commandPattern.addCommand(new Complex(commands));
                     } else {
-                        this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice()));
+                        this.commandPattern.addCommand(new Select(this.score, this.hovered.elements.slice(),this.sectorsSelection.x1,this.sectorsSelection.x2));
                         this.hovered.elements = [];
                     }
                 } else {
@@ -220,6 +220,7 @@ export default class ScoreDrawer extends Drawer{
         this.render();
     }
     render(){
+        this.duration = Math.min(this.score.duration, this.score.loop_duration)
         requestAnimationFrame(()=>{this._render()})
     }
     private _render() {
@@ -290,10 +291,12 @@ export default class ScoreDrawer extends Drawer{
                 this.ctx.closePath();
             }
         }
+        const opas = Math.pow((1-this.notes_width_count/120),1.5).toString();
+        
         // horizontal
         for (let i = 0; i < this.notes_width_count+1; i++){
             this.ctx.beginPath();
-            this.ctx.strokeStyle = "grey";
+            this.ctx.strokeStyle = "rgba(200,200,200,"+opas+")";
             this.ctx.moveTo(this.gridX, this.gridY - i*this.note_h);
             this.ctx.lineTo(this.gridX + this.width, this.gridY - i*this.note_h);
             this.ctx.stroke();
@@ -302,7 +305,7 @@ export default class ScoreDrawer extends Drawer{
         // vertical
         for (let i = 0; i < this.duration+1; i++){
             this.ctx.beginPath();
-            this.ctx.strokeStyle = "grey";
+            this.ctx.strokeStyle = "rgba(150,150,150,"+opas+")";
             // console.log(this.score.selection.offset);
             if (this.score.selection.offset.start || this.score.selection.offset.duration){
                 this.ctx.strokeStyle = "rgb(150,150,150)";
