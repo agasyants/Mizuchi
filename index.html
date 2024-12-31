@@ -8,49 +8,7 @@
     <title> Mizuchi </title>
   </head>
   <body>
-    <div id="app" >
-        <div style="background-color: white; display: flex; flex: 0 0 50px">
-            <img id="app_image" src="src/img/UzumeLogo2.png">
-            <h1 style="margin: 5px;">
-                Mizuchi
-            </h1>
-            <input type="number" id="bpm" style="width: 40px; height: 12px; margin: 19px;">
-            <div id="Inputs">
-                <input type="number" value="0" id="start">
-                <button id="Generate">
-                    Generate
-                </button>
-                <button id="Test">
-                    Test
-                </button>
-            </div>
-        </div>
-        <div id="mix-canvas-wrapper" style="flex: 1 1 auto;">
-            <canvas id="MixCanvas" style="background-color: black;"></canvas>
-        </div>
-    </div>
-    <div style="display: flex; position: absolute;">
-        <div style="padding: 5px;">
-            <canvas id="OscCanvas" height="250" width="375" style="background-color: black;"></canvas>
-        </div>
-        <!-- <div class="Presets">
-            <button id="Sine">
-                Sine
-            </button>
-            <button id="Triangle">
-                Triangle
-            </button>
-            <button id="Square">
-                Square
-            </button>
-            <button id="Saw">
-                Saw
-            </button>
-        </div> -->
-    </div>
-    <div id="score-canvas-wrapper" style="position: absolute;">
-        <canvas id="ScoreCanvas" style="background-color: black;"></canvas>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
