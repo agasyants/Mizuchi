@@ -8,7 +8,7 @@ export default class Mixer {
     private mix: Mix;
     private mixDrawer: MixDrawer;
     private counter = 0;
-    private totalLength = 0;
+    private end = 0;
     private readonly chunk_buffer = 5;
     private start = 0;
 
@@ -27,15 +27,15 @@ export default class Mixer {
         }
     }
 
-    private async play(length: number = 128) {
+    private async play() {
         this.audioCtx = new AudioContext();
         this.mix.sampleRate = this.audioCtx.sampleRate;
         this.chunkLength = 1000;
         this.counter = 0;
-        this.totalLength = 0; 
+        this.end = 0;
         this.start = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
         this.mix.playback = this.start;
-        this.totalLength = Math.round(length * 30 / this.mix.bpm * this.mix.sampleRate);
+        this.end = Math.round(this.mix.end * 30 / this.mix.bpm * this.mix.sampleRate);
         for (let i = 0; i < this.chunk_buffer; i++)
             this.generateChunk();
     }
@@ -50,7 +50,7 @@ export default class Mixer {
     private async generateChunk() {
         const chunk: Float32Array = new Float32Array(this.chunkLength);
         for (let i = 0; i < this.chunkLength; i++) {
-            if (this.mix.playback > this.totalLength) {
+            if (this.mix.playback > this.end) {
                 this.stop();
                 return;
             }

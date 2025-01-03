@@ -21,12 +21,12 @@ export default class Mizuchi{
         start_input.addEventListener("change", () => {
             mix.start = Number(start_input.value);
         }) 
+        const end_input = document.getElementById('end') as HTMLInputElement;
+        end_input.addEventListener("change", () => {
+            mix.end = Number(end_input.value);
+        })
         window.addEventListener("contextmenu", (e) => {
             e.preventDefault();
-        })
-
-        const TestButton = document.getElementById('Test') || document.createElement('div');
-        TestButton.addEventListener('click', () => {
         })
 
         // const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);

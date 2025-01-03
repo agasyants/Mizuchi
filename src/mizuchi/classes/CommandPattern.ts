@@ -111,11 +111,11 @@ export class Select extends Command {
         this.do();
     }
     do(){
-        console.log("Select", this.object.length);
+        console.log("Select", this.object.length, this.start, this.end);
         this.subject.select(this.object, this.start, this.end);
     }
     undo(){
-        console.log("Unselect", this.object.length);
+        console.log("Unselect", this.object.length, this.start, this.end);
         this.subject.select(this.object, this.start, this.end);
     }
 }

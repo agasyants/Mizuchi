@@ -13,10 +13,11 @@ const EditorPage: React.FC = () => {
     <div id="app">
       <div style={{ backgroundColor: "white", display: "flex", flex: "0 0 50px" }}>
         <img id="app_image" src="src/img/UzumeLogo2.png" alt="Uzume Logo" />
-        <h1 style={{ margin: "5px" }}>Mizuchi</h1>
+        <h1 style={{margin: "5px"}}> Mizuchi </h1>
         <input type="number" id="bpm" style={{ width: "40px", height: "12px", margin: "19px" }} />
         <div id="Inputs">
-          <input type="number" defaultValue={0} id="start" />
+          <input type="number" defaultValue={0} id="start"/>
+          <input type="number" defaultValue={128} id="end"/>
           <button id="Generate">Generate</button>
           <button id="Test">Test</button>
         </div>

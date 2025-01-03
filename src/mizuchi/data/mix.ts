@@ -12,6 +12,7 @@ export default class Mix{
     outputNode:Node = new OutputNode(0,0);
     bpm:number = 120;
     start:number = 0;
+    end:number = 128;
     playback:number = 0;
     sampleRate:number = 44100;
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
@@ -101,14 +102,16 @@ export default class Mix{
                 score.duration += dur;
                 score.loop_duration += loop;
                 sel.track_index[i] += y;
-                score.relative_start = (score.loop_duration + score.relative_start + rel) % score.loop_duration;
+                score.relative_start = (score.loop_duration + (score.relative_start + rel) % score.loop_duration) % score.loop_duration;
                 this.tracks[sel.track_index[i]].scores.push(score);
                 
             }
         }
     }
     select(input: Track[]|Score[], start:number, end:number) {
-        if (input.every(item => item instanceof Track))
+        if (input.length == 0)
+            this.selectScores([],start,end);
+        else if (input.every(item => item instanceof Track))
             this.selectTracks(input);
         else if (input.every(item => item instanceof Score))
             this.selectScores(input, start, end);
@@ -116,6 +119,7 @@ export default class Mix{
             console.error('Invalid input: must be an array of Tracks or Scores.');
     }
     selectTracks(tracks:Track[]){
+        // console.log("tracks");        
         if (tracks.length){
             for (let track of tracks){
                 const index = this.selected.tracks.elements.indexOf(track);
@@ -130,36 +134,31 @@ export default class Mix{
         }
     }
     selectScores(scores:Score[], start:number, end:number){
-        console.log(start,end);
-        if (scores.length){
-            for (let score of scores){
-                const index = this.selected.scores.elements.indexOf(score);
-                if (index > -1) {
-                    this.selected.scores.elements.splice(index, 1);
-                    this.selected.scores.track_index.splice(index, 1);
-                } else {
-                    this.selected.scores.elements.push(score);
-                    // Find track index for the score
-                    for(let i = 0; i < this.tracks.length; i++) {
-                        if (this.tracks[i].scores.includes(score)) {
-                            this.selected.scores.track_index.push(i);
-                            break;
-                        }
+        // console.log("scores");       
+        // console.log(start,end);
+        for (let score of scores) {
+            const index = this.selected.scores.elements.indexOf(score);
+            if (index > -1) {
+                this.selected.scores.elements.splice(index, 1);
+                this.selected.scores.track_index.splice(index, 1);
+            } else {
+                this.selected.scores.elements.push(score);
+                // Find track index for the score
+                for (let i = 0; i < this.tracks.length; i++) {
+                    if (this.tracks[i].scores.includes(score)) {
+                        this.selected.scores.track_index.push(i);
+                        break;
                     }
                 }
             }
-            // Find start and end
-            // if (this.selected.scores.elements.length){
-                this.selected.scores.start = Math.min(start,end)*8;
-                this.selected.scores.end = (Math.max(start,end)+1)*8;
-                for (let i = 0; i < this.selected.scores.elements.length; i++){
-                    if (this.selected.scores.elements[i].absolute_start < this.selected.scores.start) this.selected.scores.start = this.selected.scores.elements[i].absolute_start;
-                    if (this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration > this.selected.scores.end) this.selected.scores.end = this.selected.scores.elements[i].absolute_start + this.selected.scores.elements[i].duration;
-                }
-            // } else {
-            //     this.selected.scores.start = 0;
-            //     this.selected.scores.end = 0;
-            // }
+        }
+        // Find start and end
+        const s = this.selected.scores;
+        s.start = Math.min(start,end)*8;
+        s.end = (Math.max(start,end))*8;
+        for (let i = 0; i < s.elements.length; i++){
+            if (s.elements[i].absolute_start < s.start) s.start = s.elements[i].absolute_start;
+            if (s.elements[i].absolute_start + s.elements[i].duration > s.end) s.end = s.elements[i].absolute_start + s.elements[i].duration;
         }
     }
 }

@@ -47,23 +47,17 @@ export class NoteInput extends Node {
             const t = this.mix.sampleRate/note.getFrequency();
             sum += this.osc.getSample((this.mix.playback-note.start*SPS) % t / t);
         }
+        // console.log(sum/founded.length);
         return sum/founded.length;
     }
-    private findNote(rel_time:number):Note[]{
-        const notes:Note[] = [];
-        for (let score of this.track.scores){
+    private findNote(rel_time:number):Note[] {
+        for (let score of this.track.scores) {  
             if (score.absolute_start <= rel_time && rel_time < score.absolute_start + score.duration) {
                 rel_time -= score.absolute_start;
-                for (let note of score.getNotes()){
-                    if (note.start <= rel_time && rel_time < note.start + note.duration){
-                        notes.push(note);
-                    } else if (note.start >= rel_time){
-                        return notes;
-                    }
-                } return notes;
+                return score.getNotesAt(rel_time); 
             }
-        }
-        return notes;
+        }      
+        return [];
     }
 }
 

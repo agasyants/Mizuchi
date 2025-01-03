@@ -10,19 +10,19 @@ export default class Score {
         public loop_duration:number = 32, 
         public relative_start:number = 0){
     }
-    create(notes:Note[]) {
+    create(notes:Note[]){
         for (let new_note of notes){
             this.notes.push(new_note);
             this.update(new_note);
         }
-        // this.sort();
+        this.sort();
         // this.update();
     }
-    // private sort(){
-    //     this.notes.sort((a, b) => {
-    //         return a.start - b.start;
-    //     });
-    // }
+    private sort(){
+        this.notes.sort((a, b) => {
+            return a.start - b.start;
+        });
+    }
     private update(new_note:Note) {
         for (let i = 0; i < this.notes.length; i++){
             if (new_note.start < this.notes[i].start && new_note.start + new_note.duration > this.notes[i].start && new_note.pitch == this.notes[i].pitch){
@@ -36,7 +36,7 @@ export default class Score {
             this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
         }); 
         this.duration = score.duration+scoreDelt;
-        // this.sort();
+        this.sort();
     }
     move(s:Selection, [start=0,duration=0,pitch=0]:number[],reverse:boolean){
         if (reverse){
@@ -52,7 +52,7 @@ export default class Score {
             note.pitch += pitch;
             this.update(note);
         }
-        // this.sort();
+        this.sort();
     }
     delete(notes:Note[]) {
         notes.forEach(note => {
@@ -61,10 +61,9 @@ export default class Score {
     }
     select(notes:Note[],start:number,end:number){
         console.log(start,end);
-        
         if (this.selection.elements.length == 0){
             this.selection.start = Math.min(start,end);
-            this.selection.end = Math.max(start,end)+1;
+            this.selection.end = Math.max(start,end) + 1;
         } else {
             this.selection.start = Math.min(this.selection.start, notes[0].start);
             this.selection.end = Math.max(this.selection.end, notes[0].start);
@@ -86,17 +85,15 @@ export default class Score {
         }
     }
     clone(){
-        let score = new Score(this.absolute_start, this.duration);
+        let score = new Score(this.absolute_start, this.duration, this.loop_duration, this.relative_start);
         score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
         return score;
     }
     getNotes(start:number = 0):Note[]{
         const notes:Note[] = [];
         for (let i = 0; i < Math.ceil(this.duration/this.loop_duration); i++){
-            for (let note of this.notes){
-                // if (note.start + i*this.loop_duration < this.duration){
-                //     notes.push(new Note(note.pitch, note.start+start+this.loop_duration*i, note.duration));
-                // }
+            for (let note of this.notes) {
+                if (note.start >= this.loop_duration) continue;
                 if (note.start < this.relative_start && note.start + (i+1)*this.loop_duration - this.relative_start < this.duration) {
                     notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration));
                 } 
@@ -105,5 +102,25 @@ export default class Score {
                 }
             }
         } return notes;
+    }
+    getNotesAt(currentTime: number): Note[] {
+        const activeNotes: Note[] = [];
+    
+        let relativeTime = currentTime + this.relative_start; 
+        if (this.loop_duration !== undefined) {
+            if (relativeTime < 0) return activeNotes;
+            relativeTime %= this.loop_duration;
+        } else {
+            if (relativeTime < 0 || relativeTime > this.duration) return activeNotes;
+        }
+    
+        for (const note of this.notes) { 
+            const noteStart = note.start; 
+            if (noteStart <= relativeTime && relativeTime < noteStart + note.duration) { 
+                activeNotes.push(new Note(note.pitch, note.start-this.absolute_start-this.relative_start, note.duration)); 
+                // console.log(note); 
+            }
+        }
+        return activeNotes;
     }
 }
