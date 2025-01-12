@@ -59,17 +59,17 @@ export class Complex extends Command{
     }
 }
 
-export class Create extends Command{
+export class Create extends Command {
     constructor(private subject:any, private object:any, private place:number=-1){
         super();
         this.do();
     }
     do(){
-        console.log("Create"+this.object);
+        console.log("Create "+ this.object);
         this.subject.create(this.object, this.place);
     }
     undo(){
-        console.log("Delete"+this.object);
+        console.log("Delete "+ this.object);
         this.subject.delete(this.object);
     }
 }

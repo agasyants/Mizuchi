@@ -1,11 +1,27 @@
-export default class Note {
+import Score from "../data/score";
+import IdComponent from "./id_component";
+
+export default class Note extends IdComponent {
     pitch:number;
-    constructor(pitch:number|string, public start:number, public duration:number) {
+    start:number;
+    duration:number;
+    constructor(pitch:number|string, start:number, duration:number, id:number, parent:Score|null=null) {
+        super(id,"nt");
+        this.parent = parent;
         if (typeof pitch === 'string') {
             this.pitch = Note.pitchToNumber(pitch);
         }
         else{
             this.pitch = pitch;
+        }
+        this.start = start;
+        this.duration = duration;
+    }
+    toJSON() {
+        return {
+            pitch: this.pitch,
+            start: this.start,
+            duration: this.duration
         }
     }
     getFrequency():number{
@@ -50,6 +66,6 @@ export default class Note {
         return octave + noteMap[note];
     }
     clone():Note{
-        return new Note(this.pitch, this.start, this.duration);
+        return new Note(this.pitch, this.start, this.duration, -1);
     }
 }

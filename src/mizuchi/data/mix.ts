@@ -1,57 +1,91 @@
 import Score from "./score";
 import Track from "./track";
-import Note from "../classes/note";
-import Node, { OutputNode} from "../classes/node"; 
-// import OscFunction, {BasicPoint, HandlePoint} from "./osc_function";
-// import AudioEffect from "../classes/audio_effects";
+// import Note from "../classes/note";
+import Node, { OutputNode} from "../classes/node";
 import Selection, { ScoreSelection, TrackSelection } from "../classes/selection";
+import { IdArray } from "../classes/id_component";
 
-export default class Mix{
-    tracks:Track[] = [];
-    nodes:Node[]=[];
-    outputNode:Node = new OutputNode(0,0);
-    bpm:number = 120;
-    start:number = 0;
-    end:number = 128;
-    playback:number = 0;
+export default class Mix {
+    tracks = new IdArray<Track>();
+    nodes = new IdArray<Node>();
+    outputNode:Node = new OutputNode(0,0,0,this);
+
+    bpm: number = 120;
+    start:   number = 0;
+    loop_start:number = 0;
+    loop_end:  number = 128;
+    playback:    number = 0;
     sampleRate:number = 44100;
+    loopped:  boolean = true;
+
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
     tracks_number_on_screen:number = 6;
+    
     constructor(){
         let data = localStorage.getItem('key');
         if (data){
             this.load(JSON.parse(data));
         } else {
-            this.create(new Track('track '+ (this.tracks.length+1).toString()));
-            this.create(new Track('track '+ (this.tracks.length+1).toString()));
+            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 0));
+            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 1));
         }
     }
-    save(){
-        localStorage.setItem('key',JSON.stringify(this));
+    getFullId(){
+        return "";
+    }
+    toJSON() {
+        return {
+            bpm: this.bpm,
+            tracks_number_on_screen: this.tracks_number_on_screen,
+            selected: this.selected,
+            outputNode: this.outputNode,
+            nodes: this.nodes,
+            tracks: this.tracks,
+        }
+    }
+    save() {
+        const seen = new Set();
+
+        const replacer = (key: string, value: unknown) => {
+            // Пропускаем циклические ссылки
+            if (typeof value === "object" && value !== null) {
+                if (seen.has(value)) {
+                    console.log(key, value);
+                    return undefined; // Пропускаем цикл
+                }
+                // if (key == "parent"){
+                //     return undefined;
+                // }
+                seen.add(value);
+            }
+            return value;
+        };
+        console.log(JSON.stringify(this, replacer));
+        // localStorage.setItem('key', JSON.stringify(this, replacer));
     }
     load(data:any){
         console.log(data);
-        this.bpm = data.bpm;
-        for (let track of data.tracks){
-            // const newFunc = new OscFunction();
-            // let newBasics:BasicPoint[] = [];
-            // for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
-            // newBasics[0].x_move = false;
-            // newBasics[newBasics.length-1].x_move = false;
-            // let newHandles:HandlePoint[] = [];
-            // for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
-            // newFunc.set(newBasics,newHandles);
-            const newTrack = new Track(track.name);
-            for (let score of track.scores){
-                const newScore = new Score(score.absolute_start, score.duration, score.loop_duration, score.relative_start);
-                newScore.lowest_note = score.lowest_note;
-                for (let note of score.notes){
-                    newScore.notes.push(new Note(note.pitch, note.start, note.duration));
-                }
-                newTrack.scores.push(newScore);
-            }
-            this.tracks.push(newTrack);
-        }
+        // this.bpm = data.bpm;
+        // for (let track of data.tracks){
+        //     // const newFunc = new OscFunction();
+        //     // let newBasics:BasicPoint[] = [];
+        //     // for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
+        //     // newBasics[0].x_move = false;
+        //     // newBasics[newBasics.length-1].x_move = false;
+        //     // let newHandles:HandlePoint[] = [];
+        //     // for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
+        //     // newFunc.set(newBasics,newHandles);
+        //     const newTrack = new Track(track.name, this, track.id);
+        //     for (let score of track.scores){
+        //         const newScore = new Score(score.absolute_start, score.id, score.duration, score.loop_duration, score.relative_start);
+        //         newScore.lowest_note = score.lowest_note;
+        //         for (let note of score.notes){
+        //             newScore.notes.push(new Note(note.pitch, note.start, note.duration));
+        //         }
+        //         newTrack.scores.push(newScore);
+        //     }
+        //     this.tracks.push(newTrack);
+        // }
     }
     create(sel:Track|Score, pos:number=-1){
         if (sel instanceof Track){

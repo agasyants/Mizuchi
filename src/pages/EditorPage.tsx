@@ -2,12 +2,13 @@ import React, { useEffect } from "react";
 
 const EditorPage: React.FC = () => {
   useEffect(() => {
-    import('../main').then(() => {
+    import('../main.ts').then(() => {
       console.log("main.ts is loaded");
     }).catch((error) => {
       console.error("Error loading main.ts", error);
     });
   }, []);
+  
 
   return (
     <div id="app">
@@ -16,10 +17,11 @@ const EditorPage: React.FC = () => {
         <h1 style={{margin: "5px"}}> Mizuchi </h1>
         <input type="number" id="bpm" style={{ width: "40px", height: "12px", margin: "19px" }} />
         <div id="Inputs">
-          <input type="number" defaultValue={0} id="start"/>
-          <input type="number" defaultValue={128} id="end"/>
-          <button id="Generate">Generate</button>
-          <button id="Test">Test</button>
+          <input type="checkbox" defaultChecked={true} id="loop"/>
+          <input type="number" defaultValue={0} id="loop_start"/>
+          <input type="number" defaultValue={128} id="loop_end"/>
+          <button id="Generate"> Generate </button>
+          <button id="Test"> Test </button>
         </div>
       </div>
       <div id="mix-canvas-wrapper" style={{ flex: "1 1 auto" }}>

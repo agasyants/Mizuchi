@@ -23,7 +23,7 @@ export default class WindowController {
     constructor(containerId: string, drawer: Drawer, public range:number, width:number, height:number) {
         const container = document.getElementById(containerId);
         if (!container || !(container instanceof HTMLDivElement)) {
-            throw new Error("Invalid container ID or container is not a div.");
+            throw new Error("Invalid container Id or container is not a div.");
         }
     
         this.container = container;

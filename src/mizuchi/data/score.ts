@@ -1,14 +1,28 @@
+import IdComponent from "../classes/id_component";
 import Note from "../classes/note";
-import Selection from "../classes/selection";
+import { NoteSelection } from "../classes/selection";
+import Track from "./track";
 
-export default class Score {
+export default class Score extends IdComponent {
+    parent: Track;
     notes:Note[] = [];
     lowest_note: number = 16;
-    selection: Selection = new Selection;
-    constructor(public absolute_start:number, 
-        public duration:number = 32, 
-        public loop_duration:number = 32, 
-        public relative_start:number = 0){
+    selection:NoteSelection = new NoteSelection();
+    constructor(parent:Track, id:number, public absolute_start:number, public duration:number = 32, public loop_duration:number = 32, public relative_start:number = 0){
+        super(id, "nd");
+        this.parent = parent;
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            lowest_note: this.lowest_note,
+            absolute_start: this.absolute_start,
+            duration: this.duration,
+            loop_duration: this.loop_duration,
+            relative_start: this.relative_start,
+            notes: this.notes,
+            selection: this.selection,
+        };
     }
     create(notes:Note[]){
         for (let new_note of notes){
@@ -30,15 +44,15 @@ export default class Score {
             }
         }
     }
-    addScore(score:Score){
-        const scoreDelt = this.absolute_start-score.absolute_start
-        score.notes.forEach(note => {
-            this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration));
-        }); 
-        this.duration = score.duration+scoreDelt;
-        this.sort();
-    }
-    move(s:Selection, [start=0,duration=0,pitch=0]:number[],reverse:boolean){
+    // addScore(score:Score){
+    //     const scoreDelt = this.absolute_start-score.absolute_start
+    //     score.notes.forEach(note => {
+    //         this.notes.push(new Note(note.pitch, note.start+this.duration+scoreDelt, note.duration, ));
+    //     }); 
+    //     this.duration = score.duration+scoreDelt;
+    //     this.sort();
+    // }
+    move(s:NoteSelection, [start=0,duration=0,pitch=0]:number[], reverse:boolean){
         if (reverse){
             start*=-1;
             duration*=-1;
@@ -85,8 +99,8 @@ export default class Score {
         }
     }
     clone(){
-        let score = new Score(this.absolute_start, this.duration, this.loop_duration, this.relative_start);
-        score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration));
+        const score = new Score(this.parent, -1, this.absolute_start, this.duration, this.loop_duration, this.relative_start);
+        score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration, -1, score));
         return score;
     }
     getNotes(start:number = 0):Note[]{
@@ -95,10 +109,10 @@ export default class Score {
             for (let note of this.notes) {
                 if (note.start >= this.loop_duration) continue;
                 if (note.start < this.relative_start && note.start + (i+1)*this.loop_duration - this.relative_start < this.duration) {
-                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration));
+                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration, note.id));
                 } 
                 else if (note.start + i*this.loop_duration - this.relative_start < this.duration && (this.duration > this.loop_duration || note.start >= this.relative_start)) {
-                    notes.push(new Note(note.pitch, note.start+start-this.relative_start+this.loop_duration*i, note.duration));
+                    notes.push(new Note(note.pitch, note.start+start-this.relative_start+this.loop_duration*i, note.duration, note.id));
                 }
             }
         } return notes;
@@ -117,7 +131,7 @@ export default class Score {
         for (const note of this.notes) { 
             const noteStart = note.start; 
             if (noteStart <= relativeTime && relativeTime < noteStart + note.duration) { 
-                activeNotes.push(new Note(note.pitch, note.start-this.absolute_start-this.relative_start, note.duration)); 
+                activeNotes.push(new Note(note.pitch, note.start-this.absolute_start-this.relative_start, note.duration, note.id)); 
                 // console.log(note); 
             }
         }

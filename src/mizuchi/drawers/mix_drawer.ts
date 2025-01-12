@@ -54,17 +54,22 @@ export default class MixDrawer extends Drawer{
         width:number, 
         height:number)
     {
+        
         super(canvas);
+        
         this.setCanvasSize(width,height);
+        
         this.calcMinMax();
         this.calcHeights();
+        
         const drawer = this.score_window.drawer;
+    
         if (drawer instanceof ScoreDrawer) drawer.update_mix = () => {
             this.calcMinMax();
             this.render();
         };
         this.canvas.focus();
-
+        
         canvas.onselectstart = function () { return false; }
         canvas.tabIndex = 0;
 
@@ -106,6 +111,7 @@ export default class MixDrawer extends Drawer{
             }
         });
         canvas.addEventListener('pointermove', (e) => {
+       
             const rect = canvas.getBoundingClientRect();
             let x = e.clientX - rect.left;
             let y = e.clientY - rect.top;
@@ -216,6 +222,7 @@ export default class MixDrawer extends Drawer{
                     this.score_window.close();
                 }
             }
+            return;
             this.render();
         });
         canvas.addEventListener('pointerup', (e) => {
@@ -247,6 +254,7 @@ export default class MixDrawer extends Drawer{
                 this.canvas.focus();
             }
         });
+        
         this.render()
     }
     setCanvasSize(width: number, height: number): void {
@@ -350,7 +358,7 @@ export default class MixDrawer extends Drawer{
         const s = this.mix.selected.scores;
         if (s.max - s.min === 0) {
             let dur = 0;
-            const new_score = new Score(s.start, s.end-s.start, s.end-s.start);
+            const new_score = new Score(this.mix.tracks[s.track_index[0]], this.mix.tracks.getNewId(), s.start, s.end-s.start, s.end-s.start);
             let lowest_note = 0;
             for (let score of s.elements){
                 lowest_note += score.lowest_note;
@@ -369,9 +377,11 @@ export default class MixDrawer extends Drawer{
         requestAnimationFrame(()=>{this._render()});
     }
     _render() {
+        
         this.ctx.clearRect(0, 0, this.w, this.h);
         this.ctx.font = "16px system-ui";
         this.renderBack();
+        
         let h = 0;
         for (let i = 0; i < this.mix.tracks.length; i++){
             for (let score of this.mix.tracks[i].scores){
@@ -381,10 +391,17 @@ export default class MixDrawer extends Drawer{
                     this.renderScore(i, score);
                 }
             }
+            
             this.renderTrack(h,this.mix.tracks[i].renderHeight);
             h += this.mix.tracks[i].renderHeight;
         }
-        if (!(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))) this.renderHovered();
+        
+
+        if (!(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))){
+            this.renderHovered()
+        };
+        
+        
         this.renderSelected();
         this.renderMovedScores();
         this.renderFrame();
@@ -613,7 +630,7 @@ export default class MixDrawer extends Drawer{
     doubleInput(x:number, y:number){
         if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
             if (!this.hovered.track) {
-                this.commandPattern.addCommand(new Create(this.mix, new Track('track'), this.mix.tracks.length));
+                this.commandPattern.addCommand(new Create(this.mix, new Track('track', this.mix, this.mix.tracks.getNewId()), this.mix.tracks.length));
                 this.calcMaxes();
                 this.calcHeights();
                 this.render();
@@ -628,7 +645,7 @@ export default class MixDrawer extends Drawer{
                     }
                 }
             } else {
-                this.commandPattern.addCommand(new Create(this.mix, new Score(this.mix.start*2), this.mix.tracks.indexOf(this.hovered.track)));
+                this.commandPattern.addCommand(new Create(this.mix, new Score(this.hovered.track, this.mix.tracks.getNewId(), this.mix.start*2), this.mix.tracks.indexOf(this.hovered.track)));
                 this.calcMaxes();
                 this.render();
             }

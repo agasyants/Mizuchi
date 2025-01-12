@@ -1,8 +1,8 @@
 import Function, { BasicPoint, HandlePoint } from "./function";
 
 export default class Mapping extends Function{
-    constructor(xm:number,xM:number,ym:number,yM:number, basics:BasicPoint[]=[], handles:HandlePoint[]=[]){
-        super(xm, xM, ym, yM, basics, handles);
+    constructor(xm:number,xM:number,ym:number,yM:number, id:number, basics:BasicPoint[]=[], handles:HandlePoint[]=[]){
+        super(xm, xM, ym, yM, basics, handles, id);
     }
     
     getSample(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{

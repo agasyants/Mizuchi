@@ -1,11 +1,17 @@
 import Node from "./node";
 import Input, { InputSignal } from "./Input";
+import IdComponent from "./id_component";
 
-export default abstract class Output {
-    parent: Node;
+export default abstract class Output extends IdComponent {
     connected: Input|null = null;
     constructor(parent: Node) {
+        super(0,"o");
         this.parent = parent;
+    }
+    toJSON():any{
+        return {
+            connected: this.connected?.getFullId()
+        }
     }
     abstract get():any
 }

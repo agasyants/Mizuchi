@@ -4,14 +4,18 @@ import Track from "../data/track";
 import Input, { InputSignal } from "./Input";
 import Note from "./note";
 import Output, { OutputSignal } from "./Output";
+import IdComponent from "./id_component";
 
-export default abstract class Node{
+export default abstract class Node extends IdComponent {
+    parent: any;
     x:number;
     y:number;
     inputs: Input[] = [];
     output: Output;
     window: number[] = [];
-    constructor(x:number, y:number, inputs_count:number){
+    constructor(id:number, x:number, y:number, inputs_count:number, parent:any){
+        super(id, "nd");
+        this.parent = parent;
         this.x = x;
         this.y = y;
         this.output = new OutputSignal(this);
@@ -23,11 +27,22 @@ export default abstract class Node{
     setInput(index:number, out:Output){
         this.inputs[index].connected = out;
     }
+    toJSON() {
+        return {
+            id: this.id,
+            x: this.x,
+            y: this.y,
+            inputs: this.inputs,
+            output: this.output,
+            window: this.window,
+            type: this.constructor.name
+        };
+    }
 }
 
 export class OutputNode extends Node {
-    constructor(x:number, y:number){
-        super(x, y, 1);
+    constructor(x:number, y:number, id:number, parent:any){
+        super(id, x, y, 1, parent);
     }
     get():number{
         return this.inputs[0].get();
@@ -35,8 +50,12 @@ export class OutputNode extends Node {
 }
 
 export class NoteInput extends Node {
-    constructor(x:number, y:number, public track:Track, public mix:Mix, public osc:Mapping){
-        super(x, y, 0);
+    mix:Mix;
+    osc:Mapping;
+    constructor(x:number, y:number, public parent:Track, mix:Mix, osc:Mapping, id:number){
+        super(x, y, 0, id, parent);
+        this.mix = mix;
+        this.osc = osc;
     }
     get():number{
         const SPS = this.mix.sampleRate/this.mix.bpm*120/8;
@@ -47,11 +66,10 @@ export class NoteInput extends Node {
             const t = this.mix.sampleRate/note.getFrequency();
             sum += this.osc.getSample((this.mix.playback-note.start*SPS) % t / t);
         }
-        // console.log(sum/founded.length);
         return sum/founded.length;
     }
     private findNote(rel_time:number):Note[] {
-        for (let score of this.track.scores) {  
+        for (let score of this.parent.scores) {  
             if (score.absolute_start <= rel_time && rel_time < score.absolute_start + score.duration) {
                 rel_time -= score.absolute_start;
                 return score.getNotesAt(rel_time); 
@@ -59,11 +77,17 @@ export class NoteInput extends Node {
         }      
         return [];
     }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            osc: this.osc
+        };
+    }
 }
 
 export class SumNode extends Node {
-    constructor(x:number, y:number){
-        super(x, y, 0);
+    constructor(x:number, y:number, id:number, parent:any){
+        super(x, y, 0, id, parent);
     }
     get():number{
         let sum = 0;
@@ -83,22 +107,34 @@ export class SumNode extends Node {
 
 export class MixNode extends Node {
     dryWet:number = 0.5;
-    constructor(x:number, y:number){
-        super(x, y, 2);
+    constructor(x:number, y:number, id:number, parent:any){
+        super(x, y, 2, id, parent);
     }
     get(){
         return this.inputs[0].get()*this.dryWet + this.inputs[1].get()*(1-this.dryWet);
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            dryWet: this.dryWet
+        };
     }
 }
 
 export class DelayNode extends Node {
     windowLenght = 44100;
-    constructor(x:number, y:number){
-        super(x, y, 1);
+    constructor(x:number, y:number, id:number, parent:any){
+        super(x, y, 1, id, parent);
         this.window.fill(0, 0, this.windowLenght)
     }
     get(){
         this.window.push(this.inputs[0].get());
         return this.window.shift();
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            windowLenght: this.windowLenght
+        };
     }
 }

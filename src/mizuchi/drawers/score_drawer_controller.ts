@@ -60,7 +60,7 @@ export default class score_drawer_controller {
     delete(){
         const commands = [];
         commands.push(new Delete(this.drawer.score, this.drawer.score.selection.elements.slice()));
-        commands.unshift(new Select(this.drawer.score, this.drawer.score.selection.elements.slice()));
+        commands.unshift(new Select(this.drawer.score, this.drawer.score.selection.elements.slice(), this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2));
         this.drawer.commandPattern.addCommand(new Complex(commands));
     }
     applyChanges(ctrl:boolean){

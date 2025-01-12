@@ -1,10 +1,10 @@
 import Score from "../data/score";
 import Track from "../data/track";
 
-export default class Selection {
+export default abstract class Selection {
     start:number;
     end:number;
-    elements:any[]=[];
+    elements:any[] = [];
     offset:{start:number, duration:number, pitch:number} = {start:0, duration:0, pitch:0};
     drugged_x:number = 0;
     drugged_y:number = 0;
@@ -12,15 +12,22 @@ export default class Selection {
         this.start = start;
         this.end = end;
     }
-    clone(){
-        let clone = new Selection();
-        clone.start = this.start;
-        clone.end = this.end;
-        for (let el of this.elements){
-            clone.elements.push(el.clone());
-        }
-        return clone;
+    toJSON() {
+        return {
+            start: this.start,
+            end: this.end,
+            elements: this.elements,
+        };
     }
+    // clone(){
+    //     let clone = new Selection();
+    //     clone.start = this.start;
+    //     clone.end = this.end;
+    //     for (let el of this.elements){
+    //         clone.elements.push(el.clone());
+    //     }
+    //     return clone;
+    // }
     cloneContent(){
         let clone = [];
         for (let element of this.elements){
@@ -58,6 +65,16 @@ export class ScoreSelection extends Selection {
     constructor(){
         super();
     }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            type: 'ScoreSelection',
+            track_index: this.track_index,
+            offset: this.offset,
+            min: this.min,
+            max: this.max
+        };
+    }
     clear(){
         this.offset.pitch = 0;
         this.offset.start = 0;
@@ -86,5 +103,16 @@ export class TrackSelection extends Selection {
     index:number[] = [];
     constructor(){
         super();
+    }
+    toJSON(){
+        return {
+            ...super.toJSON(),
+            elements: this.elements.map((e)=>{
+                return {
+                    id: e.getFullId()
+                }
+            }),
+            index: this.index
+        }
     }
 }

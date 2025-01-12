@@ -1,13 +1,14 @@
+import IdComponent, { IdArray } from "../classes/id_component";
 
-
-export default class Function {
-    basics: BasicPoint[] = [];
-    handles: HandlePoint[] = [];
+export default class Function extends IdComponent{
+    basics = new IdArray<BasicPoint>();
+    handles = new IdArray<HandlePoint>();
     x_min:number;
     x_max:number;
     y_min:number;
     y_max:number;
-    constructor(x_min:number,x_max:number,y_min:number,y_max:number,basics:BasicPoint[], handles:HandlePoint[]){
+    constructor(x_min:number,x_max:number,y_min:number,y_max:number,basics:BasicPoint[], handles:HandlePoint[], id:number){
+        super(id,"f");
         this.set(basics,handles);
         this.x_min = x_min;
         this.x_max = x_max;
@@ -15,9 +16,9 @@ export default class Function {
         this.y_max = y_max;
     }
     set(basics:BasicPoint[], handles:HandlePoint[]){
-        let result = [this.basics,this.handles]
-        this.basics = [];
-        this.handles = [];
+        let result = [this.basics, this.handles]
+        this.basics.clear();
+        this.handles.clear();
         for (let basic of basics){
             this.basics.push(basic.clone())
         }
@@ -111,13 +112,13 @@ export default class Function {
             const num = this.basics.indexOf(point);
             return [point, this.handles[num-1], this.handles[num]];
         } else {
-            return [new BasicPoint(0, 0, false, false), new HandlePoint(0, 0), new HandlePoint(0, 0)];
+            return [new BasicPoint(0, 0, this.basics.getNewId(), false, false), new HandlePoint(0, 0, this.handles.getNewId()), new HandlePoint(0, 0, this.handles.getNewId())];
         }
     }
     create(points:any){
         let basic = points[0];
-        let handle1 = new HandlePoint(0, 0);
-        let handle2 = new HandlePoint(0, 0);
+        let handle1 = new HandlePoint(0, 0, this.handles.getNewId());
+        let handle2 = new HandlePoint(0, 0, this.handles.getNewId());
         if (points.length==3){
             handle1 = points[1];
             handle2 = points[2];
@@ -134,14 +135,14 @@ export default class Function {
     }
     delete(points:any){
         if (points.length==2){
-            this.basics = [];
-            this.handles = [];
+            this.basics.clear();
+            this.handles.clear()
             return;
         }
         let point = points[0];
         const num = this.basics.indexOf(point);
         this.basics.splice(num, 1);
-        this.handles.splice(num-1, 2, new HandlePoint(0,0));
+        this.handles.splice(num-1, 2, new HandlePoint(0,0, this.handles.getNewId()));
         this.setHandleAbsByRelPos(num-1);
     }
     getItest(i:number):number{
@@ -176,10 +177,11 @@ export default class Function {
     }
 }
 
-export class Point{
+export class Point extends IdComponent{
     x:number;
     y:number;
-    constructor(x:number, y:number){
+    constructor(x:number, y:number, id:number){
+        super(id, "p");
         this.x = x;
         this.y = y;
     }
@@ -187,32 +189,32 @@ export class Point{
         return Math.sqrt(Math.pow(this.x-x, 2) + Math.pow(this.y-y, 2));
     }
     clone():Point{
-        return new Point(this.x, this.y);
+        return new Point(this.x, this.y, -1);
     }
 }
 
 export class BasicPoint extends Point{
     x_move:boolean;
     y_move:boolean;
-    constructor(x:number, y:number, x_move:boolean=true, y_move:boolean=true){
-        super(x, y);
+    constructor(x:number, y:number, id:number, x_move:boolean=true, y_move:boolean=true){
+        super(x, y, id);
         this.x_move = x_move;
         this.y_move = y_move;
     }
     clone():BasicPoint{
-        return new BasicPoint(this.x, this.y, this.x_move, this.y_move);
+        return new BasicPoint(this.x, this.y, -1, this.x_move, this.y_move);
     }
 }
 
 export class HandlePoint extends Point{
     xl:number;
     yl:number;
-    constructor(x:number, y:number, xl:number = 0.5, yl:number = 0.5){
-        super(x, y);
+    constructor(x:number, y:number, id:number, xl:number = 0.5, yl:number = 0.5){
+        super(x, y, id);
         this.xl = xl;
         this.yl = yl;
     }
     clone():HandlePoint{
-        return new HandlePoint(this.x, this.y, this.xl, this.yl);
+        return new HandlePoint(this.x, this.y, -1, this.xl, this.yl);
     }
 }
