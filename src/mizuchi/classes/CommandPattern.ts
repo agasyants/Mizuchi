@@ -35,11 +35,45 @@ export default class CommandPattern{
         // console.log(this.recordingBuffer);
         this.recordingBuffer = [];
     }
+    toJSON() {
+        return {
+            commands: this.commands,
+            undoCommands: this.undoCommands,
+            recording: this.recording,
+            recordingBuffer: this.recordingBuffer
+        };
+    }
+    fromJSON(json: any) {
+        this.commands = json.commands.map((cmd: any) => Command.fromJSON(cmd));
+        this.undoCommands = json.undoCommands.map((cmd: any) => Command.fromJSON(cmd));
+        this.recording = json.recording;
+        this.recordingBuffer = json.recordingBuffer.map((cmd: any) => Command.fromJSON(cmd));
+    }
 }
 
 export class Command{
-    do(){console.log("Do");}
-    undo(){console.log("Undo");}
+    do(){
+        console.log("Do");
+    }
+    undo(){
+        console.log("Undo");
+    }
+    toJSON() {
+        return {
+            type: this.constructor.name
+        };
+    }
+
+    static fromJSON(json: any): Command {
+        switch (json.type) {
+            case 'Complex': return Complex.fromJSON(json);
+            case 'Create': return Create.fromJSON(json);
+            case 'Delete': return Delete.fromJSON(json);
+            case 'Move': return Move.fromJSON(json);
+            case 'Set': return Set.fromJSON(json);
+            default: return new Command();
+        }
+    }
 }
 
 export class Complex extends Command{
@@ -57,6 +91,17 @@ export class Complex extends Command{
         for (let i=this.commands.length-1; i>=0; i--)
             this.commands[i].undo();
     }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            commands: this.commands
+        };
+    }
+    static fromJSON(json: any): Complex {
+        return new Complex(
+            json.commands.map((cmd: any) => Command.fromJSON(cmd))
+        );
+    }
 }
 
 export class Create extends Command {
@@ -71,6 +116,18 @@ export class Create extends Command {
     undo(){
         console.log("Delete "+ this.object);
         this.subject.delete(this.object);
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            subject: this.subject,
+            object: this.object,
+            place: this.place
+        };
+    }
+
+    static fromJSON(json: any): Create {
+        return new Create(json.subject, json.object, json.place);
     }
 }
 
@@ -88,6 +145,19 @@ export class Delete extends Command{
         console.log("Create"+this.object);
         this.subject.create(this.object, this.place);
     }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            subject: this.subject,
+            object: this.object,
+            place: this.place
+        };
+    }
+    static fromJSON(json: any): Delete {
+        const cmd = new Delete(json.subject, json.object);
+        cmd.place = json.place;
+        return cmd;
+    }
 }
 
 export class Move extends Command{
@@ -103,20 +173,16 @@ export class Move extends Command{
         console.log("unMove "+ this.offset);
         this.subject.move(this.object, this.offset, true);
     }
-}
-
-export class Select extends Command {
-    constructor(private subject:any, private object:any, private start:number, private end:number){
-        super();
-        this.do();
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            subject: this.subject,
+            object: this.object,
+            offset: this.offset
+        };
     }
-    do(){
-        console.log("Select", this.object.length, this.start, this.end);
-        this.subject.select(this.object, this.start, this.end);
-    }
-    undo(){
-        console.log("Unselect", this.object.length, this.start, this.end);
-        this.subject.select(this.object, this.start, this.end);
+    static fromJSON(json: any): Move {
+        return new Move(json.subject, json.object, json.offset);
     }
 }
 
@@ -133,5 +199,18 @@ export class Set extends Command{
     undo(){
         console.log("unSet");
         this.subject.set(this.un);
+    }
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            subject: this.subject,
+            object: this.object,
+            un: this.un
+        };
+    }
+    static fromJSON(json: any): Set {
+        const cmd = new Set(json.subject, json.object);
+        cmd.un = json.un;
+        return cmd;
     }
 }

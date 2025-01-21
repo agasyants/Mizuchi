@@ -1,7 +1,7 @@
 import ScoreDrawer from "./score_drawer";
 import Note from "../classes/note";
 import Score from "../data/score";
-import { Complex, Create, Delete, Move, Select } from "../classes/CommandPattern";
+import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
 
 export default class score_drawer_controller {
     private drawer: ScoreDrawer;
@@ -41,15 +41,15 @@ export default class score_drawer_controller {
         const paste = [];
         const s = this.drawer.score.selection;
         for (let note of s.elements){
-            paste.push(note.clone());
+            paste.push(note.clone(this.drawer.score));
         }
         const commands = [new Move(this.drawer.score, s, [s.end-s.start,0,0]), new Create(this.drawer.score, paste)]
         this.drawer.commandPattern.addCommand(new Complex(commands))
     }
     paste(){
-        let paste = [];
+        const paste = [];
         for (let note of this.drawer.buffer.elements){
-            paste.push(new Note(note.pitch, note.start + this.drawer.score.selection.start, note.duration))
+            paste.push(new Note(note.pitch, note.start + this.drawer.score.selection.start, note.duration, this.drawer.score.notes.getNewId()))
         }
         this.drawer.commandPattern.addCommand(new Create(this.drawer.score, paste));
     }
@@ -60,19 +60,21 @@ export default class score_drawer_controller {
     delete(){
         const commands = [];
         commands.push(new Delete(this.drawer.score, this.drawer.score.selection.elements.slice()));
-        commands.unshift(new Select(this.drawer.score, this.drawer.score.selection.elements.slice(), this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2));
+        this.drawer.score.select(this.drawer.score.selection.elements.slice(), this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2);
         this.drawer.commandPattern.addCommand(new Complex(commands));
     }
     applyChanges(ctrl:boolean){
         const s = this.drawer.score.selection;
-        if (ctrl){
-            if (s.isShifted()) {
-                const commands = [];
-                const notes = s.cloneContent();
-                commands.push(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
-                commands.push(new Create(this.drawer.score, notes));
-                this.drawer.commandPattern.addCommand(new Complex(commands));
-            } 
+        if (ctrl && s.isShifted()){
+            const commands = [];
+            const notes:Note[] = []
+            for (let note of s.elements){
+                console.log(note.parent);
+                notes.push(note.clone());
+            }
+            commands.push(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            commands.push(new Create(this.drawer.score, notes));
+            this.drawer.commandPattern.addCommand(new Complex(commands));
         } else {
             if (s.offset.start || s.offset.duration || s.offset.pitch) {
                 this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
@@ -115,7 +117,7 @@ export default class score_drawer_controller {
             if (y<0) y=0;
             if (y>1) y=0.99;
             [x,y] = this.getMatrix(x, y);
-            this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.lowest_note,x,1)]));
+            this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.lowest_note,x,1,this.drawer.score.notes.getNewId(), this.drawer.score)]));
         }        
         this.drawer.hovered.elements = [];
         this.drawer.update_mix();

@@ -4,17 +4,16 @@ import Track from "../data/track";
 import Input, { InputSignal } from "./Input";
 import Note from "./note";
 import Output, { OutputSignal } from "./Output";
-import IdComponent from "./id_component";
+import IdComponent, { IdArray } from "./id_component";
 
 export default abstract class Node extends IdComponent {
-    parent: any;
     x:number;
     y:number;
     inputs: Input[] = [];
     output: Output;
     window: number[] = [];
     constructor(id:number, x:number, y:number, inputs_count:number, parent:any){
-        super(id, "nd");
+        super(id, "e");
         this.parent = parent;
         this.x = x;
         this.y = y;
@@ -38,9 +37,37 @@ export default abstract class Node extends IdComponent {
             type: this.constructor.name
         };
     }
+    // clone(){
+    //     const clone = new (this.constructor as any)(this.id, this.x, this.y, this.inputs.length, this.parent);
+    //     for (let i = 0; i < this.inputs.length; i++){
+    //         if (this.inputs[i].connected) clone.setInput(i, this.inputs[i].connected.output);
+    //     }
+    //     return clone;
+    // }
 }
 
-export class OutputNode extends Node {
+export class NodeSpace extends Node {
+    outputNode:OutputNode = new OutputNode(0,0,0,this);
+    nodes:IdArray<Node> = new IdArray<Node>();
+    constructor(x:number, y:number, id:number, parent:any, inputs_count:number=0){
+        super(id, x, y, inputs_count, parent);
+    }
+    get():number{
+        return this.outputNode.get();
+    }
+    add(node:Node){
+        this.nodes.push(node);
+    }
+    clone(){
+        const clone = new NodeSpace(this.x, this.y, this.id, this.parent, this.inputs.length);
+        // for (let node of this.nodes){
+            // clone.add(node.clone());
+        // }
+        return clone;
+    }
+}
+
+class OutputNode extends Node {
     constructor(x:number, y:number, id:number, parent:any){
         super(id, x, y, 1, parent);
     }

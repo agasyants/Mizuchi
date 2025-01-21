@@ -61,7 +61,7 @@ export default class Mixer {
             this.mix.playback++;
             if (i % 10000 == 0)
                 this.mixDrawer.render();
-            chunk[i] = this.mix.outputNode.get();
+            chunk[i] = this.mix.nodeSpace.get();
         } 
         console.log("chunk");
         this.counter++;

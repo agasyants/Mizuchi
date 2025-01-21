@@ -1,11 +1,12 @@
 import Score from "../data/score";
 import IdComponent from "./id_component";
+import { NoteSelection } from "./selection";
 
 export default class Note extends IdComponent {
     pitch:number;
     start:number;
     duration:number;
-    constructor(pitch:number|string, start:number, duration:number, id:number, parent:Score|null=null) {
+    constructor(pitch:number|string, start:number, duration:number, id:number, parent:Score|NoteSelection|null=null) {
         super(id,"nt");
         this.parent = parent;
         if (typeof pitch === 'string') {
@@ -65,7 +66,9 @@ export default class Note extends IdComponent {
         const note = num%12;
         return octave + noteMap[note];
     }
-    clone():Note{
-        return new Note(this.pitch, this.start, this.duration, -1);
+    clone(parent:Score|NoteSelection|null = null):Note {
+        if (parent instanceof Score) return new Note(this.pitch, this.start, this.duration, parent.notes.getNewId(), parent);
+        if (parent instanceof NoteSelection) return new Note(this.pitch, this.start, this.duration, -1, parent);
+        return new Note(this.pitch, this.start, this.duration, this.parent.notes.getNewId(), this.parent);
     }
 }

@@ -1,13 +1,12 @@
 import Score from "./score";
 import Note from "../classes/note";
-import Node, { OutputNode } from "../classes/node";
+import { NodeSpace } from "../classes/node";
 import IdComponent, { IdArray } from "../classes/id_component";
 import Mix from "./mix";
 
 export default class Track extends IdComponent {
     name:string;
-    nodes = new IdArray<Node>();
-    outputNode:Node = new OutputNode(0,0,0,this);
+    nodeSpace:NodeSpace = new NodeSpace(0,0,0,this);
     scores = new IdArray<Score>();
     renderHeight:number = 1;
     constructor(name:string, parent:Mix, id:number) { 
@@ -20,7 +19,7 @@ export default class Track extends IdComponent {
             name: this.name,
             id: this.id,
             renderHeight: this.renderHeight,
-            nodes: this.nodes,
+            nodeSpace: this.nodeSpace,
             scores: this.scores
         }
     }
@@ -37,5 +36,14 @@ export default class Track extends IdComponent {
             full_score = full_score.concat(score.getNotes(score.absolute_start));
         } 
         return full_score;
+    }
+    clone():Track {
+        const newTrack = new Track(this.name, this.parent, this.id);
+        newTrack.renderHeight = this.renderHeight;
+        newTrack.nodeSpace = this.nodeSpace.clone();
+        for (let score of this.scores){
+            newTrack.scores.push(score.clone(newTrack));
+        }
+        return newTrack;
     }
 }

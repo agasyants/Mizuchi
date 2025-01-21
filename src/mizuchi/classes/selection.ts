@@ -1,5 +1,6 @@
 import Score from "../data/score";
 import Track from "../data/track";
+import Note from "./note";
 
 export default abstract class Selection {
     start:number;
@@ -12,29 +13,7 @@ export default abstract class Selection {
         this.start = start;
         this.end = end;
     }
-    toJSON() {
-        return {
-            start: this.start,
-            end: this.end,
-            elements: this.elements,
-        };
-    }
-    // clone(){
-    //     let clone = new Selection();
-    //     clone.start = this.start;
-    //     clone.end = this.end;
-    //     for (let el of this.elements){
-    //         clone.elements.push(el.clone());
-    //     }
-    //     return clone;
-    // }
-    cloneContent(){
-        let clone = [];
-        for (let element of this.elements){
-            clone.push(element.clone());
-        }
-        return clone;
-    }
+    abstract clone():Selection
     clear(){
         this.offset.pitch = 0;
         this.offset.start = 0;
@@ -51,8 +30,18 @@ export default abstract class Selection {
 }
 
 export class NoteSelection extends Selection {
+    elements:Note[] = [];
     constructor(){
         super();
+    }
+    clone(){
+        const clone = new NoteSelection();
+        clone.start = this.start;
+        clone.end = this.end;
+        for (let el of this.elements){
+            clone.elements.push(el.clone(this));
+        }
+        return clone;   
     }
 }
 
@@ -65,16 +54,6 @@ export class ScoreSelection extends Selection {
     constructor(){
         super();
     }
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            type: 'ScoreSelection',
-            track_index: this.track_index,
-            offset: this.offset,
-            min: this.min,
-            max: this.max
-        };
-    }
     clear(){
         this.offset.pitch = 0;
         this.offset.start = 0;
@@ -83,6 +62,8 @@ export class ScoreSelection extends Selection {
         this.drugged_y = 0;
         this.offset.rel = 0;
         this.offset.loop_duration = 0;
+        this.min = 0;
+        this.max = 0;
     }
     set(score:Score[], index:number[]){
         this.elements = score;
@@ -96,6 +77,15 @@ export class ScoreSelection extends Selection {
         this.min = Math.min(this.min, index);
         this.max = Math.max(this.max, index);
     }
+    clone(){
+        const clone = new ScoreSelection();
+        clone.start = this.start;
+        clone.end = this.end;
+        for (let el of this.elements){
+            clone.elements.push(el.clone());
+        }
+        return clone;
+    }
 }
 
 export class TrackSelection extends Selection {
@@ -104,15 +94,13 @@ export class TrackSelection extends Selection {
     constructor(){
         super();
     }
-    toJSON(){
-        return {
-            ...super.toJSON(),
-            elements: this.elements.map((e)=>{
-                return {
-                    id: e.getFullId()
-                }
-            }),
-            index: this.index
+    clone(){
+        const clone = new TrackSelection();
+        clone.start = this.start;
+        clone.end = this.end;
+        for (let el of this.elements){
+            clone.elements.push(el.clone());
         }
+        return clone;
     }
 }

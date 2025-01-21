@@ -20,7 +20,7 @@ const EditorPage: React.FC = () => {
           <input type="checkbox" defaultChecked={true} id="loop"/>
           <input type="number" defaultValue={0} id="loop_start"/>
           <input type="number" defaultValue={128} id="loop_end"/>
-          <button id="Generate"> Generate </button>
+          <button id="id_show"> Show ID </button>
           <button id="Test"> Test </button>
         </div>
       </div>

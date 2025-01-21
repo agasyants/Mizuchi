@@ -1,14 +1,13 @@
 import Score from "./score";
 import Track from "./track";
 // import Note from "../classes/note";
-import Node, { OutputNode} from "../classes/node";
-import Selection, { ScoreSelection, TrackSelection } from "../classes/selection";
+import { NodeSpace } from "../classes/node";
+import { ScoreSelection, TrackSelection } from "../classes/selection";
 import { IdArray } from "../classes/id_component";
 
 export default class Mix {
     tracks = new IdArray<Track>();
-    nodes = new IdArray<Node>();
-    outputNode:Node = new OutputNode(0,0,0,this);
+    nodeSpace:NodeSpace = new NodeSpace(0,0,0,this);
 
     bpm: number = 120;
     start:   number = 0;
@@ -28,6 +27,7 @@ export default class Mix {
         } else {
             this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 0));
             this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 1));
+            this.tracks.increment = 2;
         }
     }
     getFullId(){
@@ -36,10 +36,13 @@ export default class Mix {
     toJSON() {
         return {
             bpm: this.bpm,
+            start: this.start,
+            loo_start: this.loop_start,
+            loop_end: this.loop_end,
+            playback: this.playback,
+            loopped: this.loopped,
             tracks_number_on_screen: this.tracks_number_on_screen,
-            selected: this.selected,
-            outputNode: this.outputNode,
-            nodes: this.nodes,
+            nodeSpace: this.nodeSpace,
             tracks: this.tracks,
         }
     }
@@ -50,12 +53,9 @@ export default class Mix {
             // Пропускаем циклические ссылки
             if (typeof value === "object" && value !== null) {
                 if (seen.has(value)) {
-                    console.log(key, value);
+                    console.log("ERRRROORR",key, value);
                     return undefined; // Пропускаем цикл
                 }
-                // if (key == "parent"){
-                //     return undefined;
-                // }
                 seen.add(value);
             }
             return value;
@@ -104,41 +104,35 @@ export default class Mix {
             for (let track of this.tracks){
                 const index = track.scores.indexOf(sel);
                 if (index > -1) {
+                    'd'
                     track.scores.splice(index, 1);
                     return this.tracks.indexOf(track);
                 }
             }
         }
     }
-    move(sel:Selection, [start, dur, loop, y, rel]:number[], reverse:boolean){
+    move(sel:Track[]|Score[], [start, dur, loop, rel]:number[], reverse:boolean){
         if (reverse){
             rel = -rel;
             start = -start;
             dur = -dur;
             loop = -loop;
-            y = -y;             
         }
-        if (sel instanceof TrackSelection){
-            for (let track of sel.elements){
+        if (sel.every(item => item instanceof Track)){
+            for (let track of sel){
                 const index = this.tracks.indexOf(track);
                 if (index > -1) {
                     this.tracks.splice(index, 1);
-                    this.tracks.splice(index+y, 0, track);
+                    this.tracks.splice(index, 0, track);
                 }
             }
-        } else if (sel instanceof ScoreSelection){
-            sel.start += start;
-            sel.end =  sel.end+start+dur;
-            for (let i = 0; i < sel.elements.length; i++){
-                const score = sel.elements[i];
-                this.tracks[sel.track_index[i]].scores.splice(this.tracks[sel.track_index[i]].scores.indexOf(score), 1);
+        } else if (sel.every(item => item instanceof Score)){
+            for (let i = 0; i < sel.length; i++){
+                const score = sel[i];
                 score.absolute_start += start;
                 score.duration += dur;
                 score.loop_duration += loop;
-                sel.track_index[i] += y;
                 score.relative_start = (score.loop_duration + (score.relative_start + rel) % score.loop_duration) % score.loop_duration;
-                this.tracks[sel.track_index[i]].scores.push(score);
-                
             }
         }
     }

@@ -45,14 +45,22 @@ export default class Mizuchi{
         const mix_div = document.getElementById('mix-canvas-wrapper') as HTMLDivElement;
         if (mixCanvas && mix_div)
         {
+            const id_shower = document.getElementById('id_show');
+            if (id_shower){
+                id_shower.addEventListener("click", () => {
+                    mixDrawer.show_id = !mixDrawer.show_id;
+                    score_drawer.show_id = !score_drawer.show_id;
+                })
+            }
+
             const rect = mix_div.getBoundingClientRect();
             const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, rect.width, rect.height);
             const mixer = new Mixer(mix, mixDrawer);
             
             const mixNode = new SumNode(0,0,1,mix);
-            mix.nodes.push(mixNode);
+            mix.nodeSpace.add(mixNode);
             
-            mix.outputNode.setInput(0, mixNode.output);
+            mix.nodeSpace.outputNode.setInput(0, mixNode.output);
             // let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
             let i = 0;
             
@@ -60,10 +68,10 @@ export default class Mizuchi{
                 const mapping = new Mapping(0,1,-1,1,0,[new BasicPoint(0,0,0), new BasicPoint(0.25,1,1), new BasicPoint(0.75,-1,2), new BasicPoint(1,0,3)], [new HandlePoint(0.125,0.5,0), new HandlePoint(0.5,0,1),new HandlePoint(0.875,-0.5,2)]);
                 mapping.basics.increment = mapping.basics.length;
                 mapping.handles.increment = mapping.handles.length;
-                const node = new NoteInput(0,0,track,mix,mapping,1); 
+                const node = new NoteInput(0, 0, track, mix, mapping, 1); 
                 
-                node.output.connected = track.outputNode.inputs[0];
-                track.nodes.push(node);
+                node.output.connected = track.nodeSpace.outputNode.inputs[0];
+                track.nodeSpace.nodes.push(node);
                 mixNode.addInput(node.output);
                 const TestButton = document.getElementById("Test");
                 if (TestButton){
@@ -76,7 +84,7 @@ export default class Mizuchi{
                     })
                 } i++;
             }
-            console.log(mix.outputNode);  
+            console.log(mix.nodeSpace.outputNode);  
             
             window.addEventListener("keydown", (e) => {
                 if (e.code=="KeyS" && e.ctrlKey){

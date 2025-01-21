@@ -1,11 +1,11 @@
-import IdComponent from "../classes/id_component";
+import IdComponent, { IdArray } from "../classes/id_component";
 import Note from "../classes/note";
 import { NoteSelection } from "../classes/selection";
 import Track from "./track";
 
 export default class Score extends IdComponent {
     parent: Track;
-    notes:Note[] = [];
+    notes:IdArray<Note> = new IdArray<Note>()
     lowest_note: number = 16;
     selection:NoteSelection = new NoteSelection();
     constructor(parent:Track, id:number, public absolute_start:number, public duration:number = 32, public loop_duration:number = 32, public relative_start:number = 0){
@@ -20,8 +20,7 @@ export default class Score extends IdComponent {
             duration: this.duration,
             loop_duration: this.loop_duration,
             relative_start: this.relative_start,
-            notes: this.notes,
-            selection: this.selection,
+            notes: this.notes
         };
     }
     create(notes:Note[]){
@@ -98,9 +97,16 @@ export default class Score extends IdComponent {
             this.selection.end = 0;
         }
     }
-    clone(){
-        const score = new Score(this.parent, -1, this.absolute_start, this.duration, this.loop_duration, this.relative_start);
-        score.notes = this.notes.map(note => new Note(note.pitch, note.start, note.duration, -1, score));
+    clone(new_parent:Track|null=null){
+        let parent;
+        if (new_parent)
+            parent = new_parent;
+        else
+            parent = this.parent;
+        const score = new Score(parent, parent.scores.getNewId(), this.absolute_start, this.duration, this.loop_duration, this.relative_start);
+        for (let note of this.notes){
+            score.notes.push(new Note(note.pitch, note.start, note.duration, note.id, this));
+        }
         return score;
     }
     getNotes(start:number = 0):Note[]{

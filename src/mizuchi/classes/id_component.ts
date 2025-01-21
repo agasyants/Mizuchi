@@ -21,6 +21,7 @@ export class IdArray<T> extends Array<T> {
       this.increment = 0;
     }
     getNewId(){
+        console.log(this.increment);
         this.increment++;
         return this.increment-1;
     }
