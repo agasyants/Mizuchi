@@ -1,9 +1,10 @@
 import Score from "./score";
 import Track from "./track";
 // import Note from "../classes/note";
-import { NodeSpace } from "../classes/node";
+import { FromTrackNode, NodeSpace } from "../classes/node";
 import { ScoreSelection, TrackSelection } from "../classes/selection";
 import { IdArray } from "../classes/id_component";
+import CommandPattern from "../classes/CommandPattern";
 
 export default class Mix {
     tracks = new IdArray<Track>();
@@ -17,6 +18,8 @@ export default class Mix {
     sampleRate:number = 44100;
     loopped:  boolean = true;
 
+    commandPattern = new CommandPattern();
+
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
     tracks_number_on_screen:number = 6;
     
@@ -25,9 +28,11 @@ export default class Mix {
         if (data){
             this.load(JSON.parse(data));
         } else {
-            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 0));
-            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 1));
+            this.create([new Track('track '+ (this.tracks.length+1).toString(), this, 0), new Track('track '+ (this.tracks.length+1).toString(), this, 1)]);
             this.tracks.increment = 2;
+            const mixNode = new FromTrackNode(0,0,1,this,this.tracks);
+            this.nodeSpace.add(mixNode);
+            this.nodeSpace.connectNodes(mixNode, this.nodeSpace.outputNode, 0);
         }
     }
     getFullId(){
@@ -37,23 +42,22 @@ export default class Mix {
         return {
             bpm: this.bpm,
             start: this.start,
-            loo_start: this.loop_start,
+            loop_start: this.loop_start,
             loop_end: this.loop_end,
-            playback: this.playback,
             loopped: this.loopped,
             tracks_number_on_screen: this.tracks_number_on_screen,
-            nodeSpace: this.nodeSpace,
-            tracks: this.tracks,
+            MIX_NODE_SPACE: this.nodeSpace,
+            TRACKS: this.tracks,
+            CommandPattern: this.commandPattern
         }
     }
     save() {
         const seen = new Set();
-
         const replacer = (key: string, value: unknown) => {
             // Пропускаем циклические ссылки
             if (typeof value === "object" && value !== null) {
                 if (seen.has(value)) {
-                    console.log("ERRRROORR",key, value);
+                    console.log("ERRRROORR", key, value);
                     return undefined; // Пропускаем цикл
                 }
                 seen.add(value);
@@ -67,14 +71,6 @@ export default class Mix {
         console.log(data);
         // this.bpm = data.bpm;
         // for (let track of data.tracks){
-        //     // const newFunc = new OscFunction();
-        //     // let newBasics:BasicPoint[] = [];
-        //     // for (let i of track.inst.osc.oscFunction.basics) newBasics.push(new BasicPoint(i.x, i.y, i.x_move, i.y_move));
-        //     // newBasics[0].x_move = false;
-        //     // newBasics[newBasics.length-1].x_move = false;
-        //     // let newHandles:HandlePoint[] = [];
-        //     // for (let i of track.inst.osc.oscFunction.handles) newHandles.push(new HandlePoint(i.x, i.y, i.xl, i.yl));
-        //     // newFunc.set(newBasics,newHandles);
         //     const newTrack = new Track(track.name, this, track.id);
         //     for (let score of track.scores){
         //         const newScore = new Score(score.absolute_start, score.id, score.duration, score.loop_duration, score.relative_start);
@@ -87,29 +83,43 @@ export default class Mix {
         //     this.tracks.push(newTrack);
         // }
     }
-    create(sel:Track|Score, pos:number=-1){
-        if (sel instanceof Track){
-            if (pos==-1) pos = this.tracks.length;
-            this.tracks.splice(pos, 0, sel);
-        } else if (sel instanceof Score){
-            this.tracks[pos].scores.push(sel);
+    create(sel:Track[]|Score[], pos:number[]=[]){
+        if (sel.every(item => item instanceof Track)){
+            for (let i = 0; i < sel.length; i++){
+                if (this.tracks.length <= i) pos.push(this.tracks.length+i-1);
+                this.tracks.splice(pos[i], 0, sel[i]);
+            }
+        } else if (sel.every(item => item instanceof Score)){
+            for (let i = 0; i < sel.length; i++){
+                if (this.tracks.length <= i) {
+                    pos.push(0);
+                    console.log('ERRoR');
+                }
+                this.tracks[pos[i]].scores.push(sel[i]);
+            }
         }
+        return pos;
     }
-    delete(sel:Track|Score){
-        if (sel instanceof Track){
-            const index = this.tracks.indexOf(sel);
-            this.tracks.splice(this.tracks.indexOf(sel), 1);
-            return index;
-        } else if (sel instanceof Score){
-            for (let track of this.tracks){
-                const index = track.scores.indexOf(sel);
-                if (index > -1) {
-                    'd'
-                    track.scores.splice(index, 1);
-                    return this.tracks.indexOf(track);
+    delete(sel:Track[]|Score[]):number[]{
+        const positions = []
+        if (sel.every(item => item instanceof Track)){
+            for (let i = sel.length-1; i >= 0; i--){
+                const index = this.tracks.indexOf(sel[i]);
+                this.tracks.splice(this.tracks.indexOf(sel[i]), 1);
+                positions.unshift(index)
+            }
+        } else if (sel.every(item => item instanceof Score)){
+            for (let i = sel.length-1; i >= 0; i--){
+                for (let track of this.tracks){
+                    const index = track.scores.indexOf(sel[i]);
+                    if (index > -1) {
+                        track.scores.splice(index, 1);
+                        positions.unshift(this.tracks.indexOf(track));
+                    }
                 }
             }
         }
+        return positions;
     }
     move(sel:Track[]|Score[], [start, dur, loop, rel]:number[], reverse:boolean){
         if (reverse){

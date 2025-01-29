@@ -9,7 +9,10 @@ import Drawer from "./Drawer";
 import WindowController from "../classes/WindowController";
 
 
-export default class MixDrawer extends Drawer{
+export default class MixDrawer extends Drawer {
+    // render(): void {
+    //     throw new Error("Method not implemented.");
+    // }
     show_id:boolean = true;
 
     drugged:boolean = false;
@@ -41,11 +44,8 @@ export default class MixDrawer extends Drawer{
     }
     
     sectorsSelection:{x1:number,y1:number,x2:number,y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
-    
-    commandPattern:CommandPattern = new CommandPattern();
-
+    commandPattern:CommandPattern;
     tracks_min_max:number[][] = [];
-
 
     input_x:number = -1;
     input_y:number = -1;
@@ -56,9 +56,8 @@ export default class MixDrawer extends Drawer{
         width:number, 
         height:number)
     {
-        
         super(canvas);
-        
+        this.commandPattern = mix.commandPattern;
         this.setCanvasSize(width,height);
         
         this.calcMinMax();
@@ -113,7 +112,6 @@ export default class MixDrawer extends Drawer{
             }
         });
         canvas.addEventListener('pointermove', (e) => {
-       
             const rect = canvas.getBoundingClientRect();
             let x = e.clientX - rect.left;
             let y = e.clientY - rect.top;
@@ -275,7 +273,7 @@ export default class MixDrawer extends Drawer{
             const offset = ss.offset;
             if (this.ctrl && !offset.duration){
                 for (let i = 0; i < ss.elements.length; i++){
-                    this.commandPattern.addCommand(new Create(this.mix, ss.elements[i].clone(), ss.track_index[i]));
+                    this.commandPattern.addCommand(new Create(this.mix, ss.elements.slice(), ss.track_index.slice()));
                 }
             }
             if (ss.offset.pitch){
@@ -283,10 +281,10 @@ export default class MixDrawer extends Drawer{
                 const indexes = []
                 for (let i = 0; i < ss.elements.length; i++){
                     const score = ss.elements[i];
-                    this.commandPattern.addCommand(new Delete(this.mix, score));
+                    this.commandPattern.addCommand(new Delete(this.mix, [score]));
                     const parent_index = ss.track_index[i] + offset.pitch;
                     const new_score = score.clone(this.mix.tracks[parent_index]);
-                    this.commandPattern.addCommand(new Create(this.mix, new_score, parent_index));
+                    this.commandPattern.addCommand(new Create(this.mix, [new_score], [parent_index]));
                     scores.push(new_score)
                     indexes.push(parent_index)
                 }
@@ -337,25 +335,19 @@ export default class MixDrawer extends Drawer{
         }
     }
     delete(){
-        if (this.mix.selected.scores.elements.length){  // delete elements scores
+        if (this.mix.selected.scores.elements.length) {  // delete elements scores
             const commands = [];
             const elements = this.mix.selected.scores.elements.slice();
             this.mix.selected.scores.clear();
             this.mix.selected.scores.elements = [];
             this.mix.selected.scores.track_index = [];
-            for (let i = 0; i < elements.length; i++){
-                commands.push(new Delete(this.mix, elements[i]));
-            }
+            commands.push(new Delete(this.mix, elements.slice()));
             this.commandPattern.addCommand(new Complex(commands));
             this.calcMinMax();
         } 
-        else if (this.mix.selected.tracks.elements.length){ // delete elements tracks
-            const commands = [];            
-            for (let i = 0; i < this.mix.selected.tracks.elements.length; i++){
-                commands.push(new Delete(this.mix, this.mix.selected.tracks.elements[i]));
-                this.mix.selected.tracks.index.splice(i, 1);
-            }
-            this.commandPattern.addCommand(new Complex(commands));
+        else if (this.mix.selected.tracks.elements.length) { // delete elements tracks
+            this.mix.selected.tracks.index = [];
+            this.mix.commandPattern.addCommand(new Delete(this.mix, this.mix.selected.tracks.elements.slice()));
             this.mix.selected.tracks.elements = [];
             this.calcHeights();
         }
@@ -364,9 +356,8 @@ export default class MixDrawer extends Drawer{
     dublicate(){
         const s = this.mix.selected.scores;
         const commands = [];
-        for (let i = 0; i < s.elements.length; i++)
-            commands.push(new Create(this.mix, s.elements[i].clone(), s.track_index[i]));
-        commands.push(new Move(this.mix, s, [s.end-s.start, 0, 0, 0, 0]));
+        commands.push(new Create(this.mix, s.elements.slice(), s.track_index.slice()));
+        commands.push(new Move(this.mix, s.elements.slice(), [s.end-s.start, 0, 0, 0, 0]));
         this.commandPattern.addCommand(new Complex(commands))
     }
     selectAll(shift:boolean){
@@ -393,7 +384,7 @@ export default class MixDrawer extends Drawer{
             } 
             new_score.lowest_note = Math.floor(lowest_note/s.elements.length);
             this.commandPattern.recordOpen();
-            this.commandPattern.addCommand(new Create(this.mix, new_score, s.track_index[0]));
+            this.commandPattern.addCommand(new Create(this.mix, [new_score], s.track_index.slice()));
             this.delete();
             this.mix.select([new_score], this.sectorsSelection.x1, this.sectorsSelection.x2);
             this.commandPattern.recordClose();
@@ -402,8 +393,7 @@ export default class MixDrawer extends Drawer{
     render(){
         requestAnimationFrame(()=>{this._render()});
     }
-    _render() {
-        
+    _render(){
         this.ctx.clearRect(0, 0, this.w, this.h);
         this.ctx.font = "16px system-ui";
         this.renderBack();
@@ -421,12 +411,10 @@ export default class MixDrawer extends Drawer{
             this.renderTrack(h,this.mix.tracks[i].renderHeight);
             h += this.mix.tracks[i].renderHeight;
         }
-        
 
         if (!(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))){
             this.renderHovered()
         };
-        
         
         this.renderSelected();
         this.renderMovedScores();
@@ -663,7 +651,7 @@ export default class MixDrawer extends Drawer{
         if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
             if (!this.hovered.track) {
                 // creating new track
-                this.commandPattern.addCommand(new Create(this.mix, new Track('track', this.mix, this.mix.tracks.getNewId()), this.mix.tracks.length));
+                this.commandPattern.addCommand(new Create(this.mix, [new Track('track', this.mix, this.mix.tracks.getNewId())], [this.mix.tracks.length]));
                 this.calcMaxes();
                 this.calcHeights();
                 this.render();
@@ -686,7 +674,7 @@ export default class MixDrawer extends Drawer{
                     new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2, len, len, 0);
                 else 
                     new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2);
-                this.commandPattern.addCommand(new Create(this.mix, new_score, this.mix.tracks.indexOf(this.hovered.track)));
+                this.commandPattern.addCommand(new Create(this.mix, [new_score], [this.mix.tracks.indexOf(this.hovered.track)]));
                 this.calcMaxes();
                 this.calcMinMax();
                 this.render();
@@ -863,9 +851,4 @@ export default class MixDrawer extends Drawer{
         this.sectorsSelection.x2 = -1;
         this.sectorsSelection.y2 = -1;
     }
-    // addAudioEffect(effect:AudioEffect){
-    //     for (let track of this.mix.selected.tracks.elements){
-    //         track.audioEffects.push(effect);
-    //     }
-    // }
-} 
+}

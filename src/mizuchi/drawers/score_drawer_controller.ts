@@ -43,7 +43,10 @@ export default class score_drawer_controller {
         for (let note of s.elements){
             paste.push(note.clone(this.drawer.score));
         }
-        const commands = [new Move(this.drawer.score, s, [s.end-s.start,0,0]), new Create(this.drawer.score, paste)]
+        const delta = s.end-s.start;
+        const commands = [new Move(this.drawer.score, s.elements, [delta, 0, 0]), new Create(this.drawer.score, paste)]
+        s.start += delta;
+        s.end += delta;
         this.drawer.commandPattern.addCommand(new Complex(commands))
     }
     paste(){
@@ -71,14 +74,16 @@ export default class score_drawer_controller {
             for (let note of s.elements){
                 console.log(note.parent);
                 notes.push(note.clone());
-            }
-            commands.push(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            }         
+            commands.push(new Move(this.drawer.score, s.elements, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            s.start += s.offset.start;
+            s.end += s.offset.start;
             commands.push(new Create(this.drawer.score, notes));
             this.drawer.commandPattern.addCommand(new Complex(commands));
-        } else {
-            if (s.offset.start || s.offset.duration || s.offset.pitch) {
-                this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s, [s.offset.start, s.offset.duration, s.offset.pitch]));
-            } 
+        } else if (s.isShifted()) {
+            this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s.elements, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            s.start += s.offset.start;
+            s.end += s.offset.start;
         }
         this.drawer.update_mix();
         s.clear();
@@ -118,7 +123,7 @@ export default class score_drawer_controller {
             if (y>1) y=0.99;
             [x,y] = this.getMatrix(x, y);
             this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.lowest_note,x,1,this.drawer.score.notes.getNewId(), this.drawer.score)]));
-        }        
+        }
         this.drawer.hovered.elements = [];
         this.drawer.update_mix();
         this.drawer.render();

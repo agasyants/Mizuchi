@@ -4,12 +4,11 @@ import { NoteSelection } from "../classes/selection";
 import Track from "./track";
 
 export default class Score extends IdComponent {
-    parent: Track;
     notes:IdArray<Note> = new IdArray<Note>()
     lowest_note: number = 16;
     selection:NoteSelection = new NoteSelection();
     constructor(parent:Track, id:number, public absolute_start:number, public duration:number = 32, public loop_duration:number = 32, public relative_start:number = 0){
-        super(id, "nd");
+        super(id, "nd", parent);
         this.parent = parent;
     }
     toJSON() {
@@ -30,6 +29,7 @@ export default class Score extends IdComponent {
         }
         this.sort();
         // this.update();
+        // require rework
     }
     private sort(){
         this.notes.sort((a, b) => {
@@ -51,15 +51,13 @@ export default class Score extends IdComponent {
     //     this.duration = score.duration+scoreDelt;
     //     this.sort();
     // }
-    move(s:NoteSelection, [start=0,duration=0,pitch=0]:number[], reverse:boolean){
+    move(notes:Note[], [start=0,duration=0,pitch=0]:number[], reverse:boolean){
         if (reverse){
             start*=-1;
             duration*=-1;
             pitch*=-1;
         }
-        s.start+=start;
-        s.end+=start;
-        for (let note of s.elements){
+        for (let note of notes){
             note.start += start;
             note.duration += duration;
             note.pitch += pitch;
@@ -71,30 +69,32 @@ export default class Score extends IdComponent {
         notes.forEach(note => {
             this.notes.splice(this.notes.indexOf(note), 1);
         });
+        // require rework
     }
     select(notes:Note[],start:number,end:number){
         console.log(start,end);
-        if (this.selection.elements.length == 0){
-            this.selection.start = Math.min(start,end);
-            this.selection.end = Math.max(start,end) + 1;
+        const c = this.selection;
+        if (c.elements.length == 0){
+            c.start = Math.min(start,end);
+            c.end = Math.max(start,end) + 1;
         } else {
-            this.selection.start = Math.min(this.selection.start, notes[0].start);
-            this.selection.end = Math.max(this.selection.end, notes[0].start);
+            c.start = Math.min(c.start, notes[0].start);
+            c.end = Math.max(c.end, notes[0].start);
         }
         for (let note of notes){
-            if (this.selection.elements.includes(note)) {  
-                this.selection.elements.splice(this.selection.elements.indexOf(note), 1);
-                this.selection.start = Math.min(this.selection.start, note.start);
-                this.selection.end = Math.max(this.selection.end, note.start+note.duration);
+            if (c.elements.includes(note)) {  
+                c.elements.splice(c.elements.indexOf(note), 1);
+                c.start = Math.min(c.start, note.start);
+                c.end = Math.max(c.end, note.start+note.duration);
             } else {
-                this.selection.start = Math.min(this.selection.start, note.start);
-                this.selection.end = Math.max(this.selection.end, note.start+note.duration);
-                this.selection.elements.push(note);
+                c.start = Math.min(c.start, note.start);
+                c.end = Math.max(c.end, note.start+note.duration);
+                c.elements.push(note);
             }
         }
-        if (this.selection.elements.length == 0){
-            this.selection.start = 0;
-            this.selection.end = 0;
+        if (c.elements.length == 0){
+            c.start = 0;
+            c.end = 0;
         }
     }
     clone(new_parent:Track|null=null){

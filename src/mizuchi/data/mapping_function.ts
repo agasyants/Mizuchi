@@ -2,9 +2,13 @@ import Function, { BasicPoint, HandlePoint } from "./function";
 
 export default class Mapping extends Function{
     constructor(xm:number,xM:number,ym:number,yM:number, id:number, basics:BasicPoint[]=[], handles:HandlePoint[]=[]){
-        super(xm, xM, ym, yM, basics, handles, id);
+        super(xm, xM, ym, yM, basics, handles, id, null);
     }
-    
+    toJSON() {
+        return {
+            ...super.toJSON(),
+        };
+    }
     getSample(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
         for (let j = 0; j < basics.length-1; j++){
             if (basics[j+1].x == i){

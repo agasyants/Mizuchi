@@ -1,26 +1,21 @@
+import Connector from "./connectors";
 import IdComponent from "./id_component";
 import Node from "./node";
-import Output, { OutputSignal } from "./Output";
 
 export default abstract class Input extends IdComponent {
     parent: Node;
-    connected: Output|null = null;
-    constructor(parent: Node) {
-        super(0,"i");
+    connected: Connector|null = null;
+    constructor(parent:Node, public name:string) {
+        super(0,"i",parent);
         this.parent = parent;
-    }
-    toJSON():any{
-        return {
-            connected: this.connected?.getFullId()
-        }
     }
     abstract get():any
 }
 
 export class InputSignal extends Input{
-    connected: OutputSignal|null = null;
-    constructor(parent: Node) {
-        super(parent);
+    connected: Connector|null = null;
+    constructor(parent:Node, name:string) {
+        super(parent, name);
     }
     get():number{
         if (this.connected == null) return 0;

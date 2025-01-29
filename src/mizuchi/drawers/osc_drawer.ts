@@ -1,5 +1,6 @@
-import OscFunction, { BasicPoint, HandlePoint, Point } from "../data/osc_function";
+import OscFunction from "../data/osc_function";
 import  CommandPattern,{ Create, Delete, Move } from "../classes/CommandPattern";
+import { BasicPoint, HandlePoint, Point } from "../data/function";
 
 export default class OscDrawer{
     commandPattern:CommandPattern;
@@ -98,11 +99,11 @@ export default class OscDrawer{
                 y = y-this.chosenPoint.y;
                 if (Math.sqrt(x*x+y*y)>this.range){
                     if (e.ctrlKey){
-                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[0,y]));
+                        this.commandPattern.addCommand(new Move(this.oscFunction,[this.chosenPoint],[0,y]));
                     } else if (e.shiftKey){
-                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,0]));
+                        this.commandPattern.addCommand(new Move(this.oscFunction,[this.chosenPoint],[x,0]));
                     } else {
-                        this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,y]));
+                        this.commandPattern.addCommand(new Move(this.oscFunction,[this.chosenPoint],[x,y]));
                     }
                 }
             }
@@ -125,7 +126,7 @@ export default class OscDrawer{
         let basics = [];
         if (this.chosenPoint instanceof BasicPoint && this.drugged==0){
             [x, y] = this.oscFunction.calcBasic(this.chosenPoint,0, x, y);
-            basics.push(new BasicPoint(x,y));
+            basics.push(new BasicPoint(x,y,-1));
 
         } else {
             basics.push(this.oscFunction.basics[0]);
@@ -147,7 +148,7 @@ export default class OscDrawer{
             for (let i=0; i<this.oscFunction.handles.length; i++){
                 if (this.drugged-1==i){
                     [x, y] = this.oscFunction.calcBasic(this.chosenPoint, i+1, x, y);
-                    basics.push(new BasicPoint(x, y));
+                    basics.push(new BasicPoint(x, y,-1));
                     let [x1,y1] = this.oscFunction.calcHandleAbs(basics[i], this.oscFunction.handles[i], basics[i+1]);
                     handles.push(new HandlePoint(x1, y1, this.oscFunction.handles[i].xl, this.oscFunction.handles[i].yl));
                 } else if (this.drugged==i){
@@ -336,7 +337,7 @@ export default class OscDrawer{
                     this.chosenPoint.xl = 0.5;
                     this.chosenPoint.yl = 0.5;
                     [x,y] = this.oscFunction.getHandleDelta(this.chosenPoint);
-                    this.commandPattern.addCommand(new Move(this.oscFunction,this.chosenPoint,[x,y]));
+                    this.commandPattern.addCommand(new Move(this.oscFunction,[this.chosenPoint],[x,y]));
                 }
             }
             this.chosenPoint=null;
@@ -348,7 +349,7 @@ export default class OscDrawer{
     }
     addPoint(x:number, y:number){
         if (x > 0 && x < 1 && y > -1 && y < 1){
-            this.commandPattern.addCommand(new Create(this.oscFunction,[new BasicPoint(x, y)]));
+            this.commandPattern.addCommand(new Create(this.oscFunction,[new BasicPoint(x, y, -1)]));
             this.render();
         }
     }

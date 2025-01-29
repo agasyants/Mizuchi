@@ -7,7 +7,7 @@ export default class Note extends IdComponent {
     start:number;
     duration:number;
     constructor(pitch:number|string, start:number, duration:number, id:number, parent:Score|NoteSelection|null=null) {
-        super(id,"nt");
+        super(id,"nt",parent);
         this.parent = parent;
         if (typeof pitch === 'string') {
             this.pitch = Note.pitchToNumber(pitch);

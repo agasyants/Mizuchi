@@ -39,8 +39,6 @@ export default class CommandPattern{
         return {
             commands: this.commands,
             undoCommands: this.undoCommands,
-            recording: this.recording,
-            recordingBuffer: this.recordingBuffer
         };
     }
     fromJSON(json: any) {
@@ -51,7 +49,8 @@ export default class CommandPattern{
     }
 }
 
-export class Command{
+export class Command {
+    constructor(){}
     do(){
         console.log("Do");
     }
@@ -104,80 +103,89 @@ export class Complex extends Command{
     }
 }
 
-export class Create extends Command {
-    constructor(private subject:any, private object:any, private place:number=-1){
+export class SimpleCommand extends Command {
+    constructor(public subject:any, public objects:any[]){
         super();
-        this.do();
-    }
-    do(){
-        console.log("Create "+ this.object);
-        this.subject.create(this.object, this.place);
-    }
-    undo(){
-        console.log("Delete "+ this.object);
-        this.subject.delete(this.object);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            subject: this.subject,
-            object: this.object,
-            place: this.place
+            subject: this.subject.getFullId(),
+            objects: this.objects.map((obj: any) => obj.getFullId())
         };
-    }
-
-    static fromJSON(json: any): Create {
-        return new Create(json.subject, json.object, json.place);
     }
 }
 
-export class Delete extends Command{
-    place:number;
-    constructor(private subject:any, private object:any){
-        super();
-        this.place = this.do();
+export class Create extends SimpleCommand {
+    private places:number[];
+    constructor(subject:any, objects:any[], places:number[] = []){
+        super(subject, objects);
+        this.places = places;
+        this.places = this.do();
     }
     do(){
-        console.log("Delete"+this.object);
-        return this.subject.delete(this.object);
+        console.log("Create "+ this.objects);
+        return this.subject.create(this.objects, this.places);
     }
     undo(){
-        console.log("Create"+this.object);
-        this.subject.create(this.object, this.place);
+        console.log("Delete "+ this.objects);
+        this.subject.delete(this.objects);
+    }
+    toJSON() {
+        // console.log(this.subject, this.object)
+        return {
+            ...super.toJSON(),
+            places: this.places
+        };
+    }
+    static fromJSON(json: any): Create {
+        return new Create(json.subject, json.object, json.places);
+    }
+}
+
+export class Delete extends SimpleCommand{
+    places:number[];
+    constructor(subject:any, objects:any[]){
+        super(subject, objects);
+        this.places = this.do();
+    }
+    do(){
+        console.log("Delete"+this.objects);
+        return this.subject.delete(this.objects);
+    }
+    undo(){
+        console.log("Create"+this.objects);
+        this.subject.create(this.objects, this.places);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            subject: this.subject,
-            object: this.object,
-            place: this.place
+            place: this.places
         };
     }
     static fromJSON(json: any): Delete {
         const cmd = new Delete(json.subject, json.object);
-        cmd.place = json.place;
+        cmd.places = json.places;
         return cmd;
     }
 }
 
-export class Move extends Command{
-    constructor(private subject:any, private object:any, private offset:number[]){
-        super();
+export class Move extends SimpleCommand{
+    constructor(subject:any, objects:any[], private offset:number[]){
+        super(subject, objects);
         this.do();
     }
     do(){
         console.log("Move "+ this.offset);
-        this.subject.move(this.object, this.offset, false);
+        this.subject.move(this.objects, this.offset, false);
     }
     undo(){
         console.log("unMove "+ this.offset);
-        this.subject.move(this.object, this.offset, true);
+        this.subject.move(this.objects, this.offset, true);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            subject: this.subject,
-            object: this.object,
             offset: this.offset
         };
     }
@@ -203,8 +211,8 @@ export class Set extends Command{
     toJSON() {
         return {
             ...super.toJSON(),
-            subject: this.subject,
-            object: this.object,
+            subject: this.subject.getFullId(),
+            object: this.object.getFullId(),
             un: this.un
         };
     }

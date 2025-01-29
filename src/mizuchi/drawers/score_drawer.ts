@@ -5,6 +5,7 @@ import CommandPattern from "../classes/CommandPattern";
 import score_drawer_controller from "./score_drawer_controller";
 import hovered from "../classes/hovered";
 import Drawer from "./Drawer";
+import Mix from "../data/mix";
 
 
 export default class ScoreDrawer extends Drawer{
@@ -23,7 +24,7 @@ export default class ScoreDrawer extends Drawer{
     hovered:hovered = new hovered;
 
     buffer:NoteSelection = new NoteSelection;
-    commandPattern:CommandPattern = new CommandPattern();
+    commandPattern:CommandPattern;
 
     drugged:boolean = false;
     note:boolean = false;
@@ -33,10 +34,11 @@ export default class ScoreDrawer extends Drawer{
 
     duration:number;
 
-    sectorsSelection:{x1:number,y1:number,x2:number,y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
+    sectorsSelection:{x1:number, y1:number, x2:number, y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
 
-    constructor(public canvas:HTMLCanvasElement, public score:Score) {
+    constructor(public canvas:HTMLCanvasElement, public score:Score, mix:Mix) {
         super(canvas);
+        this.commandPattern = mix.commandPattern;
         this.setCanvasSize(canvas.width, canvas.height)
         this.controller = new score_drawer_controller(this);
         this.duration = Math.min(this.score.duration, this.score.loop_duration)
