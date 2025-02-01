@@ -1,13 +1,22 @@
-export default class CommandPattern{
+import Mix from "../data/mix";
+
+export default class CommandPattern
+{
     private commands:Command[] = [];
     private undoCommands:Command[] = [];
     private recording:boolean = false;
     private recordingBuffer:Command[] = [];
+
     addCommand(command:Command){
         if (this.recording) {
+            command.do();
             this.recordingBuffer.push(command);
         } else {
+            if (command instanceof Complex && command.commands.length==1){
+                command = command.commands[0];
+            }
             this.commands.push(command);
+            command.do();
             this.undoCommands = [];
         }
         // save
@@ -31,21 +40,36 @@ export default class CommandPattern{
     }
     recordClose(){
         this.recording = false;
-        this.addCommand(new Complex(this.recordingBuffer));
-        // console.log(this.recordingBuffer);
-        this.recordingBuffer = [];
+        if (this.recordingBuffer.length){
+            this.commands.push(new Complex(this.recordingBuffer));
+            this.undoCommands = [];
+            this.recordingBuffer = [];
+        }
     }
     toJSON() {
         return {
-            commands: this.commands,
-            undoCommands: this.undoCommands,
+            COMMANDS: this.commands,
+            undoCOMMANDS: this.undoCommands,
         };
     }
-    fromJSON(json: any) {
-        this.commands = json.commands.map((cmd: any) => Command.fromJSON(cmd));
-        this.undoCommands = json.undoCommands.map((cmd: any) => Command.fromJSON(cmd));
-        this.recording = json.recording;
-        this.recordingBuffer = json.recordingBuffer.map((cmd: any) => Command.fromJSON(cmd));
+    static fromJSON(json:any, root:Mix):CommandPattern {
+        const cp = new CommandPattern();
+        cp.commands = this.unpackCommands(json.COMMANDS, root);
+        cp.undoCommands = this.unpackCommands(json.undoCOMMANDS, root);
+        return cp;
+    }
+    static unpackCommands(jsonCommands:any, root:Mix):Command[]{
+        const commands = []
+        if (jsonCommands) {
+            for (let cmd of jsonCommands) {
+                const command = Command.fromJSON(cmd, root);
+                if (command)
+                    commands.push(command);
+                else
+                    console.error("Command not found", cmd);
+            }
+        }
+        return commands;
     }
 }
 
@@ -62,21 +86,20 @@ export class Command {
             type: this.constructor.name
         };
     }
-
-    static fromJSON(json: any): Command {
+    static fromJSON(json:any, root:Mix): Command {
         switch (json.type) {
-            case 'Complex': return Complex.fromJSON(json);
-            case 'Create': return Create.fromJSON(json);
-            case 'Delete': return Delete.fromJSON(json);
-            case 'Move': return Move.fromJSON(json);
-            case 'Set': return Set.fromJSON(json);
+            case 'Complex': return Complex.fromJSON(json, root);
+            case 'Create': return Create.fromJSON(json, root);
+            case 'Delete': return Delete.fromJSON(json, root);
+            case 'Move': return Move.fromJSON(json, root);
+            // case 'Set': return Set.fromJSON(json, root);
             default: return new Command();
         }
     }
 }
 
 export class Complex extends Command{
-    constructor(private commands:Command[]){
+    constructor(public commands:Command[]){
         // console.log("Complex");
         super();
     }
@@ -96,9 +119,9 @@ export class Complex extends Command{
             commands: this.commands
         };
     }
-    static fromJSON(json: any): Complex {
+    static fromJSON(json: any, root:Mix): Complex {
         return new Complex(
-            json.commands.map((cmd: any) => Command.fromJSON(cmd))
+            CommandPattern.unpackCommands(json.commands, root)
         );
     }
 }
@@ -117,63 +140,62 @@ export class SimpleCommand extends Command {
 }
 
 export class Create extends SimpleCommand {
-    private places:number[];
-    constructor(subject:any, objects:any[], places:number[] = []){
+    constructor(subject:any, objects:any[], public places:number[]){
         super(subject, objects);
-        this.places = places;
-        this.places = this.do();
     }
     do(){
-        console.log("Create "+ this.objects);
+        console.log("Create "+ this.objects, this.places);
         return this.subject.create(this.objects, this.places);
     }
     undo(){
-        console.log("Delete "+ this.objects);
-        this.subject.delete(this.objects);
+        console.log("Delete "+ this.objects, this.places);
+        this.subject.delete(this.objects, this.places);
     }
     toJSON() {
-        // console.log(this.subject, this.object)
         return {
             ...super.toJSON(),
             places: this.places
         };
     }
-    static fromJSON(json: any): Create {
-        return new Create(json.subject, json.object, json.places);
+    static fromJSON(json:any, root:Mix): Create {
+        const objects = []
+        for (let object of json.objects){
+            objects.push(root.findByFullID(object));
+        }
+        return new Create(root.findByFullID(json.subject), objects, json.places);
     }
 }
 
 export class Delete extends SimpleCommand{
-    places:number[];
-    constructor(subject:any, objects:any[]){
+    constructor(subject:any, objects:any[], public places:number[]){
         super(subject, objects);
-        this.places = this.do();
     }
     do(){
-        console.log("Delete"+this.objects);
-        return this.subject.delete(this.objects);
+        console.log("Delete"+this.objects, this.places);
+        this.subject.delete(this.objects, this.places);
     }
     undo(){
-        console.log("Create"+this.objects);
+        console.log("Create"+this.objects, this.places);
         this.subject.create(this.objects, this.places);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            place: this.places
+            places: this.places
         };
     }
-    static fromJSON(json: any): Delete {
-        const cmd = new Delete(json.subject, json.object);
-        cmd.places = json.places;
-        return cmd;
+    static fromJSON(json:any, root:Mix): Delete {
+        const objects = []
+        for (let object of json.objects){
+            objects.push(root.findByFullID(object));
+        }
+        return new Delete(root.findByFullID(json.subject), objects, json.places);
     }
 }
 
 export class Move extends SimpleCommand{
     constructor(subject:any, objects:any[], private offset:number[]){
         super(subject, objects);
-        this.do();
     }
     do(){
         console.log("Move "+ this.offset);
@@ -189,36 +211,40 @@ export class Move extends SimpleCommand{
             offset: this.offset
         };
     }
-    static fromJSON(json: any): Move {
-        return new Move(json.subject, json.object, json.offset);
+    static fromJSON(json:any, root:Mix): Move {
+        const objects = []
+        for (let object of json.objects){
+            objects.push(root.findByFullID(object));
+        }
+        return new Move(root.findByFullID(json.subject), objects, json.offset);
     }
 }
 
-export class Set extends Command{
-    un:any;
-    constructor(private subject:any, private object:any){
-        super();
-        this.un = this.do();
-    }
-    do(){
-        console.log("Set");
-        return this.subject.set(this.object);
-    }
-    undo(){
-        console.log("unSet");
-        this.subject.set(this.un);
-    }
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            subject: this.subject.getFullId(),
-            object: this.object.getFullId(),
-            un: this.un
-        };
-    }
-    static fromJSON(json: any): Set {
-        const cmd = new Set(json.subject, json.object);
-        cmd.un = json.un;
-        return cmd;
-    }
-}
+// export class Set extends Command{
+//     un:any;
+//     constructor(private subject:any, private object:any){
+//         super();
+//         if (go) this.un = this.do();
+//     }
+//     do(){
+//         console.log("Set");
+//         return this.subject.set(this.object);
+//     }
+//     undo(){
+//         console.log("unSet");
+//         this.subject.set(this.un);
+//     }
+//     toJSON() {
+//         return {
+//             ...super.toJSON(),
+//             subject: this.subject.getFullId(),
+//             object: this.object.getFullId(),
+//             un: this.un
+//         };
+//     }
+//     static fromJSON(json:any, root:Mix): Set {
+//         const cmd = new Set(root.findByFullID(json.subject), root.findByFullID(json.object));
+//         cmd.un = json.un;
+//         return cmd;
+//     }
+// }

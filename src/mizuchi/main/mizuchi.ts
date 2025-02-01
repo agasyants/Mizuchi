@@ -8,6 +8,12 @@ import Score from "../data/score";
 
 export default class Mizuchi{
     constructor(){
+        const resetButton = document.getElementById('test');
+        if (resetButton){
+            resetButton.addEventListener("click", () => {
+                localStorage.setItem('key', '');
+            })
+        }
         const mix:Mix = new Mix();
         const start_input = document.getElementById('loop_start') as HTMLInputElement;
         start_input.addEventListener("change", () => {
@@ -29,8 +35,7 @@ export default class Mizuchi{
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
         
-        const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0),mix);
-        
+        const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0), mix);
 
         const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
         

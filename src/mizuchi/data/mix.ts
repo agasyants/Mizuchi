@@ -1,14 +1,15 @@
 import Score from "./score";
 import Track from "./track";
-// import Note from "../classes/note";
-import { FromTrackNode, NodeSpace } from "../classes/node";
+import Node, { FromTrackNode, NodeSpace } from "../classes/node";
 import { ScoreSelection, TrackSelection } from "../classes/selection";
-import { IdArray } from "../classes/id_component";
+import IdComponent, { IdArray } from "../classes/id_component";
 import CommandPattern from "../classes/CommandPattern";
+import Note from "../classes/note";
 
 export default class Mix {
     tracks = new IdArray<Track>();
     nodeSpace:NodeSpace = new NodeSpace(0,0,0,this);
+    deleted:any = [];
 
     bpm: number = 120;
     start:   number = 0;
@@ -26,6 +27,7 @@ export default class Mix {
     constructor(){
         let data = localStorage.getItem('key');
         if (data){
+            console.log(data);
             this.load(JSON.parse(data));
         } else {
             this.create([new Track('track '+ (this.tracks.length+1).toString(), this, 0), new Track('track '+ (this.tracks.length+1).toString(), this, 1)]);
@@ -48,78 +50,104 @@ export default class Mix {
             tracks_number_on_screen: this.tracks_number_on_screen,
             MIX_NODE_SPACE: this.nodeSpace,
             TRACKS: this.tracks,
-            CommandPattern: this.commandPattern
+            CommandPattern: this.commandPattern,
+            del: '',
+            deleted: this.deleted
         }
+    }
+    static isStringNumber(str:string): boolean{
+        return /^-?\d+(\.\d+)?$/.test(str);
+    }
+    findByFullID(fullId:string): any {
+        if (!fullId) return this;
+        if (Mix.isStringNumber(fullId)){
+            return this.deleted[Number(fullId)];
+        }
+        if (fullId.startsWith(Track.getSeparator())){
+            fullId = fullId.slice(Track.getSeparator().length);
+            const index = parseInt(fullId, 10)
+            return IdComponent.findByID(this.tracks, index).findByFullID(fullId.slice(String(index).length));
+        } 
+        else if (fullId.startsWith(Node.getSeparator())){
+            fullId = fullId.slice(Node.getSeparator().length);
+            const index = parseInt(fullId, 10)
+            return IdComponent.findByID(this.nodeSpace.nodes, index).findByFullID(fullId.slice(String(index).length));
+        }
+        console.error('mix "'+String(fullId)+'"');
+        return null;
     }
     save() {
         const seen = new Set();
         const replacer = (key: string, value: unknown) => {
-            // Пропускаем циклические ссылки
-            if (typeof value === "object" && value !== null) {
+            if (key === 'del')
+                for (let del of this.deleted)
+                    del.parent = this;
+            if (typeof value === "object" && value !== null){
                 if (seen.has(value)) {
-                    console.log("ERRRROORR", key, value);
-                    return undefined; // Пропускаем цикл
+                    console.error("ERRRROORR", key, value);
+                    return undefined;
                 }
+                if (value instanceof IdComponent){
+                    if (value.parent === null) {
+                        if (!this.deleted.includes(value)) { 
+                            console.log('finded');
+                            this.deleted.push(value);
+                        }
+                        return String(this.deleted.indexOf(value));
+                    }
+                } 
                 seen.add(value);
-            }
+            } 
             return value;
         };
-        console.log(JSON.stringify(this, replacer));
-        // localStorage.setItem('key', JSON.stringify(this, replacer));
+        const log = JSON.stringify(this, replacer)
+        console.log(log);
+        localStorage.setItem('key', log);
     }
-    load(data:any){
-        console.log(data);
-        // this.bpm = data.bpm;
-        // for (let track of data.tracks){
-        //     const newTrack = new Track(track.name, this, track.id);
-        //     for (let score of track.scores){
-        //         const newScore = new Score(score.absolute_start, score.id, score.duration, score.loop_duration, score.relative_start);
-        //         newScore.lowest_note = score.lowest_note;
-        //         for (let note of score.notes){
-        //             newScore.notes.push(new Note(note.pitch, note.start, note.duration));
-        //         }
-        //         newTrack.scores.push(newScore);
-        //     }
-        //     this.tracks.push(newTrack);
-        // }
-    }
-    create(sel:Track[]|Score[], pos:number[]=[]){
-        if (sel.every(item => item instanceof Track)){
-            for (let i = 0; i < sel.length; i++){
-                if (this.tracks.length <= i) pos.push(this.tracks.length+i-1);
-                this.tracks.splice(pos[i], 0, sel[i]);
-            }
-        } else if (sel.every(item => item instanceof Score)){
-            for (let i = 0; i < sel.length; i++){
-                if (this.tracks.length <= i) {
-                    pos.push(0);
-                    console.log('ERRoR');
-                }
-                this.tracks[pos[i]].scores.push(sel[i]);
+    load(json:any){
+        console.log(json);
+        this.bpm = json.bpm;
+        this.start = json.start;
+        this.loop_start = json.loop_start;
+        this.loop_end = json.loop_end;
+        this.loopped = json.loopped;
+        this.tracks_number_on_screen = json.tracks_number_on_screen;
+        
+        this.nodeSpace = NodeSpace.fromJSON(json.MIX_NODE_SPACE, this, this);
+        const tracks = []
+        for (let track of json.TRACKS.data)
+            tracks.push(Track.fromJSON(track, this, this));
+        this.tracks = IdArray.fromJSON(tracks, json.TRACKS.increment);
+
+        for (let del of json.deleted){
+            console.log('del', del.sep);
+            if (del.sep == Track.getSeparator()){
+                this.deleted.push(Track.fromJSON(del, null, this));
+            } else if (del.sep == Score.getSeparator()) {
+                this.deleted.push(Score.fromJSON(del, null));
+            } else if (del.sep == Note.getSeparator()) {
+                this.deleted.push(Note.fromJSON(del, null));
+            } else if (del.sep == Node.getSeparator()) {
+                this.deleted.push(Node.fromJSON(del, null, this));
+            } else {
+                console.log('else');
+                this.deleted.push(del);
             }
         }
-        return pos;
+        this.commandPattern = CommandPattern.fromJSON(json.CommandPattern, this);
+        console.log(this.commandPattern);
     }
-    delete(sel:Track[]|Score[]):number[]{
-        const positions = []
-        if (sel.every(item => item instanceof Track)){
-            for (let i = sel.length-1; i >= 0; i--){
-                const index = this.tracks.indexOf(sel[i]);
-                this.tracks.splice(this.tracks.indexOf(sel[i]), 1);
-                positions.unshift(index)
-            }
-        } else if (sel.every(item => item instanceof Score)){
-            for (let i = sel.length-1; i >= 0; i--){
-                for (let track of this.tracks){
-                    const index = track.scores.indexOf(sel[i]);
-                    if (index > -1) {
-                        track.scores.splice(index, 1);
-                        positions.unshift(this.tracks.indexOf(track));
-                    }
-                }
-            }
+    create(tracks:Track[], indexes:number[]=[]){
+        for (let i = 0; i < tracks.length; i++){
+            tracks[i].parent = this;
+            this.tracks.splice(indexes[i], 0, tracks[i]);
         }
-        return positions;
+    }
+    delete(sel:Track[], indexes:number[]){
+        for (let i = sel.length-1; i >= 0; i--){
+            sel[i].parent = null;
+            this.tracks.splice(indexes[i], 1);
+        }
     }
     move(sel:Track[]|Score[], [start, dur, loop, rel]:number[], reverse:boolean){
         if (reverse){

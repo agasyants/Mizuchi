@@ -180,10 +180,10 @@ export default class score_drawer_controller {
             if (!shift) {
                 x = Math.floor(x)
             }
-            this.setSS1(x, y);
-            this.setSS2(x, y);
+            this.sectorsSelection.setSS1(x, y);
+            this.sectorsSelection.setSS2(x, y);
         } else {
-            this.setSS2(Math.floor(x), y);
+            this.sectorsSelection.setSS2(Math.floor(x), y);
             this.select();
         }
     }
@@ -252,7 +252,7 @@ export default class score_drawer_controller {
     }
     private set(x:number, y:number){
         x = Math.floor(x);
-        this.setSS1(x, y);
-        this.setSS2(x, y);
+        this.sectorsSelection.setSS1(x, y);
+        this.sectorsSelection.setSS2(x, y);
     }
 }

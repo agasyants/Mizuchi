@@ -6,24 +6,35 @@ export default class Note extends IdComponent {
     pitch:number;
     start:number;
     duration:number;
+    static getSeparator(){
+        return "n";
+    }
     constructor(pitch:number|string, start:number, duration:number, id:number, parent:Score|NoteSelection|null=null) {
-        super(id,"nt",parent);
-        this.parent = parent;
+        super(id, Note.getSeparator(), parent);
         if (typeof pitch === 'string') {
             this.pitch = Note.pitchToNumber(pitch);
-        }
-        else{
+        } else {
             this.pitch = pitch;
         }
         this.start = start;
         this.duration = duration;
     }
-    toJSON() {
+    returnJSON(){
         return {
+            sep: Note.getSeparator(),
             pitch: this.pitch,
             start: this.start,
-            duration: this.duration
+            duration: this.duration,
+            id: this.id
         }
+    }
+    findByFullID(fullID:string) {
+        if (fullID.length==0) return this;
+        console.error('note', fullID);
+        return null;
+    }
+    static fromJSON(json:any, parent:Score|null=null):Note {
+        return new Note(json.pitch, json.start, json.duration, json.id, parent);
     }
     getFrequency():number{
         return 440 * Math.pow(2, (this.pitch - 69) / 12);

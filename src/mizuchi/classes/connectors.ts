@@ -6,12 +6,13 @@ import Output from "./Output";
 export default class Connector extends IdComponent{
     input:Output|null = null;
     output:Input|null = null;
+    static getSeparator(){ return 'c'; }
     constructor(id:number,parent:NodeSpace,input:Output|null=null,output:Input|null=null){
-        super(id,'c',parent);
+        super(id, Connector.getSeparator(), parent);
         this.input = input;
         this.output = output;
     }
-    toJSON() {
+    returnJSON() {
         let inp;
         if (this.input == null) inp = null;
         else inp = this.input.getFullId();
@@ -22,6 +23,11 @@ export default class Connector extends IdComponent{
             input: inp,
             output: out
         };
+    }
+    findByFullID(fullID:string) {
+        if (fullID.length==0) return this;
+        console.error('con', fullID);
+        return null;
     }
     static fromJSON(json: any, parent: NodeSpace): Connector {
         const input = parent.findOutputById(json.input);

@@ -2,7 +2,7 @@ import Score from "../data/score";
 import { NoteSelection } from "../classes/selection";
 import Note from "../classes/note";
 import CommandPattern from "../classes/CommandPattern";
-import score_drawer_controller from "./score_drawer_controller";
+import score_drawer_controller from "./score_controller";
 import hovered from "../classes/hovered";
 import Drawer from "./Drawer";
 import Mix from "../data/mix";

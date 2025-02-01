@@ -1,18 +1,15 @@
 import Mix from "../data/mix";
 import Score from "../data/score";
-// import OscDrawer from "../drawers/osc_drawer";
 import ScoreDrawer from "./score_drawer";
-import Track from "../data/track";
+// import Track from "../data/track";
 // import {TrackSelection, ScoreSelection} from "../classes/selection";
-import CommandPattern, { Complex, Create, Delete, Move } from "../classes/CommandPattern";
 import Drawer from "./Drawer";
 import WindowController from "../classes/WindowController";
-
+import MixController from "./mix_controller";
+import { HoveredMix } from "../classes/hovered";
+import SectorSelection from "../classes/SectorSelection";
 
 export default class MixDrawer extends Drawer {
-    // render(): void {
-    //     throw new Error("Method not implemented.");
-    // }
     show_id:boolean = true;
 
     drugged:boolean = false;
@@ -30,25 +27,19 @@ export default class MixDrawer extends Drawer {
     y_max:number=0;
     x:number = 0;
     x_max:number=0;
-
-    ctrl:boolean = false;
     
     slicerMode:boolean = true;
 
-    hovered: {scores:Score[],pos:number[],track:Track|null,start:boolean,end:boolean} = {
-        scores:[], 
-        pos:[],
-        track:null,
-        start:false,
-        end:false
-    }
+    hovered: HoveredMix = new HoveredMix();
     
-    sectorsSelection:{x1:number,y1:number,x2:number,y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
-    commandPattern:CommandPattern;
     tracks_min_max:number[][] = [];
+    sectorsSelection:SectorSelection = new SectorSelection();
 
     input_x:number = -1;
     input_y:number = -1;
+
+    controller:MixController;
+
     constructor(
         public canvas:HTMLCanvasElement, 
         public mix:Mix,
@@ -57,7 +48,7 @@ export default class MixDrawer extends Drawer {
         height:number)
     {
         super(canvas);
-        this.commandPattern = mix.commandPattern;
+        this.controller = new MixController(mix, mix.commandPattern, this, this.hovered, this.sectorsSelection, score_window)
         this.setCanvasSize(width,height);
         
         this.calcMinMax();
@@ -123,11 +114,12 @@ export default class MixDrawer extends Drawer {
             }
         });
         canvas.addEventListener('dblclick', () => {
-            this.doubleInput(this.input_x, this.input_y);
+            if (this.input_x >= this.margin_left && this.input_x <= this.w-this.margin_left && this.input_y >= this.margin_top && this.input_y <= this.h-this.margin_top)
+                this.controller.doubleInput();
         });
         canvas.addEventListener('keydown', (e) => {
             if (e.code=="ControlLeft"){
-                this.ctrl = true;
+                this.controller.ctrl = true;
             }
             if (e.code=="KeyQ"){
                 this.slicerMode = !this.slicerMode;
@@ -138,22 +130,22 @@ export default class MixDrawer extends Drawer {
             }
             if (e.code=="KeyJ" && e.ctrlKey){
                 if (this.mix.selected.scores.elements.length)
-                    this.concatScores();
+                    this.controller.concatScores();
             }
             if (e.code=="KeyA" && e.ctrlKey){
-                this.selectAll(e.shiftKey);
+                this.controller.selectAll(e.shiftKey);
             }
             if (e.code=="KeyD" && e.ctrlKey){
-                this.dublicate();
+                this.controller.dublicate();
             }
             if (e.code=="Delete" || e.code=="Backspace"){
-                this.delete();
+                this.controller.deleteSelected();
             }
             if (e.code=="KeyZ" && e.ctrlKey){
                 if (e.shiftKey){
-                    this.commandPattern.redo();
+                    this.controller.commandPattern.redo();
                 } else {
-                    this.commandPattern.undo();
+                    this.controller.commandPattern.undo();
                 } this.calcHeights();
             }
             this.calcMinMax();
@@ -162,7 +154,7 @@ export default class MixDrawer extends Drawer {
         });
         canvas.addEventListener('keyup', (e) => {
             if (e.code=="ControlLeft"){
-                this.ctrl = false;
+                this.controller.ctrl = false;
                 this.hitScan();
                 this.render();
             }
@@ -234,7 +226,7 @@ export default class MixDrawer extends Drawer {
                 this.mix.select(this.hovered.scores,this.sectorsSelection.x1,this.sectorsSelection.x2);
                 this.hovered.scores = [];
             } else {
-                this.applyChanges();
+                this.controller.applyChanges();
             }
             if (this.mix.selected.scores.end-this.mix.selected.scores.start){
                 this.mix.start = this.mix.selected.scores.start/2;
@@ -266,130 +258,35 @@ export default class MixDrawer extends Drawer {
         this.score_w = this.width/this.score_number_on_screen;
         this.calcMaxes();
     }
-    applyChanges(){
-        const ss = this.mix.selected.scores;
-        if (ss.offset.start || ss.offset.pitch || ss.offset.duration || this.ctrl){
-            this.commandPattern.recordOpen()
-            const offset = ss.offset;
-            if (this.ctrl && !offset.duration){
-                for (let i = 0; i < ss.elements.length; i++){
-                    this.commandPattern.addCommand(new Create(this.mix, ss.elements.slice(), ss.track_index.slice()));
-                }
+        calcHeights(){
+            let h = 0;
+            this.heights = [];
+            for (let track of this.mix.tracks){
+                this.heights.push(h);
+                h+=track.renderHeight;
             }
-            if (ss.offset.pitch){
-                const scores = []
-                const indexes = []
-                for (let i = 0; i < ss.elements.length; i++){
-                    const score = ss.elements[i];
-                    this.commandPattern.addCommand(new Delete(this.mix, [score]));
-                    const parent_index = ss.track_index[i] + offset.pitch;
-                    const new_score = score.clone(this.mix.tracks[parent_index]);
-                    this.commandPattern.addCommand(new Create(this.mix, [new_score], [parent_index]));
-                    scores.push(new_score)
-                    indexes.push(parent_index)
-                }
-                ss.set(scores, indexes)
-            }
-            this.moveSelectedScores();
-            this.commandPattern.recordClose()
-            this.calcMinMax();
-            ss.clear();
-        }
-    }
-    moveSelectedScores(){
-        const ss = this.mix.selected.scores;
-        const start = ss.offset.start;
-        const dur = ss.offset.duration;
-        const loop = ss.offset.loop_duration;
-        this.commandPattern.addCommand(new Move(this.mix, ss.elements.slice(), [start, dur, loop, ss.offset.rel]));
-        ss.start += start;
-        ss.end =  ss.end + start + dur;
-    }
-    calcHeights(){
-        let h = 0;
-        this.heights = [];
-        for (let track of this.mix.tracks){
             this.heights.push(h);
-            h+=track.renderHeight;
+            // console.log(this.heights);
         }
-        this.heights.push(h);
-        console.log(this.heights);
-    }
-    calcMaxes(){
-        this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
-        if (this.y_max<0) this.y_max = 0;
-        this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
-        if (this.x_max<0) this.x_max = 0;
-    }
-    calcMinMax(){
-        this.tracks_min_max = [];
-        for (let track of this.mix.tracks){
-            let min = 127;
-            let max = 0;
-            for (let score of track.scores){
-                for (let note of score.notes){
-                    min = Math.min(min, note.pitch);
-                    max = Math.max(max, note.pitch);
-                }
-            } this.tracks_min_max.push([min, max]);
+        calcMaxes(){
+            this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
+            if (this.y_max<0) this.y_max = 0;
+            this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
+            if (this.x_max<0) this.x_max = 0;
         }
-    }
-    delete(){
-        if (this.mix.selected.scores.elements.length) {  // delete elements scores
-            const commands = [];
-            const elements = this.mix.selected.scores.elements.slice();
-            this.mix.selected.scores.clear();
-            this.mix.selected.scores.elements = [];
-            this.mix.selected.scores.track_index = [];
-            commands.push(new Delete(this.mix, elements.slice()));
-            this.commandPattern.addCommand(new Complex(commands));
-            this.calcMinMax();
-        } 
-        else if (this.mix.selected.tracks.elements.length) { // delete elements tracks
-            this.mix.selected.tracks.index = [];
-            this.mix.commandPattern.addCommand(new Delete(this.mix, this.mix.selected.tracks.elements.slice()));
-            this.mix.selected.tracks.elements = [];
-            this.calcHeights();
-        }
-        this.calcMaxes();
-    }
-    dublicate(){
-        const s = this.mix.selected.scores;
-        const commands = [];
-        commands.push(new Create(this.mix, s.elements.slice(), s.track_index.slice()));
-        commands.push(new Move(this.mix, s.elements.slice(), [s.end-s.start, 0, 0, 0, 0]));
-        this.commandPattern.addCommand(new Complex(commands))
-    }
-    selectAll(shift:boolean){
-        const scores = [];
-        for (let track of this.mix.tracks){
-            for (let score of track.scores){
-                if (shift && this.mix.selected.scores.elements.includes(score)) continue;
-                scores.push(score);
+        calcMinMax(){
+            this.tracks_min_max = [];
+            for (let track of this.mix.tracks){
+                let min = 127;
+                let max = 0;
+                for (let score of track.scores){
+                    for (let note of score.notes){
+                        min = Math.min(min, note.pitch);
+                        max = Math.max(max, note.pitch);
+                    }
+                } this.tracks_min_max.push([min, max]);
             }
         }
-        this.mix.select(scores,this.sectorsSelection.x1,this.sectorsSelection.x2);
-    }
-    concatScores(){
-        const s = this.mix.selected.scores;
-        if (s.max - s.min === 0) {
-            let dur = 0;
-            const parent = this.mix.tracks[s.track_index[0]];
-            const new_score = new Score(parent, parent.scores.getNewId(), s.start, s.end-s.start, s.end-s.start);
-            let lowest_note = 0;
-            for (let score of s.elements){
-                lowest_note += score.lowest_note;
-                new_score.create(score.getNotes(dur));
-                dur += score.duration;
-            } 
-            new_score.lowest_note = Math.floor(lowest_note/s.elements.length);
-            this.commandPattern.recordOpen();
-            this.commandPattern.addCommand(new Create(this.mix, [new_score], s.track_index.slice()));
-            this.delete();
-            this.mix.select([new_score], this.sectorsSelection.x1, this.sectorsSelection.x2);
-            this.commandPattern.recordClose();
-        }
-    }
     render(){
         requestAnimationFrame(()=>{this._render()});
     }
@@ -647,43 +544,6 @@ export default class MixDrawer extends Drawer {
             this.ctx.closePath();
         }
     }
-    doubleInput(x:number, y:number){
-        if (x >= this.margin_left && x <= this.w-this.margin_left && y >= this.margin_top && y <= this.h-this.margin_top){
-            if (!this.hovered.track) {
-                // creating new track
-                this.commandPattern.addCommand(new Create(this.mix, [new Track('track', this.mix, this.mix.tracks.getNewId())], [this.mix.tracks.length]));
-                this.calcMaxes();
-                this.calcHeights();
-                this.render();
-            } else if (this.mix.selected.scores.elements.length) {
-                // open score
-                const drawer = this.score_window.drawer;
-                if (drawer instanceof ScoreDrawer) {
-                    if (drawer.canvas.style.display=='block') {
-                        this.score_window.close();
-                    } else {
-                        drawer.controller.setScore(this.mix.selected.scores.getLast());
-                        this.score_window.open();
-                    }
-                }
-            } else {
-                // creating new score
-                let new_score;
-                const len = (this.mix.selected.scores.end-this.mix.selected.scores.start);
-                if (len)
-                    new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2, len, len, 0);
-                else 
-                    new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2);
-                this.commandPattern.addCommand(new Create(this.mix, [new_score], [this.mix.tracks.indexOf(this.hovered.track)]));
-                this.calcMaxes();
-                this.calcMinMax();
-                this.render();
-            }
-            if (this.hitScan()){
-                this.render();
-            }
-        }
-    }
     getMatrix(x:number,y:number){
         return [(x+this.x/this.width)*this.score_number_on_screen, (y+this.y/this.height)*this.mix.tracks_number_on_screen];
     }
@@ -691,92 +551,6 @@ export default class MixDrawer extends Drawer {
         x = (x - this.margin_left)/this.width;
         y = (y - this.margin_top)/this.height;
         return [x,y];
-    }
-    private round(x:number, shift:boolean){
-        if (!shift)
-            return Math.round(x);
-        return x;
-    }
-    drug(x:number, y:number, alt:boolean, shift:boolean){
-        // if (y<2){
-        //     this.clearInterval();
-        //     this.scrollInterval = setInterval(() => this.scroll(1), 100*Math.pow(y/2,2));
-        // } else if (y>=this.notes_width_count-2){
-        //     this.clearInterval();
-        //     this.scrollInterval = setInterval(() => this.scroll(-1), 100*Math.pow((y-this.notes_width_count)/2,2));
-        // } else {
-        //     this.clearInterval();
-        // }
-        // y = Math.floor(y);
-        // if (!shift) {
-        //     x = Math.round(x);
-        // }
-        if (this.mix.selected.scores.elements.length && this.hovered.scores.length && !shift){
-            const s = this.mix.selected.scores;
-            const str = this.hovered.scores[0].absolute_start % 1;
-            const dur = (this.hovered.scores[0].absolute_start + this.hovered.scores[0].duration) % 1;
-
-            if (this.hovered.start) {
-                s.offset.start = (x - this.round(s.drugged_x, shift) - str) * this.len;
-                s.offset.duration = (this.round(s.drugged_x, shift) - x + str) * this.len;
-                if (this.ctrl && this.mix.selected.scores.elements.length == 1){
-                    s.offset.loop_duration = this.hovered.scores[0].duration - this.hovered.scores[0].loop_duration + s.offset.duration;
-                } else {
-                    s.offset.loop_duration = 0;
-                    s.offset.rel = s.offset.start % s.elements[0].loop_duration;
-                }
-            } else if (this.hovered.end) {
-                s.offset.duration = (this.round(x - s.drugged_x, shift) - dur) * this.len;
-                if (this.ctrl && this.mix.selected.scores.elements.length == 1){
-                    s.offset.loop_duration = this.hovered.scores[0].duration - this.hovered.scores[0].loop_duration + s.offset.duration;
-                } else {
-                    s.offset.loop_duration = 0;
-                }
-            } else {
-                s.offset.start = (x - s.drugged_x) * this.len;
-                if (s.offset.start + s.start < 0) {
-                    s.offset.start =- s.start;
-                }
-                s.offset.pitch = y - s.drugged_y;
-            }
-            if (alt) {
-                x = Math.round(x+0.5)
-            }
-            // console.log(s.offset.start+s.start, s.offset.duration+s.elements[0].duration, s.elements[0].loop_duration+s.offset.loop_duration);
-            this.setSS1(x, y);
-            this.setSS2(x, y);
-        } else if (this.mix.selected.tracks.elements.length && this.hovered.track) {
-            console.log('bbb');
-        }
-        else {
-            this.setSS2(x, y);
-            this.select();
-        }
-    }
-    select(){
-        this.hovered.scores = [];
-        this.hovered.pos = [];
-        const ss = this.sectorsSelection;
-        const x_min = Math.min(ss.x1, ss.x2) * this.len; 
-        const x_max = Math.max(ss.x1, ss.x2) * this.len;
-        const y_min = Math.min(ss.y1, ss.y2);
-        const y_max = Math.max(ss.y1, ss.y2);
-        for (let i = 0; i < this.mix.tracks.length; i++){
-            for (let score of this.mix.tracks[i].scores){
-                if ((x_min <= score.absolute_start+score.duration-1 && score.absolute_start <= x_max) && (y_min <= i && y_max >= i)){
-                    this.hovered.scores.push(score);
-                    this.hovered.pos.push(i)
-                }
-            }
-        }
-    }
-    setSS1(x:number, y:number){
-        this.sectorsSelection.x1 = x;
-        this.sectorsSelection.y1 = y;
-    }
-    setSS2(x:number, y:number){
-        this.sectorsSelection.x2 = x;
-        this.sectorsSelection.y2 = y;
     }
     hitScan(alt:boolean=false, shift:boolean=false, range:number=4):boolean{
         let x = this.input_x;
@@ -793,7 +567,7 @@ export default class MixDrawer extends Drawer {
         x = Math.floor(x);
         y = Math.floor(y);
         if (this.drugged) {
-            this.drug(x, y, alt, shift);
+            this.controller.drug(x, y, alt, shift);
             return true;
         }
         let h = 0;
@@ -801,8 +575,8 @@ export default class MixDrawer extends Drawer {
             if (y == h){
                 this.hovered.track = this.mix.tracks[i];
                 if (x-this.x < this.score_number_on_screen) {
-                    this.setSS1(x, y);
-                    this.setSS2(x, y);
+                    this.sectorsSelection.setSS1(x, y);
+                    this.sectorsSelection.setSS2(x, y);
                     for (let score of this.mix.tracks[i].scores) {
                         this.hovered.end = false;
                         this.hovered.start = false;
@@ -831,24 +605,18 @@ export default class MixDrawer extends Drawer {
                     this.hovered.pos = [];
                     return true;
                 }
-                this.zero();
+                this.sectorsSelection.zero();
                 return true;
             } 
             h += this.mix.tracks[i].renderHeight;
         } 
         this.hovered.scores = [];
-        this.setSS1(x, y);
-        this.setSS2(x, y);
+        this.sectorsSelection.setSS1(x, y);
+        this.sectorsSelection.setSS2(x, y);
         let result = false;
         if (this.hovered.scores.length || this.hovered.track) result = true;
         this.hovered.scores = [];
         this.hovered.track = null;
         return result;
-    }
-    zero(){
-        this.sectorsSelection.x1 = -1;
-        this.sectorsSelection.y1 = -1;
-        this.sectorsSelection.x2 = -1;
-        this.sectorsSelection.y2 = -1;
     }
 }

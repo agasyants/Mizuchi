@@ -1,15 +1,46 @@
 export default abstract class IdComponent {
     public id: number;
-    public separator: string;
-
-    constructor(id:number, separator:string, public parent:any|null) {
+    constructor(id:number, public separator:string, public parent:any|null) {
         this.id = id;
-        this.separator = separator;
     }
     getFullId():string {
         if (this.parent == null) 
-            return this.separator + this.id.toString();
+            return this.toJSON();
         return this.parent.getFullId() + this.separator + this.id.toString();
+    }
+    abstract returnJSON():any;
+    abstract findByFullID(fullID:string):any;
+    static getSeparator():string {return 'null'};
+    // static splitFullID(fullID:string, Class: typeof IdComponent):any[]{
+    //     if (fullID.startsWith(Class.getSeparator())){
+    //         fullID = fullID.slice(Class.getSeparator().length);
+    //         const index = parseInt(fullID, 10)
+    //         return [fullID, index];
+    //     }
+    //     return [fullID, -1];
+    // }
+    toJSON() {
+        if (this.parent === null) {
+            return this;
+        } else { 
+            return this.returnJSON();
+        }
+    }
+    static findByID(array:IdComponent[], id:number):any{
+        for (let i = 0; i < array.length; i++){
+            if (array[i].id == id){
+                return array[i];
+            }
+        } console.error('not found');
+        return null;
+    }
+    findByID(array:IdComponent[], id:number):any{
+        for (let i = 0; i < array.length; i++){
+            if (array[i].id == id){
+                return array[i];
+            }
+        } console.error('not found');
+        return null;
     }
 }
 
@@ -25,10 +56,10 @@ export class IdArray<T> extends Array<T> {
             data: [...this],
         };
     }
-    static fromJSON<T>(json: { data: T[]; increment: number }): IdArray<T> {
+    static fromJSON<T>(data: T[], increment: number): IdArray<T> {
         const idArray = new IdArray<T>();
-        idArray.push(...json.data);
-        idArray.increment = json.increment;
+        idArray.push(...data);
+        idArray.increment = increment;
         return idArray;
     }
     getNewId(){

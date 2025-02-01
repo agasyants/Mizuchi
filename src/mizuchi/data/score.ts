@@ -7,12 +7,15 @@ export default class Score extends IdComponent {
     notes:IdArray<Note> = new IdArray<Note>()
     lowest_note: number = 16;
     selection:NoteSelection = new NoteSelection();
-    constructor(parent:Track, id:number, public absolute_start:number, public duration:number = 32, public loop_duration:number = 32, public relative_start:number = 0){
-        super(id, "nd", parent);
-        this.parent = parent;
+    static getSeparator(){
+        return 's';
     }
-    toJSON() {
+    constructor(parent:Track|null, id:number, public absolute_start:number, public duration:number = 32, public loop_duration:number = 32, public relative_start:number = 0){
+        super(id, Score.getSeparator(), parent);
+    }
+    returnJSON() {
         return {
+            sep: Score.getSeparator(),
             id: this.id,
             lowest_note: this.lowest_note,
             absolute_start: this.absolute_start,
@@ -21,6 +24,32 @@ export default class Score extends IdComponent {
             relative_start: this.relative_start,
             notes: this.notes
         };
+    }
+    findByFullID(fullID:string) {
+        if (fullID.length==0) return this;
+        if (fullID.startsWith(Note.getSeparator())){
+            fullID = fullID.slice(Note.getSeparator().length);
+            const index = parseInt(fullID, 10)
+            return this.findByID(this.notes,index).findByFullID(fullID.slice(String(index).length));
+        }
+        console.error('score', fullID);
+        return null;
+    }
+    static fromJSON(json: any, parent: Track|null): Score {
+        const score = new Score(
+            parent,
+            json.id,
+            json.absolute_start,
+            json.duration,
+            json.loop_duration,
+            json.relative_start
+        );
+        score.lowest_note = json.lowest_note;
+        const notes = []
+        for (let note of json.notes.data)
+            notes.push(Note.fromJSON(note, score));
+        score.notes = IdArray.fromJSON(notes, json.notes.increment);
+        return score;
     }
     create(notes:Note[]){
         for (let new_note of notes){
@@ -68,6 +97,7 @@ export default class Score extends IdComponent {
     delete(notes:Note[]) {
         notes.forEach(note => {
             this.notes.splice(this.notes.indexOf(note), 1);
+            note.parent = null;
         });
         // require rework
     }
@@ -97,13 +127,8 @@ export default class Score extends IdComponent {
             c.end = 0;
         }
     }
-    clone(new_parent:Track|null=null){
-        let parent;
-        if (new_parent)
-            parent = new_parent;
-        else
-            parent = this.parent;
-        const score = new Score(parent, parent.scores.getNewId(), this.absolute_start, this.duration, this.loop_duration, this.relative_start);
+    clone(new_id:number=-1){
+        const score = new Score(null, new_id, this.absolute_start, this.duration, this.loop_duration, this.relative_start);
         for (let note of this.notes){
             score.notes.push(new Note(note.pitch, note.start, note.duration, note.id, this));
         }
