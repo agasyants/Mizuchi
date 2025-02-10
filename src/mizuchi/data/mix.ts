@@ -23,6 +23,8 @@ export default class Mix {
 
     selected:{scores:ScoreSelection, tracks:TrackSelection} = {scores:new ScoreSelection(), tracks:new TrackSelection()};
     tracks_number_on_screen:number = 6;
+
+    fullIDs:{[key:string]:any}[] = [];
     
     constructor(){
         let data = localStorage.getItem('key');
@@ -30,9 +32,10 @@ export default class Mix {
             console.log(data);
             this.load(JSON.parse(data));
         } else {
-            this.create([new Track('track '+ (this.tracks.length+1).toString(), this, 0), new Track('track '+ (this.tracks.length+1).toString(), this, 1)]);
+            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 0), 0);
+            this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 1), 1);
             this.tracks.increment = 2;
-            const mixNode = new FromTrackNode(0,0,1,this,this.tracks);
+            const mixNode = new FromTrackNode(0,0,1,this.tracks);
             this.nodeSpace.add(mixNode);
             this.nodeSpace.connectNodes(mixNode, this.nodeSpace.outputNode, 0);
         }
@@ -59,19 +62,21 @@ export default class Mix {
         return /^-?\d+(\.\d+)?$/.test(str);
     }
     findByFullID(fullId:string): any {
+        console.log("fullId:", fullId)
         if (!fullId) return this;
         if (Mix.isStringNumber(fullId)){
             return this.deleted[Number(fullId)];
         }
         if (fullId.startsWith(Track.getSeparator())){
             fullId = fullId.slice(Track.getSeparator().length);
-            const index = parseInt(fullId, 10)
-            return IdComponent.findByID(this.tracks, index).findByFullID(fullId.slice(String(index).length));
+            const id = parseInt(fullId, 10)
+            return IdComponent.findByID(this.tracks, id).findByFullID(fullId.slice(String(id).length));
         } 
         else if (fullId.startsWith(Node.getSeparator())){
             fullId = fullId.slice(Node.getSeparator().length);
-            const index = parseInt(fullId, 10)
-            return IdComponent.findByID(this.nodeSpace.nodes, index).findByFullID(fullId.slice(String(index).length));
+            const id = parseInt(fullId, 10)
+            console.log('b')
+            return IdComponent.findByID(this.nodeSpace.nodes, id).findByFullID(fullId.slice(String(id).length));
         }
         console.error('mix "'+String(fullId)+'"');
         return null;
@@ -104,6 +109,9 @@ export default class Mix {
         console.log(log);
         localStorage.setItem('key', log);
     }
+    setAsideFullID(fullID:string, cell:any){
+        this.fullIDs.push({fullID, cell});
+    }
     load(json:any){
         console.log(json);
         this.bpm = json.bpm;
@@ -119,6 +127,10 @@ export default class Mix {
             tracks.push(Track.fromJSON(track, this, this));
         this.tracks = IdArray.fromJSON(tracks, json.TRACKS.increment);
 
+        for (let fullID of this.fullIDs){
+            console.log(fullID);
+            fullID.cell = this.findByFullID(fullID.fullID);
+        }
         for (let del of json.deleted){
             console.log('del', del.sep);
             if (del.sep == Track.getSeparator()){
@@ -134,20 +146,19 @@ export default class Mix {
                 this.deleted.push(del);
             }
         }
+
         this.commandPattern = CommandPattern.fromJSON(json.CommandPattern, this);
         console.log(this.commandPattern);
+        console.log(this)
     }
-    create(tracks:Track[], indexes:number[]=[]){
-        for (let i = 0; i < tracks.length; i++){
-            tracks[i].parent = this;
-            this.tracks.splice(indexes[i], 0, tracks[i]);
-        }
+    create(track:Track, index:number){
+        track.parent = this;
+        this.tracks.splice(index, 0, track);
     }
-    delete(sel:Track[], indexes:number[]){
-        for (let i = sel.length-1; i >= 0; i--){
-            sel[i].parent = null;
-            this.tracks.splice(indexes[i], 1);
-        }
+    delete(track:Track, index:number){
+        track.parent = null;
+        const new_track = this.tracks.splice(index, 1)[0];
+        if (new_track != track) console.error("track don't fits index");
     }
     move(sel:Track[]|Score[], [start, dur, loop, rel]:number[], reverse:boolean){
         if (reverse){

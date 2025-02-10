@@ -77,9 +77,7 @@ export default class Note extends IdComponent {
         const note = num%12;
         return octave + noteMap[note];
     }
-    clone(parent:Score|NoteSelection|null = null):Note {
-        if (parent instanceof Score) return new Note(this.pitch, this.start, this.duration, parent.notes.getNewId(), parent);
-        if (parent instanceof NoteSelection) return new Note(this.pitch, this.start, this.duration, -1, parent);
-        return new Note(this.pitch, this.start, this.duration, this.parent.notes.getNewId(), this.parent);
+    clone(new_id:number):Note {
+        return new Note(this.pitch, this.start, this.duration, new_id, null);
     }
 }

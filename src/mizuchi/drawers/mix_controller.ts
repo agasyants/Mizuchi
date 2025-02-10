@@ -42,7 +42,7 @@ export default class MixController {
                     const parent_index = ss.track_index[i] + offset.pitch;
                     const track = this.mix.tracks[parent_index]
                     const new_score = score.clone(track.scores.getNewId());
-                    this.commandPattern.addCommand(new Create(track, [new_score], [track.scores.length]));
+                    this.commandPattern.addCommand(new Create(track, new_score, track.scores.length));
                     scores.push(new_score)
                     indexes.push(parent_index)
                 }
@@ -72,19 +72,24 @@ export default class MixController {
             const track = this.mix.tracks[ti[i]];
             const score = scores[i].clone(track.scores.getNewId());
             const index = track.scores.length;
-            commands.push(new Create(track, [score], [index]));
+            commands.push(new Create(track, score, index));
         }
         return commands;
     }
-    deleteTracks(){
-
+    deleteTracks(Tracks:Track[], ti:number[]){
+        console.log(Tracks, ti);
+        for (let i = 0; i < Tracks.length; i++){
+            const track = Tracks[i];
+            const index = this.mix.tracks.indexOf(track);
+            this.commandPattern.addCommand(new Delete(this.mix, track, index));
+        }
     }
     deleteScores(scores:Score[], ti:number[]){
         for (let i = 0; i < scores.length; i++){
             const score = scores[i];
             const track = this.mix.tracks[ti[i]];
             const index = track.scores.indexOf(score);
-            this.commandPattern.addCommand(new Delete(track, [score], [index]));
+            this.commandPattern.addCommand(new Delete(track, score, index));
         }
     }
     deleteSelected(){
@@ -101,7 +106,7 @@ export default class MixController {
         } 
         else if (tracks.elements.length) { // delete elements tracks
             tracks.index = [];
-            this.mix.commandPattern.addCommand(new Delete(this.mix, tracks.elements.slice(), this.findTrackIndex(tracks.elements)));
+            this.deleteTracks(tracks.elements.slice(), tracks.index);
             tracks.elements = [];
             this.drawer.calcHeights();
         }
@@ -141,12 +146,12 @@ export default class MixController {
             let lowest_note = 0;
             for (let score of s.elements){
                 lowest_note += score.lowest_note;
-                new_score.create(score.getNotes(dur));
+                new_score.addNotes(score.getNotes(dur));
                 dur += score.duration;
             } 
             new_score.lowest_note = Math.floor(lowest_note/s.elements.length);
             this.commandPattern.recordOpen();
-            this.commandPattern.addCommand(new Create(parent, [new_score], [parent.scores.length]));
+            this.commandPattern.addCommand(new Create(parent, new_score, parent.scores.length));
             this.deleteSelected();
             this.mix.select([new_score], this.sectorsSelection.x1, this.sectorsSelection.x2);
             this.commandPattern.recordClose();
@@ -155,7 +160,7 @@ export default class MixController {
     doubleInput(){
         if (!this.hovered.track) {
             // creating new track
-            this.commandPattern.addCommand(new Create(this.mix, [new Track('track', this.mix, this.mix.tracks.getNewId())], [this.mix.tracks.length]));
+            this.commandPattern.addCommand(new Create(this.mix, new Track('track', this.mix, this.mix.tracks.getNewId()), this.mix.tracks.length));
             this.drawer.calcMaxes();
             this.drawer.calcHeights();
             this.render();
@@ -178,7 +183,7 @@ export default class MixController {
                 new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2, len, len, 0);
             else 
                 new_score = new Score(this.hovered.track, this.hovered.track.scores.getNewId(), this.mix.start*2);
-            this.commandPattern.addCommand(new Create(this.hovered.track, [new_score], [this.hovered.track.scores.length]));
+            this.commandPattern.addCommand(new Create(this.hovered.track, new_score, this.hovered.track.scores.length));
             this.drawer.calcMaxes();
             this.drawer.calcMinMax();
             this.render();

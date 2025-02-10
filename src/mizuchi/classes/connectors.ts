@@ -20,6 +20,8 @@ export default class Connector extends IdComponent{
         if (this.output == null) out = null;
         else out = this.output.getFullId();
         return {
+            sep: Connector.getSeparator(),
+            id: this.id,
             input: inp,
             output: out
         };
@@ -32,6 +34,7 @@ export default class Connector extends IdComponent{
     static fromJSON(json: any, parent: NodeSpace): Connector {
         const input = parent.findOutputById(json.input);
         const output = parent.findInputById(json.output);
+        // console.log("input, output", input, output);
         const connector = new Connector(json.id, parent, input, output);
         if (input) {
             input.connected = connector;

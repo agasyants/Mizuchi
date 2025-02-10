@@ -20,7 +20,7 @@ export default class WindowController {
     
     dragWindow:{cx:number,cy:number,cliX:number,cliY:number}|null = null;
   
-    constructor(containerId: string, drawer: Drawer, public range:number, width:number, height:number) {
+    constructor(containerId:string, drawer:Drawer, public range:number, width:number, height:number) {
         const container = document.getElementById(containerId);
         if (!container || !(container instanceof HTMLDivElement)) {
             throw new Error("Invalid container Id or container is not a div.");

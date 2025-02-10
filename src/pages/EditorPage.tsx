@@ -35,6 +35,9 @@ const EditorPage: React.FC = () => {
       <div id="score-canvas-wrapper" style={{ position: "absolute" }}>
         <canvas id="ScoreCanvas" style={{ backgroundColor: "black" }}></canvas>
       </div>
+      <div id="node-space-canvas-wrapper" style={{ position: "absolute"}}>
+        <canvas id="NodeSpaceCanvas" style={{ backgroundColor: "black" }}></canvas>
+      </div>
     </div>
   );
 };

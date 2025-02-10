@@ -2,14 +2,19 @@ import ScoreDrawer from "./score_drawer";
 import Note from "../classes/note";
 import Score from "../data/score";
 import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
+import SectorSelection from "../classes/SectorSelection";
+import CommandPattern from "../classes/CommandPattern";
 
 export default class score_drawer_controller {
     private drawer: ScoreDrawer;
     max_note: number;
-    private scrollInterval: any = null;
-    constructor(drawer:ScoreDrawer){
+    private scrollInterval: any = null; 
+    commandPattern:CommandPattern;
+
+    constructor(drawer:ScoreDrawer, public sectorsSelection:SectorSelection, commandPattern:CommandPattern){
         this.drawer = drawer;
         this.max_note = 127 - this.drawer.notes_width_count;
+        this.commandPattern = commandPattern;
     }
     setScore(score:Score){
         this.drawer.score = score;
@@ -38,50 +43,50 @@ export default class score_drawer_controller {
         this.drawer.buffer = this.drawer.score.selection.clone();
     }
     dublicate(){
-        const paste = [];
+        this.commandPattern.recordOpen();
         const s = this.drawer.score.selection;
-        for (let note of s.elements){
-            paste.push(note.clone(this.drawer.score));
-        }
+        this.makeNewNotes(s.elements);
         const delta = s.end-s.start;
-        const commands = [new Move(this.drawer.score, s.elements, [delta, 0, 0]), new Create(this.drawer.score, paste)]
+        this.commandPattern.addCommand(new Move(this.drawer.score, s.elements.slice(), [delta, 0, 0]));
         s.start += delta;
         s.end += delta;
-        this.drawer.commandPattern.addCommand(new Complex(commands))
+        this.commandPattern.recordClose();
     }
     paste(){
-        const paste = [];
-        for (let note of this.drawer.buffer.elements){
-            paste.push(new Note(note.pitch, note.start + this.drawer.score.selection.start, note.duration, this.drawer.score.notes.getNewId()))
+        this.commandPattern.recordOpen();
+        this.makeNewNotes(this.drawer.buffer.elements);
+        this.commandPattern.recordClose();
+    }
+    makeNewNotes(notes:Note[]){
+        for (let note of notes){
+            const new_note = note.clone(this.drawer.score.notes.getNewId());
+            this.commandPattern.addCommand(new Create(this.drawer.score, new_note, this.drawer.score.notes.length));
         }
-        this.drawer.commandPattern.addCommand(new Create(this.drawer.score, paste));
     }
     cut(){
         this.copy();
         this.delete();
     }
     delete(){
-        const commands = [];
-        commands.push(new Delete(this.drawer.score, this.drawer.score.selection.elements.slice()));
+        this.commandPattern.recordOpen();
+        for (let note of this.drawer.score.selection.elements){
+            this.commandPattern.addCommand(new Delete(this.drawer.score, note, this.drawer.score.notes.indexOf(note)));
+        }
         this.drawer.score.select(this.drawer.score.selection.elements.slice(), this.drawer.sectorsSelection.x1, this.drawer.sectorsSelection.x2);
-        this.drawer.commandPattern.addCommand(new Complex(commands));
+        this.commandPattern.recordClose();
     }
     applyChanges(ctrl:boolean){
         const s = this.drawer.score.selection;
         if (ctrl && s.isShifted()){
             const commands = [];
-            const notes:Note[] = []
-            for (let note of s.elements){
-                console.log(note.parent);
-                notes.push(note.clone());
-            }         
-            commands.push(new Move(this.drawer.score, s.elements, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            this.makeNewNotes(s.elements);
+            commands.push(new Move(this.drawer.score, s.elements.slice(), [s.offset.start, s.offset.duration, s.offset.pitch]));
             s.start += s.offset.start;
             s.end += s.offset.start;
-            commands.push(new Create(this.drawer.score, notes));
-            this.drawer.commandPattern.addCommand(new Complex(commands));
-        } else if (s.isShifted()) {
-            this.drawer.commandPattern.addCommand(new Move(this.drawer.score, s.elements, [s.offset.start, s.offset.duration, s.offset.pitch]));
+            this.commandPattern.addCommand(new Complex(commands));
+        } 
+        else if (s.isShifted()) {
+            this.commandPattern.addCommand(new Move(this.drawer.score, s.elements.slice(), [s.offset.start, s.offset.duration, s.offset.pitch]));
             s.start += s.offset.start;
             s.end += s.offset.start;
         }
@@ -122,7 +127,7 @@ export default class score_drawer_controller {
             if (y<0) y=0;
             if (y>1) y=0.99;
             [x,y] = this.getMatrix(x, y);
-            this.drawer.commandPattern.addCommand(new Create(this.drawer.score, [new Note(y+this.drawer.score.lowest_note,x,1,this.drawer.score.notes.getNewId(), this.drawer.score)]));
+            this.commandPattern.addCommand(new Create(this.drawer.score, new Note(y+this.drawer.score.lowest_note,x,1,this.drawer.score.notes.getNewId(), this.drawer.score), this.drawer.score.notes.length));
         }
         this.drawer.hovered.elements = [];
         this.drawer.update_mix();
@@ -180,20 +185,12 @@ export default class score_drawer_controller {
             if (!shift) {
                 x = Math.floor(x)
             }
-            this.sectorsSelection.setSS1(x, y);
-            this.sectorsSelection.setSS2(x, y);
+            this.sectorsSelection.setSS1(x, y+this.drawer.score.lowest_note);
+            this.sectorsSelection.setSS2(x, y+this.drawer.score.lowest_note);
         } else {
-            this.sectorsSelection.setSS2(Math.floor(x), y);
+            this.sectorsSelection.setSS2(Math.floor(x), y+this.drawer.score.lowest_note);
             this.select();
         }
-    }
-    private setSS1(x:number, y:number){
-        this.drawer.sectorsSelection.x1 = x;
-        this.drawer.sectorsSelection.y1 = y+this.drawer.score.lowest_note;
-    }
-    private setSS2(x:number, y:number){
-        this.drawer.sectorsSelection.x2 = x;
-        this.drawer.sectorsSelection.y2 = y+this.drawer.score.lowest_note;
     }
     private select(){
         this.drawer.hovered.elements = [];
@@ -252,7 +249,7 @@ export default class score_drawer_controller {
     }
     private set(x:number, y:number){
         x = Math.floor(x);
-        this.sectorsSelection.setSS1(x, y);
-        this.sectorsSelection.setSS2(x, y);
+        this.sectorsSelection.setSS1(x, y+this.drawer.score.lowest_note);
+        this.sectorsSelection.setSS2(x, y+this.drawer.score.lowest_note);
     }
 }

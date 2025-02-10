@@ -43,7 +43,8 @@ export default class MixDrawer extends Drawer {
     constructor(
         public canvas:HTMLCanvasElement, 
         public mix:Mix,
-        public score_window:WindowController, 
+        public score_window:WindowController,
+        public node_window:WindowController, 
         width:number, 
         height:number)
     {
@@ -173,6 +174,7 @@ export default class MixDrawer extends Drawer {
                             this.mix.select(this.mix.selected.tracks.elements,this.sectorsSelection.x1,this.sectorsSelection.x2);
                         }
                         this.mix.select([this.hovered.track],this.sectorsSelection.x1,this.sectorsSelection.x2);
+                        this.node_window.open();
                     }
                 } 
                 if (this.hovered.scores.length) { // select score
@@ -354,7 +356,14 @@ export default class MixDrawer extends Drawer {
     private renderTime(){
         const x1 = this.margin_left + this.mix.start*this.score_w/4 - this.x;
         const x2 = this.margin_left + this.mix.playback/(this.mix.sampleRate/this.mix.bpm*120)*this.score_w - this.x;
-        // console.log(this.mix.playback);
+
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = 'blue';
+        this.ctx.lineWidth = 2;
+        this.ctx.moveTo(x2, this.margin_top+this.height);
+        this.ctx.lineTo(x2, this.margin_top-20);
+        this.ctx.stroke();
+
         this.ctx.beginPath();
         this.ctx.strokeStyle = 'yellow';
         this.ctx.lineWidth = 3;
@@ -362,13 +371,6 @@ export default class MixDrawer extends Drawer {
         this.ctx.lineTo(x1, this.margin_top-20);
         this.ctx.stroke();
         this.ctx.closePath();
-
-        this.ctx.beginPath();
-        this.ctx.strokeStyle = 'blue';
-        this.ctx.lineWidth = 3;
-        this.ctx.moveTo(x2, this.margin_top);
-        this.ctx.lineTo(x2, this.margin_top-20);
-        this.ctx.stroke();
     }
     private renderFrame(){
         this.ctx.beginPath();
@@ -504,8 +506,14 @@ export default class MixDrawer extends Drawer {
     }
     private renderSelected(){
         if (!this.drugged){
-            for (let i = 0; i < this.mix.selected.scores.elements.length; i++){
-                this.renderScore(this.mix.selected.scores.track_index[i], this.mix.selected.scores.elements[i],'blue','blue',3);
+            const scores = this.mix.selected.scores;
+            for (let i = 0; i < scores.elements.length; i++){
+                if (scores.elements[i].parent) {
+                    this.renderScore(scores.track_index[i], scores.elements[i],'blue','blue',3);
+                } else {
+                    scores.elements.splice(i, 1);
+                    i--;
+                }
             }
         }
     }

@@ -1,11 +1,11 @@
 import Score from "../data/score";
 import { NoteSelection } from "../classes/selection";
 import Note from "../classes/note";
-import CommandPattern from "../classes/CommandPattern";
 import score_drawer_controller from "./score_controller";
 import hovered from "../classes/hovered";
 import Drawer from "./Drawer";
 import Mix from "../data/mix";
+import SectorSelection from "../classes/SectorSelection";
 
 
 export default class ScoreDrawer extends Drawer{
@@ -24,7 +24,6 @@ export default class ScoreDrawer extends Drawer{
     hovered:hovered = new hovered;
 
     buffer:NoteSelection = new NoteSelection;
-    commandPattern:CommandPattern;
 
     drugged:boolean = false;
     note:boolean = false;
@@ -34,13 +33,12 @@ export default class ScoreDrawer extends Drawer{
 
     duration:number;
 
-    sectorsSelection:{x1:number, y1:number, x2:number, y2:number} = {x1:-1, y1:-1, x2:-1, y2:-1}
+    sectorsSelection = new SectorSelection();
 
     constructor(public canvas:HTMLCanvasElement, public score:Score, mix:Mix) {
         super(canvas);
-        this.commandPattern = mix.commandPattern;
         this.setCanvasSize(canvas.width, canvas.height)
-        this.controller = new score_drawer_controller(this);
+        this.controller = new score_drawer_controller(this, this.sectorsSelection, mix.commandPattern);
         this.duration = Math.min(this.score.duration, this.score.loop_duration)
         this.initialize();
         this.render();
@@ -88,9 +86,9 @@ export default class ScoreDrawer extends Drawer{
             }
             if (e.code=="KeyZ" && e.ctrlKey){
                 if (e.shiftKey)
-                    this.commandPattern.redo();
+                    this.controller.commandPattern.redo();
                 else 
-                    this.commandPattern.undo();
+                this.controller.commandPattern.undo();
                 this.update_mix();
             }
             if (e.code=="KeyA" && e.ctrlKey){
@@ -200,7 +198,7 @@ export default class ScoreDrawer extends Drawer{
             }
         });
         this.canvas.addEventListener('pointerleave', () => {
-            this.sectorsSelection = {x1:-1, y1:-1, x2:-1, y2:-1}
+            this.sectorsSelection.zero();
             this.render();
             this.controller.clearInterval();
         });

@@ -31,7 +31,7 @@ export default abstract class IdComponent {
             if (array[i].id == id){
                 return array[i];
             }
-        } console.error('not found');
+        } console.error('not found 1');
         return null;
     }
     findByID(array:IdComponent[], id:number):any{
@@ -39,7 +39,7 @@ export default abstract class IdComponent {
             if (array[i].id == id){
                 return array[i];
             }
-        } console.error('not found');
+        } console.error('not found 2');
         return null;
     }
 }
@@ -59,6 +59,7 @@ export class IdArray<T> extends Array<T> {
     static fromJSON<T>(data: T[], increment: number): IdArray<T> {
         const idArray = new IdArray<T>();
         idArray.push(...data);
+        // idArray.T.fromJSON()
         idArray.increment = increment;
         return idArray;
     }

@@ -4,6 +4,7 @@ import MixDrawer from "../drawers/mix_drawer";
 import Mixer from "./mixer";
 import WindowController from "../classes/WindowController";
 import Score from "../data/score";
+import NodeSpaceDrawer from "../drawers/node_space_drawer";
 
 
 export default class Mizuchi{
@@ -34,10 +35,12 @@ export default class Mizuchi{
         // const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
-        
         const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0), mix);
-
         const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
+
+        const nodeCanvas = document.getElementById('NodeSpaceCanvas') as HTMLCanvasElement;
+        const node_space_drawer = new NodeSpaceDrawer(nodeCanvas);
+        const node_window = new WindowController('node-space-canvas-wrapper', node_space_drawer, 12, 810, 390);
         
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;
         const mix_div = document.getElementById('mix-canvas-wrapper') as HTMLDivElement;
@@ -52,7 +55,7 @@ export default class Mizuchi{
             }
 
             const rect = mix_div.getBoundingClientRect();
-            const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, rect.width, rect.height);
+            const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, node_window, rect.width, rect.height);
             const mixer = new Mixer(mix, mixDrawer);
             // let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
             console.log(mix.nodeSpace);  

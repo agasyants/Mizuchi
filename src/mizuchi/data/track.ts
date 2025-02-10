@@ -18,7 +18,7 @@ export default class Track extends IdComponent {
         const mapping = new Mapping(0, 1,-1, 1, 0, [new BasicPoint(0,0,0), new BasicPoint(0.25,1,1), new BasicPoint(0.75,-1,2), new BasicPoint(1,0,3)], [new HandlePoint(0.125,0.5,0), new HandlePoint(0.5,0,1), new HandlePoint(0.875,-0.5,2)]);
         mapping.basics.increment = mapping.basics.length;
         mapping.handles.increment = mapping.handles.length;
-        const node = new NoteInput(0, 0, this, this.parent, mapping, 1);
+        const node = new NoteInput(0, 0, this.parent, mapping, 1);
         this.nodeSpace.add(node)
         this.nodeSpace.connectNodes(node, this.nodeSpace.outputNode, 0);
     }
@@ -37,7 +37,7 @@ export default class Track extends IdComponent {
         if (fullID.startsWith(Score.getSeparator())){
             fullID = fullID.slice(Score.getSeparator().length);
             const index = parseInt(fullID, 10)
-            console.log(fullID, index, this.scores, fullID.slice(String(index).length).length)
+            // console.log(fullID, index, this.scores, fullID.slice(String(index).length).length)
             return this.findByID(this.scores, index).findByFullID(fullID.slice(String(index).length));
         } 
         else if (fullID.startsWith(Node.getSeparator())){
@@ -45,7 +45,7 @@ export default class Track extends IdComponent {
             const index = parseInt(fullID, 10)
             return this.findByID(this.nodeSpace.nodes, index).findByFullID(fullID.slice(String(index).length));
         }
-        console.error('track', fullID);
+        // console.error('track', fullID);
         return null;
     }
     static fromJSON(json: any, parent: Mix|null, mix:Mix): Track {
@@ -58,18 +58,23 @@ export default class Track extends IdComponent {
         track.scores = IdArray.fromJSON(scores, json.scores.increment);
         return track;
     }
-    create(scores:Score[], indexes:number[]) {
-        for (let i = 0; i < scores.length; i++){
-            const score = scores[i]
-            score.parent = this;
-            this.scores.splice(indexes[i], 0, score);
-        }
+    updateFromJSON(json: any) {
+        this.name = json.name;
+        this.renderHeight = json.renderHeight;
+        this.nodeSpace = NodeSpace.fromJSON(json.nodeSpace, this, this.parent);
+        const scores = []
+        for (let score of json.scores.data)
+            scores.push(Score.fromJSON(score, this));
+        this.scores = IdArray.fromJSON(scores, json.scores.increment);
     }
-    delete(scores:Score[], indexes:number[]) {
-        for (let i = scores.length-1; i >= 0; i--){
-            const score = this.scores.splice(indexes[i], 1);
-            score[0].parent = null;
-        }
+    create(score:Score, index:number) {
+        score.parent = this;
+        this.scores.splice(index, 0, score);
+    }
+    delete(score:Score, index:number) {
+        const new_score = this.scores.splice(index, 1)[0];
+        score.parent = null;
+        if (new_score != score) console.error("score don't fits index");
     }
     getFullScore():Note[] {
         let full_score:Note[] = [];

@@ -51,14 +51,9 @@ export default class Score extends IdComponent {
         score.notes = IdArray.fromJSON(notes, json.notes.increment);
         return score;
     }
-    create(notes:Note[]){
-        for (let new_note of notes){
-            this.notes.push(new_note);
-            this.update(new_note);
-        }
-        this.sort();
-        // this.update();
-        // require rework
+    create(note:Note, index:number){
+        note.parent = this;
+        this.notes.splice(index, 0, note);
     }
     private sort(){
         this.notes.sort((a, b) => {
@@ -92,17 +87,22 @@ export default class Score extends IdComponent {
             note.pitch += pitch;
             this.update(note);
         }
+        // this.sort();
+    }
+    delete(note:Note, index:number){
+        const new_note = this.notes.splice(index, 1)[0];
+        note.parent = null;
+        if (new_note != note) console.error("note don't fits index", this.notes.indexOf(note), index);
+    }
+    addNotes(notes:Note[]){
+        for (let note of notes){
+            this.notes.push(new Note(note.pitch, note.start, note.duration, note.id, this));
+            this.notes.increment = Math.max(this.notes.increment, note.id)+1;
+        }
         this.sort();
     }
-    delete(notes:Note[]) {
-        notes.forEach(note => {
-            this.notes.splice(this.notes.indexOf(note), 1);
-            note.parent = null;
-        });
-        // require rework
-    }
     select(notes:Note[],start:number,end:number){
-        console.log(start,end);
+        // console.log(start,end);
         const c = this.selection;
         if (c.elements.length == 0){
             c.start = Math.min(start,end);
@@ -140,17 +140,17 @@ export default class Score extends IdComponent {
             for (let note of this.notes) {
                 if (note.start >= this.loop_duration) continue;
                 if (note.start < this.relative_start && note.start + (i+1)*this.loop_duration - this.relative_start < this.duration) {
-                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration, note.id));
+                    notes.push(new Note(note.pitch, note.start+start+this.loop_duration*(i+1)-this.relative_start, note.duration, notes.length-1));
                 } 
                 else if (note.start + i*this.loop_duration - this.relative_start < this.duration && (this.duration > this.loop_duration || note.start >= this.relative_start)) {
-                    notes.push(new Note(note.pitch, note.start+start-this.relative_start+this.loop_duration*i, note.duration, note.id));
+                    notes.push(new Note(note.pitch, note.start+start-this.relative_start+this.loop_duration*i, note.duration, notes.length-1));
                 }
             }
-        } return notes;
+        } 
+        return notes;
     }
     getNotesAt(currentTime: number): Note[] {
         const activeNotes: Note[] = [];
-    
         let relativeTime = currentTime + this.relative_start; 
         if (this.loop_duration !== undefined) {
             if (relativeTime < 0) return activeNotes;

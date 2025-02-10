@@ -17,9 +17,8 @@ export default abstract class Node extends IdComponent {
     static getSeparator(){
         return 'e';
     }
-    constructor(id:number, x:number, y:number, input_names:string[], parent:any, name:string, hasOut:boolean=true){
+    constructor(id:number, x:number, y:number, input_names:string[], name:string, parent:any|null=null, hasOut:boolean=true){
         super(id, Node.getSeparator(), parent);
-        this.parent = parent;
         this.x = x;
         this.y = y;
         this.name = name;
@@ -31,21 +30,21 @@ export default abstract class Node extends IdComponent {
     abstract get():any
     returnJSON() {
         return {
+            type: this.constructor.name,
             id: this.id,
             x: this.x,
             y: this.y,
             window: this.window,
-            type: this.constructor.name
         };
     }
     static fromJSON(json:any, parent:any, mix:Mix): Node {
         switch (json.type) {
             case 'NodeSpace': return NodeSpace.fromJSON(json, parent, mix);
             case 'OutputNode': return OutputNode.fromJSON(json, parent);
-            case 'NoteInput': return NoteInput.fromJSON(json, parent, mix);
-            case 'FromTrackNode': return FromTrackNode.fromJSON(json, parent);
-            case 'MixNode': return MixNode.fromJSON(json, parent);
-            case 'DelayNode': return DelayNode.fromJSON(json, parent);
+            case 'NoteInput': return NoteInput.fromJSON(json, mix);
+            case 'FromTrackNode': return FromTrackNode.fromJSON(json, mix);
+            case 'MixNode': return MixNode.fromJSON(json);
+            case 'DelayNode': return DelayNode.fromJSON(json);
             default: return new OutputNode(0,0,0,parent);
         }
     }
@@ -62,8 +61,8 @@ export class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
     nodes:IdArray<Node> = new IdArray<Node>();
     connectors:IdArray<Connector> = new IdArray<Connector>();
-    constructor(x:number, y:number, id:number, parent:any, public input_names:string[]=[]){
-        super(id, x, y, input_names, parent, 'Space');
+    constructor(x:number, y:number, id:number, parent:Mix|Track|NodeSpace, public input_names:string[]=[]){
+        super(id, x, y, input_names, 'Space', parent);
     }
     returnJSON() {
         return {
@@ -87,11 +86,10 @@ export class NodeSpace extends Node {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
         nodeSpace.window = json.window;
         nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
-        const nodes = [];
         for (let node of json.NODES.data) {
-            nodes.push(Node.fromJSON(node, nodeSpace, mix));
+            nodeSpace.add(Node.fromJSON(node, nodeSpace, mix));
         } 
-        nodeSpace.nodes = IdArray.fromJSON(nodes, nodeSpace.nodes.increment);
+        // nodeSpace.nodes = IdArray.fromJSON(nodes, nodeSpace.nodes.increment);
         const connectors = [];
         for (let connector of json.connectors.data) {
             connectors.push(Connector.fromJSON(connector, nodeSpace));
@@ -115,12 +113,18 @@ export class NodeSpace extends Node {
                 }
             }
         }
+        for (const input of this.outputNode.inputs) {
+            if (input.getFullId() === fullId) {
+                return input;
+            }
+        }
         return null;
     }
     get():number{
         return this.outputNode.get();
     }
     add(node:Node){
+        node.parent = this;
         this.nodes.push(node);
     }
     clone(){
@@ -143,8 +147,8 @@ export class NodeSpace extends Node {
 }
 
 class OutputNode extends Node {
-    constructor(x:number, y:number, id:number, parent:any){
-        super(id, x, y, ['in'], parent, 'Output', false);
+    constructor(x:number, y:number, id:number, parent:NodeSpace){
+        super(id, x, y, ['in'], 'Output', parent);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -163,8 +167,9 @@ class OutputNode extends Node {
 export class NoteInput extends Node {
     mix:Mix;
     osc:Mapping;
-    constructor(x:number, y:number, public parent:Track, mix:Mix, osc:Mapping, id:number){
-        super(id, x, y, [], parent, 'Note Input');
+    track:Track|null = null;
+    constructor(x:number, y:number, mix:Mix, osc:Mapping, id:number){
+        super(id, x, y, [], 'Note Input', parent);
         this.mix = mix;
         this.osc = osc;
     }
@@ -172,7 +177,7 @@ export class NoteInput extends Node {
         if (fullID.length==0) return this;
         return null;
     }
-    get():number{
+    get():number {
         const SPS = this.mix.sampleRate/this.mix.bpm*120/8;
         const founded:Note[] = this.findNote(this.mix.playback/SPS);
         if (founded.length == 0) return 0;
@@ -184,30 +189,34 @@ export class NoteInput extends Node {
         return sum/founded.length;
     }
     private findNote(rel_time:number): Note[] {
-        for (let score of this.parent.scores) {  
+        if (this.track == null) return [];
+        for (let score of this.track.scores) {  
             if (score.absolute_start <= rel_time && rel_time < score.absolute_start + score.duration) {
                 rel_time -= score.absolute_start;
                 return score.getNotesAt(rel_time); 
             }
         }      
         return [];
-    }
+    } 
     returnJSON() {
+        if (this.track == null) return super.returnJSON();
         return {
             ...super.returnJSON(),
-            osc: this.osc
-        };
+            osc: this.osc,
+            track: this.track.getFullId()
+        }; 
     }
-    static fromJSON(json:any, parent:any, mix:Mix): NoteInput {
-        const node = new NoteInput(json.x, json.y, parent, mix, json.osc, json.id);
+    static fromJSON(json:any, mix:Mix): NoteInput {
+        const node = new NoteInput(json.x, json.y, mix, json.osc, json.id);
+        mix.setAsideFullID(json.track, node.track)
         node.window = json.window;
         return node;
     }
 }
 
 export class FromTrackNode extends Node {
-    constructor(x:number, y:number, id:number, parent:any, public tracks:Track[]){
-        super(id, x, y, [], parent, 'FromTrackNode');
+    constructor(x:number, y:number, id:number, public tracks:Track[]){
+        super(id, x, y, [], 'FromTrackNode');
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -220,8 +229,8 @@ export class FromTrackNode extends Node {
         }
         return sum/this.inputs.length;
     }
-    static fromJSON(json: any, parent: any): FromTrackNode {
-        const node = new FromTrackNode(json.x, json.y, json.id, parent, json.tracks);
+    static fromJSON(json: any, mix:Mix): FromTrackNode {
+        const node = new FromTrackNode(json.x, json.y, json.id, mix.tracks);
         node.window = json.window;
         return node;
     }
@@ -229,8 +238,8 @@ export class FromTrackNode extends Node {
 
 export class MixNode extends Node {
     dryWet:number = 0.5;
-    constructor(x:number, y:number, id:number, parent:any){
-        super(id, x, y, ['track1','track2'], parent, 'MixNode');
+    constructor(x:number, y:number, id:number){
+        super(id, x, y, ['track1','track2'], 'MixNode');
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -245,8 +254,8 @@ export class MixNode extends Node {
             dryWet: this.dryWet
         };
     }
-    static fromJSON(json: any, parent: any): MixNode {
-        const node = new MixNode(json.x, json.y, json.id, parent);
+    static fromJSON(json: any): MixNode {
+        const node = new MixNode(json.x, json.y, json.id);
         node.window = json.window;
         node.dryWet = json.dryWet;
         return node;
@@ -255,8 +264,8 @@ export class MixNode extends Node {
 
 export class DelayNode extends Node {
     windowLenght = 44100;
-    constructor(x:number, y:number, id:number, parent:any){
-        super(id, x, y, ['input'], parent, 'Delay');
+    constructor(x:number, y:number, id:number, ){
+        super(id, x, y, ['input'], 'Delay');
         this.window.fill(0, 0, this.windowLenght)
     }
     findByFullID(fullID:string) {
@@ -273,8 +282,8 @@ export class DelayNode extends Node {
             windowLenght: this.windowLenght
         };
     }
-    static fromJSON(json: any, parent: any): DelayNode {
-        const node = new DelayNode(json.x, json.y, json.id, parent);
+    static fromJSON(json: any): DelayNode {
+        const node = new DelayNode(json.x, json.y, json.id);
         node.window = json.window;
         node.windowLenght = json.windowLenght;
         return node;

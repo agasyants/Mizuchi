@@ -127,75 +127,68 @@ export class Complex extends Command{
 }
 
 export class SimpleCommand extends Command {
-    constructor(public subject:any, public objects:any[]){
+    constructor(public subject:any, public object:any, public place:number){
         super();
     }
     toJSON() {
         return {
             ...super.toJSON(),
             subject: this.subject.getFullId(),
-            objects: this.objects.map((obj: any) => obj.getFullId())
+            object: this.object.getFullId()
         };
     }
 }
 
 export class Create extends SimpleCommand {
-    constructor(subject:any, objects:any[], public places:number[]){
-        super(subject, objects);
+    constructor(subject:any, objects:any, place:number){
+        super(subject, objects, place);
     }
     do(){
-        console.log("Create "+ this.objects, this.places);
-        return this.subject.create(this.objects, this.places);
+        console.log("Create "+ this.object, this.place);
+        return this.subject.create(this.object, this.place);
     }
     undo(){
-        console.log("Delete "+ this.objects, this.places);
-        this.subject.delete(this.objects, this.places);
+        console.log("Delete "+ this.object, this.place);
+        this.subject.delete(this.object, this.place);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            places: this.places
+            place: this.place
         };
     }
     static fromJSON(json:any, root:Mix): Create {
-        const objects = []
-        for (let object of json.objects){
-            objects.push(root.findByFullID(object));
-        }
-        return new Create(root.findByFullID(json.subject), objects, json.places);
+        return new Create(root.findByFullID(json.subject), root.findByFullID(json.object), json.place);
     }
 }
 
 export class Delete extends SimpleCommand{
-    constructor(subject:any, objects:any[], public places:number[]){
-        super(subject, objects);
+    constructor(subject:any, object:any, public place:number){
+        super(subject, object, place);
     }
     do(){
-        console.log("Delete"+this.objects, this.places);
-        this.subject.delete(this.objects, this.places);
+        console.log("Delete"+this.object, this.place);
+        this.subject.delete(this.object, this.place);
     }
     undo(){
-        console.log("Create"+this.objects, this.places);
-        this.subject.create(this.objects, this.places);
+        console.log("Create"+this.object, this.place);
+        this.subject.create(this.object, this.place);
     }
     toJSON() {
         return {
             ...super.toJSON(),
-            places: this.places
+            place: this.place
         };
     }
     static fromJSON(json:any, root:Mix): Delete {
-        const objects = []
-        for (let object of json.objects){
-            objects.push(root.findByFullID(object));
-        }
-        return new Delete(root.findByFullID(json.subject), objects, json.places);
+        console.log('json', json);
+        return new Delete(root.findByFullID(json.subject), root.findByFullID(json.object), json.place);
     }
 }
 
-export class Move extends SimpleCommand{
-    constructor(subject:any, objects:any[], private offset:number[]){
-        super(subject, objects);
+export class Move extends Command{
+    constructor(private subject:any, private objects:any[], private offset:number[]){
+        super();
     }
     do(){
         console.log("Move "+ this.offset);
@@ -208,6 +201,8 @@ export class Move extends SimpleCommand{
     toJSON() {
         return {
             ...super.toJSON(),
+            subject: this.subject.getFullId(),
+            objects: this.objects.map((obj: any) => obj.getFullId()),
             offset: this.offset
         };
     }
