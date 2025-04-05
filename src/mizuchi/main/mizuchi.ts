@@ -39,7 +39,7 @@ export default class Mizuchi{
         const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
 
         const nodeCanvas = document.getElementById('NodeSpaceCanvas') as HTMLCanvasElement;
-        const node_space_drawer = new NodeSpaceDrawer(nodeCanvas);
+        const node_space_drawer = new NodeSpaceDrawer(nodeCanvas, mix.nodeSpace);
         const node_window = new WindowController('node-space-canvas-wrapper', node_space_drawer, 12, 810, 390);
         
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;

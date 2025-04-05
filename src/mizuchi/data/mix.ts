@@ -35,7 +35,7 @@ export default class Mix {
             this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 0), 0);
             this.create(new Track('track '+ (this.tracks.length+1).toString(), this, 1), 1);
             this.tracks.increment = 2;
-            const mixNode = new FromTrackNode(0,0,1,this.tracks);
+            const mixNode = new FromTrackNode(-140, 20, 1, this);
             this.nodeSpace.add(mixNode);
             this.nodeSpace.connectNodes(mixNode, this.nodeSpace.outputNode, 0);
         }

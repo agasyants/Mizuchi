@@ -5,7 +5,7 @@ import Node from "./node";
 export default abstract class Input extends IdComponent {
     connected: Connector|null = null;
     static getSeparator(){ return 'i';}
-    constructor(parent:Node, public name:string, id:number) {
+    constructor(parent:Node, public name:string, id:number, public x:number, public y:number) {
         super(id, Input.getSeparator(), parent);
     }
     abstract get():any
@@ -13,8 +13,8 @@ export default abstract class Input extends IdComponent {
 
 export class InputSignal extends Input{
     connected: Connector|null = null;
-    constructor(parent:Node, name:string, id:number) {
-        super(parent, name, id);
+    constructor(parent:Node, name:string, id:number, x:number, y:number) {
+        super(parent, name, id, x, y);
     }
     returnJSON() {
         return { };

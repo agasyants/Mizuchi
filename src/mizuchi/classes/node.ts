@@ -6,10 +6,13 @@ import Note from "./note";
 import Output, { OutputSignal } from "./Output";
 import IdComponent, { IdArray } from "./id_component";
 import Connector from "./connectors";
+import View from "../drawers/view";
 
 export default abstract class Node extends IdComponent {
     x:number;
     y:number;
+    width:number;
+    height:number;
     name:string;
     inputs: Input[] = [];
     output: Output|null = null;
@@ -17,23 +20,34 @@ export default abstract class Node extends IdComponent {
     static getSeparator(){
         return 'e';
     }
-    constructor(id:number, x:number, y:number, input_names:string[], name:string, parent:any|null=null, hasOut:boolean=true){
+    constructor(id:number, x:number, y:number, width:number, height:number, input_names:string[], name:string, parent:any|null=null, hasOut:boolean=true){
         super(id, Node.getSeparator(), parent);
         this.x = x;
         this.y = y;
+        this.height = height;
+        this.width = width;
         this.name = name;
-        if (hasOut) this.output = new OutputSignal(this,'out');
+        if (hasOut) this.output = new OutputSignal(this, 'out', x+width, y-height/2);
         for (let i = 0; i < input_names.length; i++){
-            this.inputs.push(new InputSignal(this, input_names[i], i));
+            this.inputs.push(new InputSignal(this, input_names[i], i, x, y-height*(i+1)/(input_names.length+1)));
         }
     }
     abstract get():any
+    abstract render(view:View):void
+    _render(view:View){
+        view.drawFrame(this.x, this.y, this.width, this.height, 2, 'white', 'black');
+        for (let i = 0; i < this.inputs.length; i++){
+            view.drawPin(this.inputs[i].x, this.inputs[i].y, 4, 1, 'black', 'white');
+        }
+        if (this.output) view.drawPin(this.output.x, this.output.y, 4, 1, 'black', 'white');
+    }
     returnJSON() {
         return {
             type: this.constructor.name,
             id: this.id,
             x: this.x,
             y: this.y,
+            name: this.name,
             window: this.window,
         };
     }
@@ -62,7 +76,19 @@ export class NodeSpace extends Node {
     nodes:IdArray<Node> = new IdArray<Node>();
     connectors:IdArray<Connector> = new IdArray<Connector>();
     constructor(x:number, y:number, id:number, parent:Mix|Track|NodeSpace, public input_names:string[]=[]){
-        super(id, x, y, input_names, 'Space', parent);
+        super(id, x, y, 100, 100, input_names, 'Space', parent);
+    }
+    render(view:View){
+        console.log(view);
+        // const x = view.calcX(this.x);
+        // const y = view.calcY(this.y);
+        // const w = view.calcDim(this.width);
+        // const h = view.calcDim(this.height);
+        // ctx.fillStyle = 'white';
+        // console.log(x + width/2, y + height/2, w, h);
+        // ctx.fillRect(x, -y/2, w, h);
+        // ctx.fillStyle = 'grey';
+        // ctx.fillRect(x+5, -y/2+5, w-10, h-10);
     }
     returnJSON() {
         return {
@@ -148,7 +174,24 @@ export class NodeSpace extends Node {
 
 class OutputNode extends Node {
     constructor(x:number, y:number, id:number, parent:NodeSpace){
-        super(id, x, y, ['in'], 'Output', parent);
+        super(id, x, y, 100, 50, ['in'], 'Output', parent);
+    }
+    render(view:View){
+        // console.log(view);
+        this._render(view);
+        // const x = view.calcX(this.x);
+        // const y = view.calcY(this.y);
+        // const w = view.calcDim(this.width);
+        // const h = view.calcDim(this.height);
+        // ctx.fillStyle = 'white';
+        // ctx.fillRect(x, -y/2, w, h);
+        // ctx.fillStyle = 'blue';
+        // ctx.fillRect(x+5, -y/2+5, w-10, h-10);
+        // ctx.fillStyle = 'white';
+        // ctx.font = String(30*view.scale)+'px Arial';
+        // ctx.scale(1, -1);
+        // ctx.fillText(this.name, x+w/16,y+height/2-h/4);
+        // ctx.scale(1, -1);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -169,9 +212,12 @@ export class NoteInput extends Node {
     osc:Mapping;
     track:Track|null = null;
     constructor(x:number, y:number, mix:Mix, osc:Mapping, id:number){
-        super(id, x, y, [], 'Note Input', parent);
+        super(id, x, y, 100, 150, [], 'Note Input', parent);
         this.mix = mix;
         this.osc = osc;
+    }
+    render(view:View){
+        this._render(view);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -195,7 +241,7 @@ export class NoteInput extends Node {
                 rel_time -= score.absolute_start;
                 return score.getNotesAt(rel_time); 
             }
-        }      
+        }
         return [];
     } 
     returnJSON() {
@@ -215,8 +261,12 @@ export class NoteInput extends Node {
 }
 
 export class FromTrackNode extends Node {
-    constructor(x:number, y:number, id:number, public tracks:Track[]){
-        super(id, x, y, [], 'FromTrackNode');
+    constructor(x:number, y:number, id:number, public mix:Mix){
+        super(id, x, y, 90, 160, [], 'FromTrackNode');
+    }
+    render(view:View){
+        // console.log(view);
+        this._render(view);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -224,13 +274,13 @@ export class FromTrackNode extends Node {
     }
     get():number{
         let sum = 0;
-        for (let track of this.tracks){
+        for (let track of this.mix.tracks){
             sum += track.nodeSpace.get();
         }
         return sum/this.inputs.length;
     }
     static fromJSON(json: any, mix:Mix): FromTrackNode {
-        const node = new FromTrackNode(json.x, json.y, json.id, mix.tracks);
+        const node = new FromTrackNode(json.x, json.y, json.id, mix);
         node.window = json.window;
         return node;
     }
@@ -239,7 +289,10 @@ export class FromTrackNode extends Node {
 export class MixNode extends Node {
     dryWet:number = 0.5;
     constructor(x:number, y:number, id:number){
-        super(id, x, y, ['track1','track2'], 'MixNode');
+        super(id, x, y, 100, 80, ['track1','track2'], 'MixNode');
+    }
+    render(view:View){
+        this._render(view);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -265,8 +318,12 @@ export class MixNode extends Node {
 export class DelayNode extends Node {
     windowLenght = 44100;
     constructor(x:number, y:number, id:number, ){
-        super(id, x, y, ['input'], 'Delay');
+        super(id, x, y, 70, 70, ['input'], 'Delay');
         this.window.fill(0, 0, this.windowLenght)
+    }
+    render(view:View){
+        // console.log(view);
+        this._render(view);
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;

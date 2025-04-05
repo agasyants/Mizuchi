@@ -1,3 +1,4 @@
+import View from "../drawers/view";
 import IdComponent from "./id_component";
 import Input from "./Input";
 import { NodeSpace } from "./node";
@@ -56,5 +57,9 @@ export default class Connector extends IdComponent{
     }
     get(){
         return this.input?.get() || 0;
+    }
+    render(view:View){
+        if (this.input == null || this.output == null) return;
+        view.drawLine(this.input.x, this.input.y, this.output.x, this.output.y, 4, 'yellow')
     }
 }
