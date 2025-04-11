@@ -1,3 +1,5 @@
+import Function from "../data/function";
+
 export default class View {
     constructor(public ctx:CanvasRenderingContext2D){
     }
@@ -12,11 +14,17 @@ export default class View {
     calcY(y:number):number {
         return (y + this.center.y) * this.scale;
     }
+    calcToX(x:number):number {
+        return (x * devicePixelRatio - this.width/2) / this.scale - this.center.x;
+    }
+    calcToY(y:number):number {
+        return (y * devicePixelRatio - this.height/2) / this.scale - this.center.y;
+    }
     calcDim(dim:number):number {
         return dim * this.scale;
     }
     zoom(delta:number, was:[x:number,y:number]){
-        delta = this.scale*delta/2;
+        delta = this.scale * delta / 2;
         if (this.scale-delta < 0.3 || this.scale-delta > 14) return;
         // this.calcCenter(0.5+(was[0]-0.5)*delta, 0.5+(was[1]-0.5)*delta);
         // this.calcCenter(this.center.x-was[0]*delta, this.center.y-was[1]*delta);
@@ -24,12 +32,12 @@ export default class View {
         this.scale -= delta;
     }
     calcCenter(x:number, y:number){
-        this.center.x = (this.down.x + x) / this.scale * 1.5;
-        this.center.y = (this.down.y + y) / this.scale * 1.5;
+        this.center.x = (this.down.x + x) / this.scale * devicePixelRatio;
+        this.center.y = (this.down.y + y) / this.scale * devicePixelRatio;
     }
     calcDown(x:number, y:number){
-        this.down.x = this.center.x * this.scale / 1.5 - x;
-        this.down.y = this.center.y * this.scale / 1.5 - y;
+        this.down.x = this.center.x * this.scale / devicePixelRatio - x;
+        this.down.y = this.center.y * this.scale / devicePixelRatio - y;
     }
     setSize(w:number,h:number){
         this.width = w;
@@ -93,6 +101,24 @@ export default class View {
         this.ctx.lineTo(this.calcX(x2)+this.width/2, -this.calcY(y2)-this.height/2);
         this.ctx.lineWidth = width;
         this.ctx.strokeStyle = color;
+        this.ctx.stroke();
+        this.ctx.closePath();
+    }
+    drawCurve(func:Function, color:string){
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.calcX(func.basics[0].x)+this.width/2, -this.calcY(func.basics[0].y)-this.height/2);
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 4;
+        let i = 0;
+        for (let handle of func.handles) {
+            const basic = func.basics[i+1];
+            const hx = this.calcX(handle.x)+this.width/2;
+            const hy = -this.calcY(handle.y)-this.height/2;
+            const bx = this.calcX(basic.x)+this.width/2;
+            const by = -this.calcY(basic.y)-this.height/2;
+            this.ctx.quadraticCurveTo(hx, hy, bx, by);
+            i++;
+        };
         this.ctx.stroke();
         this.ctx.closePath();
     }

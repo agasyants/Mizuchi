@@ -1,10 +1,12 @@
 import Score from "./score";
 import Track from "./track";
-import Node, { FromTrackNode, NodeSpace } from "../classes/node";
 import { ScoreSelection, TrackSelection } from "../classes/selection";
 import IdComponent, { IdArray } from "../classes/id_component";
 import CommandPattern from "../classes/CommandPattern";
 import Note from "../classes/note";
+import NodeSpace from "../nodes/node_space";
+import FromTrackNode from "../nodes/track_node";
+import Node from "../nodes/node";
 
 export default class Mix {
     tracks = new IdArray<Track>();

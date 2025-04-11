@@ -1,5 +1,5 @@
 import IdComponent, { IdArray } from "../classes/id_component";
-import Node from "../classes/node";
+import Node from "../nodes/node";
 
 export default class Function extends IdComponent{
     basics = new IdArray<BasicPoint>();
@@ -8,7 +8,7 @@ export default class Function extends IdComponent{
     x_max:number;
     y_min:number;
     y_max:number;
-    constructor(x_min:number,x_max:number,y_min:number,y_max:number,basics:BasicPoint[], handles:HandlePoint[], id:number,parent:Node|null){
+    constructor(x_min:number,x_max:number,y_min:number,y_max:number,basics:BasicPoint[], handles:HandlePoint[], id:number,parent:any){
         super(id,"f", parent);
         this.set(basics,handles);
         this.x_min = x_min;
@@ -16,7 +16,17 @@ export default class Function extends IdComponent{
         this.y_min = y_min;
         this.y_max = y_max;
     }
-    toJSON() {
+    findByFullID(fullID:string) {
+        if (fullID.length==0) return this;
+        if (fullID.startsWith(Function.getSeparator())){
+            fullID = fullID.slice(Function.getSeparator().length);
+            const index = parseInt(fullID, 10)
+            // return this.findByID(this.notes,index).findByFullID(fullID.slice(String(index).length));
+        }
+        console.error('func', fullID);
+        return null;
+    }
+    returnJSON() {
         return {
             id: this.id,
             x_min: this.x_min,
@@ -192,7 +202,7 @@ export default class Function extends IdComponent{
         let y = basic1.y + (basic2.y-basic1.y)*handle.yl;
         return [x, y];
     }
-    private setHandleAbsByRelPos(num:number){
+    setHandleAbsByRelPos(num:number){
         let [x, y] = this.calcHandleAbs(this.basics[num], this.handles[num], this.basics[num+1]);
         this.handles[num].x = x;
         this.handles[num].y = y;
@@ -206,19 +216,24 @@ export default class Function extends IdComponent{
 }
 
 export class Point extends IdComponent{
-    x:number;
+    x:number; 
     y:number;
     constructor(x:number,y:number,id:number){
         super(id, "p", null);
         this.x = x;
         this.y = y;
     }
-    toJSON() {
+    returnJSON() {
         return {
             id: this.id,
             x: this.x,
             y: this.y,
         };
+    }
+    findByFullID(fullID:string) {
+        if (fullID.length==0) return this;
+        console.error('point', fullID);
+        return null;
     }
     static fromJSON(json: any): Point {
         return new Point(json.x, json.y, json.id);

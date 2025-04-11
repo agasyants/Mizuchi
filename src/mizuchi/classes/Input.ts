@@ -1,6 +1,7 @@
+import View from "../drawers/view";
+import Node from "../nodes/node";
 import Connector from "./connectors";
 import IdComponent from "./id_component";
-import Node from "./node";
 
 export default abstract class Input extends IdComponent {
     connected: Connector|null = null;
@@ -9,6 +10,12 @@ export default abstract class Input extends IdComponent {
         super(id, Input.getSeparator(), parent);
     }
     abstract get():any
+    hitScan(x:number, y:number, r:number):boolean {
+        return Math.abs(this.x-x) < r && Math.abs(this.y-y) < r;
+    }
+    _render(view:View, color:string){
+        view.drawPin(this.x, this.y, 4, 1, 'black', color);
+    }
 }
 
 export class InputSignal extends Input{

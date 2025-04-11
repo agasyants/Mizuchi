@@ -1,5 +1,6 @@
 import CommandPattern from "../classes/CommandPattern";
-import { NodeSpace } from "../classes/node";
+import hovered from "../classes/hovered";
+import NodeSpace from "../nodes/node_space";
 import Drawer from "./Drawer";
 import View from "./view";
 
@@ -11,8 +12,10 @@ export default class NodeSpaceDrawer extends Drawer {
     margin_top = 20;
     width = 0;
     height = 0;
+    hovered:hovered = new hovered();
+    commandPattern = new CommandPattern();
     was:[x:number,y:number] = [0, 0];
-    constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace, public commandPattern:CommandPattern){
+    constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace){
         super(canvas);
         this.setCanvasSize(canvas.width, canvas.height);
         this.initialize();
@@ -37,7 +40,7 @@ export default class NodeSpaceDrawer extends Drawer {
             e.preventDefault();
             if (e.code=="ControlLeft"){
                 this.ctrl = true;
-                this.render()
+                this.render();
             }
             if (e.code!="KeyS" && e.code!="KeyI" && e.code!="Space"){
                 e.stopPropagation();
@@ -78,9 +81,10 @@ export default class NodeSpaceDrawer extends Drawer {
             this.was = [x/this.width, y/this.height];
             if (this.drugged) {
                 this.view.calcCenter(x,y);
-                this.render();
             }
-            // this.controller.hitScan(x, y, 0.2, e.ctrlKey, e.altKey);
+            this.hitScan(this.view.calcToX(x), this.view.calcToY(y), 10, e.ctrlKey, e.altKey);
+            this.render();
+            // console.log(this.view.calcX(this.view.calcToX(x)),x,this.view.calcY(this.view.calcToY(y)),y)
         });
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.button == 0) {
@@ -119,16 +123,32 @@ export default class NodeSpaceDrawer extends Drawer {
         requestAnimationFrame(()=>{this._render()})
     }
     private _render() {
-        // console.log(this.was)
         this.ctx.clearRect(0, 0, this.w, -this.h);
-        // console.log(this.nodeSpace.nodes);
-        // console.log(this.nodeSpace.nodes);
         for (let con of this.nodeSpace.connectors) {
-            con.render(this.view);
+            con._render(this.view, 'white');
         }
+        // console.log(this.nodeSpace.nodes);
         for (let node of this.nodeSpace.nodes) {
-            node.render(this.view);
+            node._render(this.view, 'white');
         }
-        this.nodeSpace.outputNode.render(this.view);
+        this.nodeSpace.outputNode._render(this.view, 'white');
+        for (let s of this.hovered.elements) {
+            s._render(this.view, 'yellow');
+        }
+    }
+    hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){
+        ctrl = ctrl;
+        alt = alt;
+        this.hovered.elements = [];
+        for (let con of this.nodeSpace.connectors){
+            const h = con.hitScan(x, y, radius);
+            if (h) this.hovered.elements = [h];
+        }
+        for (let node of this.nodeSpace.nodes){
+            const scan = node.hitScan(x, y, radius);
+            if (scan) this.hovered.elements = [scan];
+        } 
+        const scan = this.nodeSpace.outputNode.hitScan(x,y,radius);
+        if (scan) this.hovered.elements = [scan];
     }
 }

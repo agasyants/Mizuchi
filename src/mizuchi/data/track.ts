@@ -1,10 +1,12 @@
 import Score from "./score";
 import Note from "../classes/note";
-import Node, { NodeSpace, NoteInput } from "../classes/node";
 import IdComponent, { IdArray } from "../classes/id_component";
 import Mix from "./mix";
 import Mapping from "./mapping_function";
 import { BasicPoint, HandlePoint } from "./function";
+import NodeSpace from "../nodes/node_space";
+import Node from "../nodes/node";
+import NoteInput from "../nodes/note_input_node";
 
 export default class Track extends IdComponent {
     name:string;
