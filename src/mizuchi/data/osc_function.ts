@@ -1,4 +1,4 @@
-import { Point, BasicPoint, HandlePoint } from "./function";
+import { Point, BasicPoint, HandlePoint } from "../curves/function";
 
 export default class OscFunction{
     basics: BasicPoint[] = [];

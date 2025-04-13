@@ -1,5 +1,5 @@
 import Note from "../classes/note";
-import Mapping from "../data/mapping_function";
+import Mapping from "../curves/mapping_function";
 import Mix from "../data/mix";
 import Track from "../data/track";
 import View from "../drawers/view";

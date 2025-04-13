@@ -13,8 +13,8 @@ export default abstract class Output extends IdComponent {
     hitScan(x:number, y:number, r:number):boolean {
         return Math.abs(this.x-x) < r && Math.abs(this.y-y) < r;
     }
-    _render(view:View, color:string){
-        view.drawPin(this.x, this.y, 4, 1, 'black', color);
+    render(view:View){
+        view.drawPin(this.x, this.y, 4, 1, view.color.back, view.getColor(this));
     }
 }
 

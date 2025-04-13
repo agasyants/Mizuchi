@@ -1,6 +1,6 @@
 import OscFunction from "../data/osc_function";
 import  CommandPattern,{ Create, Delete, Move } from "../classes/CommandPattern";
-import { BasicPoint, HandlePoint, Point } from "../data/function";
+import { BasicPoint, HandlePoint, Point } from "../curves/function";
 
 export default class OscDrawer{
     commandPattern:CommandPattern;

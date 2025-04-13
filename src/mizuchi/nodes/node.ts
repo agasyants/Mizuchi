@@ -36,13 +36,42 @@ export default abstract class Node extends IdComponent {
         }
     }
     abstract get():any
-    abstract render(view:View, color:string):void
-    _render(view:View, color:string){
-        view.drawFrame(this.x, this.y, this.width, this.height, 2, color, 'black');
+    abstract render(view:View):void
+    _render(view:View){
+        const color = view.getColor(this);
+        if (color === view.color.selected){
+            const of = view.selected.offset;
+            view.drawFrame(this.x-of.start, this.y-of.pitch, this.width, this.height, 2, color, view.color.back);
+        } else {
+            view.drawFrame(this.x, this.y, this.width, this.height, 2, color, view.color.back);
+        }
         for (let i = 0; i < this.inputs.length; i++){
-            this.inputs[i]._render(view, color)
+            this.inputs[i].render(view)
         } 
-        if (this.output) this.output._render(view, color);
+        if (this.output) this.output.render(view);
+        view.drawText(this.x, this.y, this.width, this.height, this.name, color)
+    }
+    translate(x:number, y:number){
+        this.x += x;
+        this.y += y;
+        for (let i of this.inputs){
+            i.x += x;
+            i.y += y;
+            const a = i.connected;
+            if (a) {
+                const point = a.curve.basics[a.curve.basics.length-1];
+                a.curve.move(point, [x,y], false)
+            }
+        }
+        if (this.output) {
+            this.output.x += x;
+            this.output.y += y;
+            const a = this.output.connected;
+            if (a) {
+                const point = a.curve.basics[0];
+                a.curve.move(point, [x,y], false)
+            }
+        };
     }
     returnJSON() {
         return {

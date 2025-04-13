@@ -1,4 +1,5 @@
-import Function, { BasicPoint, HandlePoint } from "../data/function";
+import Curve from "../curves/curve";
+import { BasicPoint, HandlePoint } from "../curves/points";
 import View from "../drawers/view";
 import NodeSpace from "../nodes/node_space";
 import IdComponent from "./id_component";
@@ -8,7 +9,7 @@ import Output from "./Output";
 export default class Connector extends IdComponent{
     input:Output|null = null;
     output:Input|null = null;
-    curve:Function = new Function(0,0,0,0,[],[], 0, this)
+    curve:Curve = new Curve([], [], 0, this)
     static getSeparator(){ return 'c'; }
     constructor(id:number,parent:NodeSpace, input:Output|null=null, output:Input|null=null){
         super(id, Connector.getSeparator(), parent);
@@ -72,18 +73,25 @@ export default class Connector extends IdComponent{
     get(){
         return this.input?.get() || 0;
     }
-    _render(view:View, color:string){
+    render(view:View){
+        const color = view.getColor(this);
         view.drawCurve(this.curve, color);
+        for (let basic of this.curve.basics){
+            view.drawCircle(basic.x, basic.y, 4, color);
+        }
+        if (color === view.color.hovered){
+            for (let handle of this.curve.handles){
+                view.drawCircle(handle.x, handle.y, 4, color);
+            }
+        }
     }
     hitScan(xx:number, yy:number, threshold:number): any {
         const steps = 10;
-    
         const p0 = this.curve.basics[0];
         const p1 = this.curve.handles[0];
         const p2 = this.curve.basics[1];
     
         let prev = { x: p0.x, y: p0.y };
-    
         for (let i = 1; i <= steps; i++) {
             const t = i / steps;
             const x = (1 - t) ** 2 * p0.x + 2 * (1 - t) * t * p1.x + t ** 2 * p2.x;

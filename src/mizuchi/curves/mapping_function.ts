@@ -1,4 +1,5 @@
-import Function, { BasicPoint, HandlePoint } from "./function";
+import Function from "./function";
+import { BasicPoint, HandlePoint } from "./points";
 
 export default class Mapping extends Function{
     constructor(xm:number,xM:number,ym:number,yM:number, id:number, basics:BasicPoint[]=[], handles:HandlePoint[]=[]){

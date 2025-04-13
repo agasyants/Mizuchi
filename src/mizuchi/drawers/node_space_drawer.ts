@@ -1,8 +1,23 @@
-import CommandPattern from "../classes/CommandPattern";
-import hovered from "../classes/hovered";
+import CommandPattern, { Move } from "../classes/CommandPattern";
+import Input from "../classes/Input";
+import Output from "../classes/Output";
+import Node from "../nodes/node";
 import NodeSpace from "../nodes/node_space";
 import Drawer from "./Drawer";
 import View from "./view";
+
+class Star {
+    x: number;
+    y: number;
+    radius: number;
+    alpha: number;
+    constructor(x:number, y:number, radius:number, alpha:number){
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.alpha = alpha;
+    }
+}
 
 export default class NodeSpaceDrawer extends Drawer {
     tabs:NodeSpace[] = [];
@@ -12,13 +27,18 @@ export default class NodeSpaceDrawer extends Drawer {
     margin_top = 20;
     width = 0;
     height = 0;
-    hovered:hovered = new hovered();
     commandPattern = new CommandPattern();
     was:[x:number,y:number] = [0, 0];
+    
+    stars: Star[] = [];
+    starDensity = 0.001;
+    starParallax = 0.5;
+
     constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace){
         super(canvas);
         this.setCanvasSize(canvas.width, canvas.height);
         this.initialize();
+        this.generateStars(this.width, this.height);
         this.render();
     }
     initialize() {
@@ -80,7 +100,26 @@ export default class NodeSpaceDrawer extends Drawer {
             const [x,y] = this.rectInput(e);
             this.was = [x/this.width, y/this.height];
             if (this.drugged) {
-                this.view.calcCenter(x,y);
+                const e = this.view.selected.elements;
+                if (e.length) {
+                    if (e.length==1){
+                        const sel = e[0];
+                        if (sel instanceof Node) {
+                            this.drugNode(x,y)
+                        } else if (sel instanceof Input) {
+                            console.log('input')
+                        } else if (sel instanceof Output) {
+                            console.log('output')
+                        } else {
+                            console.log('connector')
+                        }
+                    } else {
+                        console.log('many');
+                    }
+                } else {
+                    this.view.calcCenter(x,y);
+                    // this.calcVisible();
+                }
             }
             this.hitScan(this.view.calcToX(x), this.view.calcToY(y), 10, e.ctrlKey, e.altKey);
             this.render();
@@ -89,8 +128,11 @@ export default class NodeSpaceDrawer extends Drawer {
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.button == 0) {
                 this.canvas.setPointerCapture(e.pointerId);
-                this.drugged = true;
                 const [x,y] = this.rectInput(e);
+                this.view.selected.elements = this.view.hovered.elements;
+                this.view.selected.drugged_x = x;
+                this.view.selected.drugged_y = y;
+                this.drugged = true;
                 this.view.calcDown(x,y);
                 this.render();
             }
@@ -98,6 +140,8 @@ export default class NodeSpaceDrawer extends Drawer {
         this.canvas.addEventListener('pointerup', (e) => {
             if (e.button == 0) {
                 this.drugged = false;
+                this.commandPattern.addCommand(new Move(this.nodeSpace, this.view.selected.elements, [this.view.selected.offset.start, this.view.selected.offset.pitch]));
+                this.view.selected.clear();
                 this.render();
             }
         });
@@ -108,6 +152,7 @@ export default class NodeSpaceDrawer extends Drawer {
         const y = (e.clientY - rect.top);
         return [x,y];
     }
+    
     setCanvasSize(width: number, height: number): void {
         // this.ctx.translate(0, -this.h)
         super.setCanvasSize(width, height)
@@ -118,37 +163,67 @@ export default class NodeSpaceDrawer extends Drawer {
         this.view.setSize(this.width, this.height);
         this.render();
     }
+    calcVisible(){
+        
+    }
+    generateStars(width: number, height: number) {
+        const area = width * height * 5; // генерация с запасом
+        const count = area * this.starDensity;
+        for (let i = 0; i < count; i++) {
+            this.stars.push(new Star(
+                Math.random() * width * 5 - width * 2,
+                Math.random() * height * 5 - height * 2,
+                Math.random() * 1.5 + 0.3,
+                Math.random() * 0.5 + 0.4,
+            ));
+        }
+    }
     render(){
         // this.duration = Math.min(this.score.duration, this.score.loop_duration)
         requestAnimationFrame(()=>{this._render()})
     }
     private _render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
+        this.ctx.save();
+        this.ctx.scale(1, -1); // вернуть нормальную ориентацию
+        for (const star of this.stars) {
+            const x = star.x + this.view.center.x * this.starParallax;
+            const y = star.y + this.view.center.y * this.starParallax;
+            if (x < 0 || x > this.width || y < 0 || y > this.height) continue;
+
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, star.radius, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(255,255,255,${star.alpha})`;
+            this.ctx.fill();
+        }
+        this.ctx.restore();
         for (let con of this.nodeSpace.connectors) {
-            con._render(this.view, 'white');
+            con.render(this.view);
         }
         // console.log(this.nodeSpace.nodes);
         for (let node of this.nodeSpace.nodes) {
-            node._render(this.view, 'white');
+            node.render(this.view);
         }
-        this.nodeSpace.outputNode._render(this.view, 'white');
-        for (let s of this.hovered.elements) {
-            s._render(this.view, 'yellow');
-        }
+        this.nodeSpace.outputNode.render(this.view);
+    }
+    drugNode(x:number, y:number){
+        const s = this.view.selected;
+        s.offset.start = s.drugged_x - x;
+        s.offset.pitch = s.drugged_y - y;
     }
     hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){
         ctrl = ctrl;
         alt = alt;
-        this.hovered.elements = [];
+        this.view.hovered.elements = [];
         for (let con of this.nodeSpace.connectors){
             const h = con.hitScan(x, y, radius);
-            if (h) this.hovered.elements = [h];
+            if (h) this.view.hovered.elements = [h];
         }
         for (let node of this.nodeSpace.nodes){
             const scan = node.hitScan(x, y, radius);
-            if (scan) this.hovered.elements = [scan];
+            if (scan) this.view.hovered.elements = [scan];
         } 
         const scan = this.nodeSpace.outputNode.hitScan(x,y,radius);
-        if (scan) this.hovered.elements = [scan];
+        if (scan) this.view.hovered.elements = [scan];
     }
 }

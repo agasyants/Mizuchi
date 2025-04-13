@@ -17,15 +17,6 @@ export default class NodeSpace extends Node {
     }
     render(view:View){
         console.log(view);
-        // const x = view.calcX(this.x);
-        // const y = view.calcY(this.y);
-        // const w = view.calcDim(this.width);
-        // const h = view.calcDim(this.height);
-        // ctx.fillStyle = 'white';
-        // console.log(x + width/2, y + height/2, w, h);
-        // ctx.fillRect(x, -y/2, w, h);
-        // ctx.fillStyle = 'grey';
-        // ctx.fillRect(x+5, -y/2+5, w-10, h-10);
     }
     returnJSON() {
         return {
@@ -47,17 +38,17 @@ export default class NodeSpace extends Node {
     }
     static fromJSON(json:any, parent:any, mix:Mix): NodeSpace {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
-        nodeSpace.window = json.window;
-        nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
-        for (let node of json.NODES.data) {
-            nodeSpace.add(Node.fromJSON(node, nodeSpace, mix));
-        } 
-        // nodeSpace.nodes = IdArray.fromJSON(nodes, nodeSpace.nodes.increment);
-        const connectors = [];
-        for (let connector of json.connectors.data) {
-            connectors.push(Connector.fromJSON(connector, nodeSpace));
-        }
-        nodeSpace.connectors = IdArray.fromJSON(connectors, nodeSpace.connectors.increment);
+        // nodeSpace.window = json.window;
+        // nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
+        // for (let node of json.NODES.data) {
+        //     nodeSpace.add(Node.fromJSON(node, nodeSpace, mix));
+        mix = mix// } 
+        // // nodeSpace.nodes = IdArray.fromJSON(nodes, nodeSpace.nodes.increment);
+        // const connectors = [];
+        // for (let connector of json.connectors.data) {
+        //     connectors.push(Connector.fromJSON(connector, nodeSpace));
+        // }
+        // nodeSpace.connectors = IdArray.fromJSON(connectors, nodeSpace.connectors.increment);
         return nodeSpace;
     }
     findOutputById(fullId: string): Output|null {
@@ -96,6 +87,16 @@ export default class NodeSpace extends Node {
             // clone.add(node.clone());
         // }
         return clone;
+    }
+    move(objects:Node[], offset:number[], d:boolean){
+        for (let object of objects) {
+            console.log(offset);
+            if (d) {
+                object.translate(offset[0], offset[1]);
+            } else {
+                object.translate(-offset[0], -offset[1]);
+            }
+        }
     }
     connectNodes(node1:Node, node2:Node, index1:number){
         if (node1.output && node2.inputs.length){

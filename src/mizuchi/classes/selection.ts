@@ -39,7 +39,7 @@ export class NoteSelection extends Selection {
         clone.start = this.start;
         clone.end = this.end;
         for (let el of this.elements){
-            clone.elements.push(el.clone(this));
+            clone.elements.push(el.clone(el.id));
         }
         return clone;   
     }
@@ -96,6 +96,22 @@ export class TrackSelection extends Selection {
     }
     clone(){
         const clone = new TrackSelection();
+        clone.start = this.start;
+        clone.end = this.end;
+        for (let el of this.elements){
+            clone.elements.push(el.clone());
+        }
+        return clone;
+    }
+}
+
+export class NodeSelection extends Selection {
+    elements:any[] = [];
+    constructor(){
+        super();
+    }
+    clone(){
+        const clone = new NodeSelection();
         clone.start = this.start;
         clone.end = this.end;
         for (let el of this.elements){
