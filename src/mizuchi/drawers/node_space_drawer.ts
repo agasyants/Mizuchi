@@ -1,6 +1,9 @@
-import CommandPattern, { Move } from "../classes/CommandPattern";
+import CommandPattern, { Move, Create } from "../classes/CommandPattern";
 import Input from "../classes/Input";
+import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
+import DelayNode from "../nodes/delay_node";
+import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
 import NodeSpace from "../nodes/node_space";
 import Drawer from "./Drawer";
@@ -33,6 +36,7 @@ export default class NodeSpaceDrawer extends Drawer {
     stars: Star[] = [];
     starDensity = 0.001;
     starParallax = 0.5;
+    creatingMenu:ContextMenu = new ContextMenu();
 
     constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace){
         super(canvas);
@@ -40,6 +44,30 @@ export default class NodeSpaceDrawer extends Drawer {
         this.initialize();
         this.generateStars(this.width, this.height);
         this.render();
+        this.creatingMenu.addItem('Mix Node', ()=>{
+            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Delay Node', ()=>{
+            this.createNode(new DelayNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Mix Node', ()=>{
+            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Mix Node', ()=>{
+            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Mix Node', ()=>{
+            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+    }
+    createNode(node: Node, x: number, y: number) {
+        node.moveTo(x, y);
+        this.commandPattern.addCommand(new Create(this.nodeSpace, node, 0));
     }
     initialize() {
         this.canvas.onselectstart = function () { return false; }
@@ -105,7 +133,7 @@ export default class NodeSpaceDrawer extends Drawer {
                     if (e.length==1){
                         const sel = e[0];
                         if (sel instanceof Node) {
-                            this.drugNode(x,y)
+                            this.drugNode(x, y)
                         } else if (sel instanceof Input) {
                             console.log('input')
                         } else if (sel instanceof Output) {
@@ -126,15 +154,19 @@ export default class NodeSpaceDrawer extends Drawer {
             // console.log(this.view.calcX(this.view.calcToX(x)),x,this.view.calcY(this.view.calcToY(y)),y)
         });
         this.canvas.addEventListener('pointerdown', (e) => {
-            if (e.button == 0) {
+            const [x,y] = this.rectInput(e);
+            if (e.button == 0 && !e.shiftKey) {
                 this.canvas.setPointerCapture(e.pointerId);
-                const [x,y] = this.rectInput(e);
                 this.view.selected.elements = this.view.hovered.elements;
                 this.view.selected.drugged_x = x;
                 this.view.selected.drugged_y = y;
                 this.drugged = true;
                 this.view.calcDown(x,y);
                 this.render();
+            } else if (!e.shiftKey) {
+                this.creatingMenu.show(this.view.calcToX(x),this.view.calcToY(y), e.clientX, e.clientY);
+                e.stopPropagation();
+                e.preventDefault();
             }
         });
         this.canvas.addEventListener('pointerup', (e) => {
@@ -208,8 +240,8 @@ export default class NodeSpaceDrawer extends Drawer {
     }
     drugNode(x:number, y:number){
         const s = this.view.selected;
-        s.offset.start = s.drugged_x - x;
-        s.offset.pitch = s.drugged_y - y;
+        s.offset.start = this.view.calcDim(s.drugged_x - x)*1.5;
+        s.offset.pitch = this.view.calcDim(s.drugged_y - y)*1.5;
     }
     hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){
         ctrl = ctrl;

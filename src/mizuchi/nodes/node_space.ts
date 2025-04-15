@@ -77,7 +77,7 @@ export default class NodeSpace extends Node {
     get():number{
         return this.outputNode.get();
     }
-    add(node:Node){
+    create(node:Node){  
         node.parent = this;
         this.nodes.push(node);
     }

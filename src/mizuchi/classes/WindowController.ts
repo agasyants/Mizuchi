@@ -57,7 +57,7 @@ export default class WindowController {
     private onMouseDown(event: MouseEvent) {
         this.drawer.canvas.focus();
         if (this.isResizing.Bottom||this.isResizing.Right||this.isResizing.Left||this.isResizing.Top) return;
-        if (event.button == 2) {
+        if (event.shiftKey) {
             this.drawer.stopRender=true;
             this.clickCount++;
             if (this.clickCount == 2) { // if double click close the window
@@ -84,8 +84,8 @@ export default class WindowController {
             const height = parseFloat(this.container.style.height || "0");
 
             // Prevent dragging outside the window bounds
-            x = Math.max(0, Math.min(x, window.innerWidth - width));
-            y = Math.max(0, Math.min(y, window.innerHeight - height));
+            x = Math.max(-this.range/2, Math.min(x, window.innerWidth - width + this.range/2));
+            y = Math.max(-this.range/2, Math.min(y, window.innerHeight - height + this.range/2));
 
             this.container.style.left = `${x}px`;
             this.container.style.top = `${y}px`;
@@ -94,7 +94,7 @@ export default class WindowController {
   
     private onMouseUp(event: MouseEvent) {
         this.drawer.stopRender=false;
-        if (event.button == 2)
+        if (event.shiftKey)
             this.dragWindow = null;
     }
   
@@ -121,7 +121,6 @@ export default class WindowController {
     
   
     private onResizeStart(event: MouseEvent) {
-        if (event.button != 2) return;
         const rect = this.container.getBoundingClientRect();
     
         this.isResizing = {
@@ -146,20 +145,20 @@ export default class WindowController {
     
             // width change
             if (this.isResizing.Right) {
-                newWidth = event.clientX - rect.left + this.range/2;
+                newWidth = Math.min(window.innerWidth - rect.left + this.range/2, event.clientX - rect.left + this.range/2);
             } else if (this.isResizing.Left) {
-                newWidth = rect.right - event.clientX + this.range/2;
-                newLeft = event.clientX - this.range/2;
+                const maxPossibleWidth = rect.right;
+                newWidth = Math.min(maxPossibleWidth + this.range/2, rect.right - event.clientX + this.range/2);
+                newLeft = Math.max(-this.range/2, event.clientX - this.range/2);
             }
-    
             // height change
             if (this.isResizing.Bottom) {
-                newHeight = event.clientY - rect.top + this.range/2;
+                newHeight = Math.min(window.innerHeight - rect.top + this.range/2, event.clientY - rect.top + this.range/2);
             } else if (this.isResizing.Top) {
-                newHeight = rect.bottom - event.clientY + this.range/2;
-                newTop = event.clientY - this.range/2;
+                const maxPossibleHeight = rect.bottom;
+                newHeight = Math.min(maxPossibleHeight + this.range/2, rect.bottom - event.clientY + this.range/2);
+                newTop = Math.max(-this.range/2, event.clientY - this.range/2);
             }
-    
             // Apply new size
             if (newWidth > this.maxWidth) {
                 this.container.style.width = `${newWidth}px`;
@@ -168,7 +167,6 @@ export default class WindowController {
             } else {
                 newWidth = this.maxWidth;
             }
-    
             if (newHeight > this.maxHeight) {
                 this.container.style.height = `${newHeight}px`;
                 if (this.isResizing.Top) 
@@ -176,9 +174,7 @@ export default class WindowController {
             } else {
                 newHeight = this.maxHeight;
             }
-    
             // Apply canvas
-            
             this.debounceSetSize(newWidth-this.range, newHeight-this.range);
         }
     }

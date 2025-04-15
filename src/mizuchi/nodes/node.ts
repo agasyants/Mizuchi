@@ -27,12 +27,26 @@ export default abstract class Node extends IdComponent {
         super(id, Node.getSeparator(), parent);
         this.x = x;
         this.y = y;
+        console.log(x,y);
+        
         this.height = height;
         this.width = width;
         this.name = name;
         if (hasOut) this.output = new OutputSignal(this, 'out', x+width, y-height/2);
         for (let i = 0; i < input_names.length; i++){
             this.inputs.push(new InputSignal(this, input_names[i], i, x, y-height*(i+1)/(input_names.length+1)));
+        }
+    }
+    moveTo(x:number, y:number){
+        this.x = x;
+        this.y = y;
+        for (let i = 0; i < this.inputs.length; i++){
+            this.inputs[i].x = x;
+            this.inputs[i].y = y-this.height*(i+1)/(this.inputs.length+1);
+        }
+        if (this.output) {
+            this.output.x = x + this.width;
+            this.output.y = y - this.height/2;
         }
     }
     abstract get():any

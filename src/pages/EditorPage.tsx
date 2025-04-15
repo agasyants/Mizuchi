@@ -37,6 +37,7 @@ const EditorPage: React.FC = () => {
       </div>
       <div id="node-space-canvas-wrapper" style={{ position: "absolute"}}>
         <canvas id="NodeSpaceCanvas" style={{ backgroundColor: "black" }}></canvas>
+        <div id="node-context-menu"></div>
       </div>
     </div>
   );

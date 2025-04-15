@@ -6,7 +6,7 @@ import IdComponent from "./id_component";
 export default abstract class Output extends IdComponent {
     connected: Connector|null = null;
     static getSeparator(){ return 'o';}
-    constructor(parent:Node, public name:string, public x:number, public  y:number) {
+    constructor(parent:Node, public name:string, public x:number, public y:number) {
         super(0, Output.getSeparator(), parent);
     }
     abstract get():any

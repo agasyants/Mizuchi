@@ -8,6 +8,7 @@ import WindowController from "../classes/WindowController";
 import MixController from "./mix_controller";
 import { HoveredMix } from "../classes/hovered";
 import SectorSelection from "../classes/SectorSelection";
+import NodeSpaceDrawer from "./node_space_drawer";
 
 export default class MixDrawer extends Drawer {
     show_id:boolean = true;
@@ -174,6 +175,9 @@ export default class MixDrawer extends Drawer {
                             this.mix.select(this.mix.selected.tracks.elements,this.sectorsSelection.x1,this.sectorsSelection.x2);
                         }
                         this.mix.select([this.hovered.track],this.sectorsSelection.x1,this.sectorsSelection.x2);
+                        if (this.node_window.drawer instanceof NodeSpaceDrawer){
+                            this.node_window.drawer.nodeSpace = this.hovered.track.nodeSpace;
+                        }
                         this.node_window.open();
                     }
                 } 
