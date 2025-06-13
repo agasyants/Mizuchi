@@ -27,8 +27,6 @@ export default abstract class Node extends IdComponent {
         super(id, Node.getSeparator(), parent);
         this.x = x;
         this.y = y;
-        console.log(x,y);
-        
         this.height = height;
         this.width = width;
         this.name = name;
@@ -80,8 +78,7 @@ export default abstract class Node extends IdComponent {
         if (this.output) {
             this.output.x += x;
             this.output.y += y;
-            const a = this.output.connected;
-            if (a) {
+            for (let a of this.output.connected){
                 const point = a.curve.basics[0];
                 a.curve.move(point, [x,y], false)
             }

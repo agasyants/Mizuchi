@@ -1,11 +1,8 @@
-import { IdArray } from "../classes/id_component";
 import Node from "../nodes/node";
 import Curve from "./curve";
 import { BasicPoint, HandlePoint, Point } from "./points";
 
 export default class Function extends Curve{
-    basics = new IdArray<BasicPoint>();
-    handles = new IdArray<HandlePoint>();
     x_min:number;
     x_max:number;
     y_min:number;

@@ -30,7 +30,9 @@ export default class NoteInput extends Node {
             const t = this.mix.sampleRate/note.getFrequency();
             sum += this.osc.getSample((this.mix.playback-note.start*SPS) % t / t);
         }
-        return sum/founded.length;
+        if (this.inputs.length>0) sum /= this.inputs.length;
+        // console.log('NoteInput', sum)
+        return sum;
     }
     private findNote(rel_time:number): Note[] {
         if (this.track == null) return [];

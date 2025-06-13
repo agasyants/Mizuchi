@@ -11,7 +11,7 @@ export default class Connector extends IdComponent{
     output:Input|null = null;
     curve:Curve = new Curve([], [], 0, this)
     static getSeparator(){ return 'c'; }
-    constructor(id:number,parent:NodeSpace, input:Output|null=null, output:Input|null=null){
+    constructor(id:number, parent:NodeSpace, input:Output|null=null, output:Input|null=null){
         super(id, Connector.getSeparator(), parent);
         this.input = input;
         if (input) {
@@ -53,7 +53,7 @@ export default class Connector extends IdComponent{
         // console.log("input, output", input, output);
         const connector = new Connector(json.id, parent, input, output);
         if (input) {
-            input.connected = connector;
+            input.connected.push(connector);
         }
         if (output) {
             output.connected = connector;
@@ -61,9 +61,9 @@ export default class Connector extends IdComponent{
         return connector;
     }
     changeInput(new_input:Output){
-        if (this.input != null) this.input.connected = null;
+        if (this.input != null) this.input.connected = [];
         this.input = new_input;
-        new_input.connected = this;
+        new_input.connected.push(this);
     }
     changeOutput(new_output:Input){
         if (this.output != null) this.output.connected = null;
@@ -71,6 +71,7 @@ export default class Connector extends IdComponent{
         new_output.connected = this;
     }
     get(){
+        // console.log('sum');
         return this.input?.get() || 0;
     }
     render(view:View){

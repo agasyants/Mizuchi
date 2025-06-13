@@ -1,4 +1,5 @@
-import CommandPattern, { Move, Create } from "../classes/CommandPattern";
+import CommandPattern, { Move, Create, Delete } from "../classes/CommandPattern";
+import Connector from "../classes/connectors";
 import Input from "../classes/Input";
 import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
@@ -111,8 +112,7 @@ export default class NodeSpaceDrawer extends Drawer {
                 // this.selectAll();
             }
             if (e.code=="Delete" || e.code=="Backspace"){
-                // this.delete();
-                // this.update_mix();
+                this.delete();
             } 
             if (e.code=="KeyX" && e.ctrlKey){
                 // this.cut();
@@ -172,7 +172,19 @@ export default class NodeSpaceDrawer extends Drawer {
         this.canvas.addEventListener('pointerup', (e) => {
             if (e.button == 0) {
                 this.drugged = false;
-                this.commandPattern.addCommand(new Move(this.nodeSpace, this.view.selected.elements, [this.view.selected.offset.start, this.view.selected.offset.pitch]));
+                if (this.view.selected.elements.length>0) {
+                    if (this.view.selected.elements[0] instanceof Node) {
+                        this.commandPattern.addCommand(new Move(this.nodeSpace, this.view.selected.elements, [this.view.selected.offset.start, this.view.selected.offset.pitch]));
+                    } else if (this.view.selected.elements[0] instanceof Input) {
+                        // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
+                    } else if (this.view.selected.elements[0] instanceof Output) {
+                        if (this.view.hovered.elements[0] instanceof Input) {
+                            const new_con = new Connector(0, this.nodeSpace, this.view.selected.elements[0], this.view.hovered.elements[0]);
+                            this.commandPattern.addCommand(new Create(this.nodeSpace, new_con, 0));
+                        }
+                    } 
+                    
+                }
                 this.view.selected.clear();
                 this.render();
             }
@@ -184,7 +196,15 @@ export default class NodeSpaceDrawer extends Drawer {
         const y = (e.clientY - rect.top);
         return [x,y];
     }
-    
+    delete(){
+        for (let e of this.view.selected.elements) {
+            if (e instanceof Node) {
+                this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.nodes.indexOf(e)));
+            } else if (e instanceof Connector) {
+                this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.connectors.indexOf(e)));
+            }
+        }
+    }
     setCanvasSize(width: number, height: number): void {
         // this.ctx.translate(0, -this.h)
         super.setCanvasSize(width, height)

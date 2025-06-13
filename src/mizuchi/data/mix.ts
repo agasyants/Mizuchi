@@ -142,7 +142,7 @@ export default class Mix {
             } else if (del.sep == Note.getSeparator()) {
                 this.deleted.push(Note.fromJSON(del, null));
             } else if (del.sep == Node.getSeparator()) {
-                this.deleted.push(Node.fromJSON(del, null, this));
+                // this.deleted.push(Node.fromJSON(del, null, this));
             } else {
                 console.log('else');
                 this.deleted.push(del);

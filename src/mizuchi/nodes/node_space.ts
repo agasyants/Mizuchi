@@ -75,11 +75,19 @@ export default class NodeSpace extends Node {
         return null;
     }
     get():number{
+        // console.log(this.outputNode.get());
+        // console.log(this.outputNode.inputs[0].connected?.input?.parent, this.outputNode.inputs[0].connected?.input?.parent.get());
+        // (this.outputNode.inputs[0].connected?.input?.parent.get() === 0) ? console.log('ok', this.outputNode.inputs[0].connected?.input?.parent) : console.log('not ok', this.outputNode.inputs[0].connected?.input?.parent);
         return this.outputNode.get();
     }
-    create(node:Node){  
-        node.parent = this;
-        this.nodes.push(node);
+    create(obj:Node|Connector){
+        if (obj instanceof Node){
+            obj.parent = this;
+            this.nodes.push(obj);
+        } else if (obj instanceof Connector && obj.input && obj.output) {
+            const index = obj.output.parent.inputs.indexOf(obj.output);
+            this.connectNodes(obj.input.parent, obj.output.parent, index);
+        }
     }
     clone(){
         const clone = new NodeSpace(this.x, this.y, this.id, this.parent, this.input_names);
@@ -90,12 +98,18 @@ export default class NodeSpace extends Node {
     }
     move(objects:Node[], offset:number[], d:boolean){
         for (let object of objects) {
-            console.log(offset);
             if (d) {
                 object.translate(offset[0], offset[1]);
             } else {
                 object.translate(-offset[0], -offset[1]);
             }
+        }
+    }
+    delete(object:any, place:number){
+        if (object instanceof Node) {
+            this.nodes.splice(place, 1);
+        } else if (object instanceof Connector) {
+            this.connectors.splice(place, 1);
         }
     }
     connectNodes(node1:Node, node2:Node, index1:number){
@@ -104,7 +118,7 @@ export default class NodeSpace extends Node {
             const output = node2.inputs[index1]
             const con = new Connector(this.connectors.getNewId(), this, input, output);
             this.connectors.push(con);
-            input.connected = con;
+            input.connected = [con];
             output.connected = con;
         }
     }

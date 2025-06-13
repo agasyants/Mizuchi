@@ -19,7 +19,9 @@ export default class FromTrackNode extends Node {
         for (let track of this.mix.tracks){
             sum += track.nodeSpace.get();
         }
-        return sum/this.inputs.length;
+        if (this.inputs.length>0) sum /= this.inputs.length;
+        // console.log('FromTrackNode')
+        return sum;
     }
     static fromJSON(json: any, mix:Mix): FromTrackNode {
         const node = new FromTrackNode(json.x, json.y, json.id, mix);
