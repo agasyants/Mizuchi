@@ -59,7 +59,7 @@ export default class MixController {
         const start = ss.offset.start;
         const dur = ss.offset.duration;
         const loop = ss.offset.loop_duration;
-        this.commandPattern.addCommand(new Move(this.mix, ss.elements.slice(), [start, dur, loop, ss.offset.rel]));
+        this.move(ss.elements.slice(), start, dur, loop, ss.offset.rel);
         ss.start += start;
         ss.end = ss.end + start + dur;
     }
@@ -124,7 +124,7 @@ export default class MixController {
         const s = this.mix.selected.scores;
         let commands:Command[] = [];
         commands = commands.concat(this.createScores(s.elements.slice(), s.track_index));
-        commands.push(new Move(this.mix, s.elements.slice(), [s.end-s.start, 0, 0, 0, 0]));
+        this.move(s.elements.slice(), s.end-s.start, 0, 0, 0);
         this.commandPattern.addCommand(new Complex(commands))
     }
     selectAll(shift:boolean){
@@ -136,6 +136,16 @@ export default class MixController {
             }
         }
         this.mix.select(scores,this.sectorsSelection.x1,this.sectorsSelection.x2);
+    }
+    move(scores:Score[], start:number, duration:number, loop_duration:number, rel:number){
+        this.commandPattern.recordOpen();
+        for (let i = 0; i < scores.length; i++){
+            const score = scores[i];
+            let was = [score.absolute_start, score.duration, score.loop_duration, score.relative_start];
+            const become = [score.absolute_start + start, score.duration + duration, score.loop_duration + loop_duration, score.relative_start + rel];
+            this.commandPattern.addCommand(new Move(this.mix, score, was, become));
+        }
+        this.commandPattern.recordClose();
     }
     concatScores(){
         const s = this.mix.selected.scores;

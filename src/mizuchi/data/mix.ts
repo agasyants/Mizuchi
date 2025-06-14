@@ -162,29 +162,19 @@ export default class Mix {
         const new_track = this.tracks.splice(index, 1)[0];
         if (new_track != track) console.error("track don't fits index");
     }
-    move(sel:Track[]|Score[], [start, dur, loop, rel]:number[], reverse:boolean){
-        if (reverse){
-            rel = -rel;
-            start = -start;
-            dur = -dur;
-            loop = -loop;
-        }
-        if (sel.every(item => item instanceof Track)){
-            for (let track of sel){
-                const index = this.tracks.indexOf(track);
-                if (index > -1) {
-                    this.tracks.splice(index, 1);
-                    this.tracks.splice(index, 0, track);
-                }
+    move(sel:Track|Score, [start, dur, loop, rel]:number[]){
+        if (sel instanceof Track){
+            const index = this.tracks.indexOf(sel);
+            if (index > -1) {
+                this.tracks.splice(index, 1);
+                this.tracks.splice(index, 0, sel);
             }
-        } else if (sel.every(item => item instanceof Score)){
-            for (let i = 0; i < sel.length; i++){
-                const score = sel[i];
-                score.absolute_start += start;
-                score.duration += dur;
-                score.loop_duration += loop;
-                score.relative_start = (score.loop_duration + (score.relative_start + rel) % score.loop_duration) % score.loop_duration;
-            }
+        } else if (sel instanceof Score){
+            const score = sel;
+            score.absolute_start = start;
+            score.duration = dur;
+            score.loop_duration = loop;
+            score.relative_start = (score.loop_duration + (rel) % score.loop_duration) % score.loop_duration;
         }
     }
     select(input: Track[]|Score[], start:number, end:number) {

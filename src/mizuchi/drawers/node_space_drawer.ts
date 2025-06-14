@@ -174,7 +174,7 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.drugged = false;
                 if (this.view.selected.elements.length>0) {
                     if (this.view.selected.elements[0] instanceof Node) {
-                        this.commandPattern.addCommand(new Move(this.nodeSpace, this.view.selected.elements, [this.view.selected.offset.start, this.view.selected.offset.pitch]));
+                        this.move(this.view.selected.elements, this.view.selected.offset.start, this.view.selected.offset.pitch);
                     } else if (this.view.selected.elements[0] instanceof Input) {
                         // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
                     } else if (this.view.selected.elements[0] instanceof Output) {
@@ -189,6 +189,15 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.render();
             }
         });
+    }
+    move(nodes:Node[], start:number, pitch:number) {
+        this.commandPattern.recordOpen();
+        for (let node of nodes){
+            const now = [node.x, node.y];
+            const was = [node.x+start, node.y+pitch];
+            this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
+        }
+        this.commandPattern.recordClose();
     }
     rectInput(e:MouseEvent){
         const rect = this.canvas.getBoundingClientRect();
@@ -260,8 +269,13 @@ export default class NodeSpaceDrawer extends Drawer {
     }
     drugNode(x:number, y:number){
         const s = this.view.selected;
-        s.offset.start = this.view.calcDim(s.drugged_x - x)*1.5;
-        s.offset.pitch = this.view.calcDim(s.drugged_y - y)*1.5;
+        s.offset.start = this.view.calcDim(s.drugged_x - x);
+        s.offset.pitch = this.view.calcDim(s.drugged_y - y);
+        s.drugged_x -= s.offset.start;
+        s.drugged_y -= s.offset.pitch;
+        for (let node of s.elements){
+            node.translate(-s.offset.start*devicePixelRatio, -s.offset.pitch*devicePixelRatio);
+        }
     }
     hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){
         ctrl = ctrl;

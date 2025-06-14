@@ -96,14 +96,8 @@ export default class NodeSpace extends Node {
         // }
         return clone;
     }
-    move(objects:Node[], offset:number[], d:boolean){
-        for (let object of objects) {
-            if (d) {
-                object.translate(offset[0], offset[1]);
-            } else {
-                object.translate(-offset[0], -offset[1]);
-            }
-        }
+    move(object:Node, offset:number[]){
+        object.moveTo(offset[0], offset[1]);
     }
     delete(object:any, place:number){
         if (object instanceof Node) {

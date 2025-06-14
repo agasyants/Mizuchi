@@ -50,13 +50,7 @@ export default class Curve extends IdComponent{
         }
         return result;
     }
-    move(point:Point, [x,y]:number[], reverse:boolean):void{
-        if (reverse){
-            x = -x;
-            y = -y;
-        } 
-        x += point.x;
-        y += point.y; 
+    move(point:Point, [x,y]:number[]):void{
         if (point instanceof BasicPoint){
             let num = this.basics.indexOf(point);
             [x,y] = this.calcBasic(point, num, x, y);

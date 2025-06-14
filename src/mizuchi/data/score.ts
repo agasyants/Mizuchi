@@ -75,19 +75,11 @@ export default class Score extends IdComponent {
     //     this.duration = score.duration+scoreDelt;
     //     this.sort();
     // }
-    move(notes:Note[], [start=0,duration=0,pitch=0]:number[], reverse:boolean){
-        if (reverse){
-            start*=-1;
-            duration*=-1;
-            pitch*=-1;
-        }
-        for (let note of notes){
-            note.start += start;
-            note.duration += duration;
-            note.pitch += pitch;
-            this.update(note);
-        }
-        // this.sort();
+    move(note:Note, [start=0,duration=0,pitch=0]:number[]){
+        note.start = start;
+        note.duration = duration;
+        note.pitch = pitch;
+        this.update(note);
     }
     delete(note:Note, index:number){
         const new_note = this.notes.splice(index, 1)[0];

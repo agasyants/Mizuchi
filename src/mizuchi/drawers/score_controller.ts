@@ -1,7 +1,7 @@
 import ScoreDrawer from "./score_drawer";
 import Note from "../classes/note";
 import Score from "../data/score";
-import { Complex, Create, Delete, Move } from "../classes/CommandPattern";
+import { Create, Delete, Move } from "../classes/CommandPattern";
 import SectorSelection from "../classes/SectorSelection";
 import CommandPattern from "../classes/CommandPattern";
 
@@ -47,7 +47,7 @@ export default class score_drawer_controller {
         const s = this.drawer.score.selection;
         this.makeNewNotes(s.elements);
         const delta = s.end-s.start;
-        this.commandPattern.addCommand(new Move(this.drawer.score, s.elements.slice(), [delta, 0, 0]));
+        this.move(s.elements.slice(), delta, 0, 0);
         s.start += delta;
         s.end += delta;
         this.commandPattern.recordClose();
@@ -78,20 +78,27 @@ export default class score_drawer_controller {
     applyChanges(ctrl:boolean){
         const s = this.drawer.score.selection;
         if (ctrl && s.isShifted()){
-            const commands = [];
             this.makeNewNotes(s.elements);
-            commands.push(new Move(this.drawer.score, s.elements.slice(), [s.offset.start, s.offset.duration, s.offset.pitch]));
+            this.move(s.elements.slice(), s.offset.start, s.offset.duration, s.offset.pitch);
             s.start += s.offset.start;
             s.end += s.offset.start;
-            this.commandPattern.addCommand(new Complex(commands));
         } 
         else if (s.isShifted()) {
-            this.commandPattern.addCommand(new Move(this.drawer.score, s.elements.slice(), [s.offset.start, s.offset.duration, s.offset.pitch]));
+            this.move(s.elements.slice(), s.offset.start, s.offset.duration, s.offset.pitch);
             s.start += s.offset.start;
             s.end += s.offset.start;
         }
         this.drawer.update_mix();
         s.clear();
+    }
+    move(notes:Note[], start:number, dur:number, pitch:number){
+        this.commandPattern.recordOpen();
+        for (let note of notes){
+            const was = [note.start, note.duration, note.pitch];
+            const now = [was[0]+start, was[1]+dur, was[2]+pitch];
+            this.commandPattern.addCommand(new Move(this.drawer.score, note, was, now));
+        }
+        this.commandPattern.recordClose();
     }
     zoom(i:number){
         if (this.drawer.score.lowest_note >= this.max_note && this.drawer.score.lowest_note <= 0 && i==1) return;

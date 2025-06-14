@@ -41,22 +41,26 @@ export default abstract class Node extends IdComponent {
         for (let i = 0; i < this.inputs.length; i++){
             this.inputs[i].x = x;
             this.inputs[i].y = y-this.height*(i+1)/(this.inputs.length+1);
+            const a = this.inputs[i].connected;
+            if (a) {
+                const point = a.curve.basics[a.curve.basics.length-1];
+                a.curve.move(point, [this.inputs[i].x, this.inputs[i].y])
+            }
         }
         if (this.output) {
             this.output.x = x + this.width;
             this.output.y = y - this.height/2;
+            for (let a of this.output.connected){
+                const point = a.curve.basics[0];
+                a.curve.move(point, [this.output.x, this.output.y])
+            }
         }
     }
     abstract get():any
     abstract render(view:View):void
     _render(view:View){
         const color = view.getColor(this);
-        if (color === view.color.selected){
-            const of = view.selected.offset;
-            view.drawFrame(this.x-of.start, this.y-of.pitch, this.width, this.height, 2, color, view.color.back);
-        } else {
-            view.drawFrame(this.x, this.y, this.width, this.height, 2, color, view.color.back);
-        }
+        view.drawFrame(this.x, this.y, this.width, this.height, 2, color, view.color.back);
         for (let i = 0; i < this.inputs.length; i++){
             this.inputs[i].render(view)
         } 
@@ -72,7 +76,7 @@ export default abstract class Node extends IdComponent {
             const a = i.connected;
             if (a) {
                 const point = a.curve.basics[a.curve.basics.length-1];
-                a.curve.move(point, [x,y], false)
+                a.curve.move(point, [x+point.x, y+point.y])
             }
         }
         if (this.output) {
@@ -80,7 +84,7 @@ export default abstract class Node extends IdComponent {
             this.output.y += y;
             for (let a of this.output.connected){
                 const point = a.curve.basics[0];
-                a.curve.move(point, [x,y], false)
+                a.curve.move(point, [x+point.x, y+point.y])
             }
         };
     }

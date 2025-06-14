@@ -187,31 +187,33 @@ export class Delete extends SimpleCommand{
 }
 
 export class Move extends Command{
-    constructor(private subject:any, private objects:any[], private offset:number[]){
+    constructor(private subject:any, private object:any, private was:number[], private become:number[]){
         super();
     }
     do(){
-        console.log("Move "+ this.offset);
-        this.subject.move(this.objects, this.offset, false);
+        console.log("Move "+ this.become);
+        this.subject.move(this.object, this.become);
     }
     undo(){
-        console.log("unMove "+ this.offset);
-        this.subject.move(this.objects, this.offset, true);
+        console.log("unMove "+ this.was);
+        this.subject.move(this.object, this.was);
     }
     toJSON() {
         return {
             ...super.toJSON(),
             subject: this.subject.getFullId(),
-            objects: this.objects.map((obj: any) => obj.getFullId()),
-            offset: this.offset
+            object: this.object.getFullId(),
+            offset: this.was,
+            become: this.become
         };
     }
     static fromJSON(json:any, root:Mix): Move {
-        const objects = []
-        for (let object of json.objects){
-            objects.push(root.findByFullID(object));
-        }
-        return new Move(root.findByFullID(json.subject), objects, json.offset);
+        return new Move(
+            root.findByFullID(json.subject),
+            root.findByFullID(json.object),
+            json.was,
+            json.become
+        );
     }
 }
 
