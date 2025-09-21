@@ -3,12 +3,6 @@ import Input, { InputSignal } from "../classes/Input";
 import Output, { OutputSignal } from "../classes/Output";
 // import Mix from "../data/mix";
 import View from "../drawers/view";
-// import DelayNode from "./delay_node";
-// import MixNode from "./mix_node";
-// import NodeSpace from "./node_space";
-// import NoteInput from "./note_input_node";
-// import OutputNode from "./output_node";
-// import FromTrackNode from "./track_node";
 
 
 export default abstract class Node extends IdComponent {

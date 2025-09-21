@@ -4,6 +4,7 @@ import Input from "../classes/Input";
 import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
 import DelayNode from "../nodes/delay_node";
+import DistortionNode from "../nodes/distortion_node";
 import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
 import NodeSpace from "../nodes/node_space";
@@ -53,8 +54,8 @@ export default class NodeSpaceDrawer extends Drawer {
             this.createNode(new DelayNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
-        this.creatingMenu.addItem('Mix Node', ()=>{
-            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+        this.creatingMenu.addItem('Distortion', ()=>{
+            this.createNode(new DistortionNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
         this.creatingMenu.addItem('Mix Node', ()=>{
@@ -179,6 +180,9 @@ export default class NodeSpaceDrawer extends Drawer {
                         // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
                     } else if (this.view.selected.elements[0] instanceof Output) {
                         if (this.view.hovered.elements[0] instanceof Input) {
+                            if (this.view.hovered.elements[0].connected) {
+                                this.commandPattern.addCommand(new Delete(this.nodeSpace, this.view.hovered.elements[0].connected, this.nodeSpace.connectors.indexOf(this.view.hovered.elements[0].connected)));
+                            }this.view.selected.elements[0].connected
                             const new_con = new Connector(0, this.nodeSpace, this.view.selected.elements[0], this.view.hovered.elements[0]);
                             this.commandPattern.addCommand(new Create(this.nodeSpace, new_con, 0));
                         }
@@ -273,7 +277,7 @@ export default class NodeSpaceDrawer extends Drawer {
         s.offset.pitch = this.view.calcDim(s.drugged_y - y);
         s.drugged_x -= s.offset.start;
         s.drugged_y -= s.offset.pitch;
-        for (let node of s.elements){
+        for (let node of s.elements) {
             node.translate(-s.offset.start*devicePixelRatio, -s.offset.pitch*devicePixelRatio);
         }
     }

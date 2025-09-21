@@ -19,7 +19,7 @@ export default abstract class Output extends IdComponent {
 }
 
 export class OutputSignal extends Output{
-    connected: Connector[] = [];
+    
     constructor(parent:Node, name:string, x:number, y:number) {
         super(parent, name, x, y);
     }

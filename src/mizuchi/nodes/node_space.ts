@@ -75,9 +75,6 @@ export default class NodeSpace extends Node {
         return null;
     }
     get():number{
-        // console.log(this.outputNode.get());
-        // console.log(this.outputNode.inputs[0].connected?.input?.parent, this.outputNode.inputs[0].connected?.input?.parent.get());
-        // (this.outputNode.inputs[0].connected?.input?.parent.get() === 0) ? console.log('ok', this.outputNode.inputs[0].connected?.input?.parent) : console.log('not ok', this.outputNode.inputs[0].connected?.input?.parent);
         return this.outputNode.get();
     }
     create(obj:Node|Connector){
@@ -102,7 +99,22 @@ export default class NodeSpace extends Node {
     delete(object:any, place:number){
         if (object instanceof Node) {
             this.nodes.splice(place, 1);
+            for (let input of object.inputs){
+                if (input.connected) {
+                    this.delete(input.connected, this.connectors.indexOf(input.connected));
+                }
+            }
+            if (object.output && object.output.connected) {
+                for (let output of object.output.connected) {
+                    this.delete(output, this.connectors.indexOf(output));
+                }
+            }
         } else if (object instanceof Connector) {
+            if (object.input) {
+                object.input.connected.splice(object.input.connected.indexOf(object), 1)
+            }
+            if (object.output) object.output.connected = null;
+            
             this.connectors.splice(place, 1);
         }
     }
@@ -112,7 +124,7 @@ export default class NodeSpace extends Node {
             const output = node2.inputs[index1]
             const con = new Connector(this.connectors.getNewId(), this, input, output);
             this.connectors.push(con);
-            input.connected = [con];
+            input.connected.push(con);
             output.connected = con;
         }
     }
