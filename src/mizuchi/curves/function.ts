@@ -2,7 +2,7 @@ import Node from "../nodes/node";
 import Curve from "./curve";
 import { BasicPoint, HandlePoint, Point } from "./points";
 
-export default class Function extends Curve{
+export default class Function extends Curve {
     x_min:number;
     x_max:number;
     y_min:number;
@@ -16,13 +16,11 @@ export default class Function extends Curve{
     }
     returnJSON() {
         return {
-            id: this.id,
+            ...super.returnJSON(),
             x_min: this.x_min,
             x_max: this.x_max,
             y_min: this.y_min,
             y_max: this.y_max,
-            basics: this.basics.map(basic => basic.toJSON()),
-            handles: this.handles.map(handle => handle.toJSON()),
         };
     }
     static fromJSON(json: any, parent: Node | null): Function {
@@ -38,7 +36,12 @@ export default class Function extends Curve{
             json.id,
             parent
         );
-
+        for (let b of basics) {
+            b.parent = func
+        }
+        for (let h of handles) {
+            h.parent = func
+        }
         return func;
     }
     calcBasic(basic:BasicPoint, num:number, x:number, y:number){
@@ -99,13 +102,13 @@ export default class Function extends Curve{
             const num = this.basics.indexOf(point);
             return [point, this.handles[num-1], this.handles[num]];
         } else {
-            return [new BasicPoint(0, 0, this.basics.getNewId(), false, false), new HandlePoint(0, 0, this.handles.getNewId()), new HandlePoint(0, 0, this.handles.getNewId())];
+            return [new BasicPoint(this, 0, 0, this.basics.getNewId(), false, false), new HandlePoint(this, 0, 0, this.handles.getNewId()), new HandlePoint(this, 0, 0, this.handles.getNewId())];
         }
     }
     create(points:any){
         let basic = points[0];
-        let handle1 = new HandlePoint(0, 0, this.handles.getNewId());
-        let handle2 = new HandlePoint(0, 0, this.handles.getNewId());
+        let handle1 = new HandlePoint(this, 0, 0, this.handles.getNewId());
+        let handle2 = new HandlePoint(this, 0, 0, this.handles.getNewId());
         if (points.length==3){
             handle1 = points[1];
             handle2 = points[2];

@@ -19,7 +19,7 @@ export default class Mix {
     loop_end:  number = 128;
     playback:    number = 0;
     sampleRate:number = 44100;
-    loopped:  boolean = true;
+    looped:  boolean = true;
 
     commandPattern = new CommandPattern();
 
@@ -51,7 +51,7 @@ export default class Mix {
             start: this.start,
             loop_start: this.loop_start,
             loop_end: this.loop_end,
-            loopped: this.loopped,
+            looped: this.looped,
             tracks_number_on_screen: this.tracks_number_on_screen,
             MIX_NODE_SPACE: this.nodeSpace,
             TRACKS: this.tracks,
@@ -64,7 +64,7 @@ export default class Mix {
         return /^-?\d+(\.\d+)?$/.test(str);
     }
     findByFullID(fullId:string): any {
-        console.log("fullId:", fullId)
+        // console.log("fullId:", fullId)
         if (!fullId) return this;
         if (Mix.isStringNumber(fullId)){
             return this.deleted[Number(fullId)];
@@ -109,18 +109,19 @@ export default class Mix {
         };
         const log = JSON.stringify(this, replacer)
         console.log(log);
+        console.log("Start: ", this);
         localStorage.setItem('key', log);
     }
-    setAsideFullID(fullID:string, cell:any){
-        this.fullIDs.push({fullID, cell});
-    }
+    setAsideFullID(fullID:string, setter:(value: any) => void) {
+    this.fullIDs.push({fullID, setter});
+}
     load(json:any){
         console.log(json);
         this.bpm = json.bpm;
         this.start = json.start;
         this.loop_start = json.loop_start;
         this.loop_end = json.loop_end;
-        this.loopped = json.loopped;
+        this.looped = json.looped;
         this.tracks_number_on_screen = json.tracks_number_on_screen;
         
         this.nodeSpace = NodeSpace.fromJSON(json.MIX_NODE_SPACE, this, this);
@@ -129,9 +130,11 @@ export default class Mix {
             tracks.push(Track.fromJSON(track, this, this));
         this.tracks = IdArray.fromJSON(tracks, json.TRACKS.increment);
 
-        for (let fullID of this.fullIDs){
-            console.log(fullID);
-            fullID.cell = this.findByFullID(fullID.fullID);
+        for (let entry of this.fullIDs) {
+            const found = this.findByFullID(entry.fullID);
+            if (found) {
+                entry.setter(found);
+            }
         }
         for (let del of json.deleted){
             console.log('del', del.sep);
@@ -151,7 +154,7 @@ export default class Mix {
 
         this.commandPattern = CommandPattern.fromJSON(json.CommandPattern, this);
         console.log(this.commandPattern);
-        console.log(this)
+        console.log("Final: ", this);
     }
     create(track:Track, index:number){
         track.parent = this;

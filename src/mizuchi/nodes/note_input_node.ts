@@ -13,6 +13,7 @@ export default class NoteInput extends Node {
         super(id, x, y, 100, 150, [], 'Note Input', parent);
         this.mix = mix;
         this.osc = osc;
+        this.osc.parent = this
     }
     render(view:View){
         this._render(view);
@@ -45,16 +46,25 @@ export default class NoteInput extends Node {
         return [];
     } 
     returnJSON() {
-        if (this.track == null) return super.returnJSON();
+        if (this.track == null) {
+            // console.error("track==null!!!")
+            return super.returnJSON();
+        }
         return {
             ...super.returnJSON(),
-            osc: this.osc,
+            osc: this.osc.returnJSON(),
             track: this.track.getFullId()
         }; 
     }
+    setTrack(track: Track) {
+        this.track = track;
+    }
     static fromJSON(json:any, mix:Mix): NoteInput {
-        const node = new NoteInput(json.x, json.y, mix, json.osc, json.id);
-        mix.setAsideFullID(json.track, node.track)
+        const node = new NoteInput(json.x, json.y, mix, Mapping.fromJSON(json.osc, null), json.id);
+        node.osc.parent = node
+        mix.setAsideFullID(json.track, (track) => {
+            node.track = track;
+        });
         node.window = json.window;
         return node;
     }

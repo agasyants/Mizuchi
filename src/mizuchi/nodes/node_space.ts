@@ -7,6 +7,10 @@ import Track from "../data/track";
 import View from "../drawers/view";
 import Node from "./node";
 import OutputNode from "./output_node";
+import NoteInput from "./note_input_node"
+import FromTrackNode from "./track_node";
+import MixNode from "./mix_node";
+import DelayNode from "./delay_node";
 
 export default class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
@@ -19,6 +23,7 @@ export default class NodeSpace extends Node {
         console.log(view);
     }
     returnJSON() {
+        console.log(this.nodes.increment)
         return {
             sep: Node.getSeparator(),
             ...super.returnJSON(),
@@ -38,18 +43,29 @@ export default class NodeSpace extends Node {
     }
     static fromJSON(json:any, parent:any, mix:Mix): NodeSpace {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
-        // nodeSpace.window = json.window;
-        // nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
-        // for (let node of json.NODES.data) {
-        //     nodeSpace.add(Node.fromJSON(node, nodeSpace, mix));
-        mix = mix// } 
-        // // nodeSpace.nodes = IdArray.fromJSON(nodes, nodeSpace.nodes.increment);
-        // const connectors = [];
-        // for (let connector of json.connectors.data) {
-        //     connectors.push(Connector.fromJSON(connector, nodeSpace));
-        // }
-        // nodeSpace.connectors = IdArray.fromJSON(connectors, nodeSpace.connectors.increment);
+        nodeSpace.window = json.window;
+        nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
+        for (let node of json.NODES.data) {
+            nodeSpace.create(NodeSpace.AnyNodefromJSON(node, nodeSpace, mix));
+        } 
+        nodeSpace.nodes = IdArray.fromJSON(nodeSpace.nodes, nodeSpace.nodes.increment);
+        const connectors = [];
+        for (let connector of json.connectors.data) {
+            connectors.push(Connector.fromJSON(connector, nodeSpace));
+        }
+        nodeSpace.connectors = IdArray.fromJSON(connectors, nodeSpace.connectors.increment);
         return nodeSpace;
+    }
+    static AnyNodefromJSON(json:any, parent:any, mix:Mix): Node {
+        switch (json.type) {
+            case 'NodeSpace': return NodeSpace.fromJSON(json, parent, mix);
+            case 'OutputNode': return OutputNode.fromJSON(json, parent);
+            case 'NoteInput': return NoteInput.fromJSON(json, mix);
+            case 'FromTrackNode': return FromTrackNode.fromJSON(json, mix);
+            case 'MixNode': return MixNode.fromJSON(json);
+            case 'DelayNode': return DelayNode.fromJSON(json);
+            default: return new OutputNode(0,0,0,parent);
+        }
     }
     findOutputById(fullId: string): Output|null {
         for (const node of this.nodes) {

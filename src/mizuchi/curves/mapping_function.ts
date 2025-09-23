@@ -1,14 +1,43 @@
+import Node from "../nodes/node";
 import Function from "./function";
 import { BasicPoint, HandlePoint } from "./points";
 
-export default class Mapping extends Function{
-    constructor(xm:number,xM:number,ym:number,yM:number, id:number, basics:BasicPoint[]=[], handles:HandlePoint[]=[]){
-        super(xm, xM, ym, yM, basics, handles, id, null);
+export default class Mapping extends Function {
+    constructor(parent: any, xm:number,xM:number,ym:number,yM:number, id:number, basics:BasicPoint[]=[new BasicPoint(null,0,0,0), new BasicPoint(null,0.25,1,1), new BasicPoint(null, 0.75,-1,2), new BasicPoint(null,1,0,3)], handles:HandlePoint[]=[new HandlePoint(null,0.125,0.5,0), new HandlePoint(null,0.5,0,1), new HandlePoint(null,0.875,-0.5,2)]){
+        super(xm, xM, ym, yM, basics, handles, id, parent);
+        for (let bp of this.basics) {
+            bp.parent = this
+        }
+        for (let hp of this.basics) {
+            hp.parent = this
+        }
     }
-    toJSON() {
+    returnJSON() {
         return {
-            ...super.toJSON(),
+            ...super.returnJSON(),
         };
+    }
+    static fromJSON(json: any, parent: Node | null): Mapping {
+        console.log('!!!REWRITE!!!');
+        const basics = json.basics.data.map((basicJson: any) => BasicPoint.fromJSON(basicJson));
+        const handles = json.handles.data.map((handleJson: any) => HandlePoint.fromJSON(handleJson));
+        const func = new Mapping(
+            parent,
+            json.x_min,
+            json.x_max,
+            json.y_min,
+            json.y_max,
+            json.id,
+            basics,
+            handles
+        );
+        for (let b of basics) {
+            b.parent = func
+        }
+        for (let h of handles) {
+            h.parent = func
+        }
+        return func;
     }
     getSample(i:number, basics:BasicPoint[]=this.basics, handles:HandlePoint[]=this.handles):number{
         for (let j = 0; j < basics.length-1; j++){

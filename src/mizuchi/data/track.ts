@@ -3,7 +3,6 @@ import Note from "../classes/note";
 import IdComponent, { IdArray } from "../classes/id_component";
 import Mix from "./mix";
 import Mapping from "../curves/mapping_function";
-import { BasicPoint, HandlePoint } from "../curves/points";
 import NodeSpace from "../nodes/node_space";
 import Node from "../nodes/node";
 import NoteInput from "../nodes/note_input_node";
@@ -17,10 +16,10 @@ export default class Track extends IdComponent {
     constructor(name:string, parent:Mix|null, id:number) {
         super(id, Track.getSeparator(), parent);
         this.name = name;
-        const mapping = new Mapping(0, 1,-1, 1, 0, [new BasicPoint(0,0,0), new BasicPoint(0.25,1,1), new BasicPoint(0.75,-1,2), new BasicPoint(1,0,3)], [new HandlePoint(0.125,0.5,0), new HandlePoint(0.5,0,1), new HandlePoint(0.875,-0.5,2)]);
+        const mapping = new Mapping(this, 0, 1,-1, 1, 0);
         mapping.basics.increment = mapping.basics.length;
         mapping.handles.increment = mapping.handles.length;
-        const node = new NoteInput(0, 0, this.parent, mapping, 1);
+        const node = new NoteInput(0, 0, this.parent, mapping, this.nodeSpace.nodes.getNewId());
         node.track = this
         this.nodeSpace.create(node)
         this.nodeSpace.connectNodes(node, this.nodeSpace.outputNode, 0);

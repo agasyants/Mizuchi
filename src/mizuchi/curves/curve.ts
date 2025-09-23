@@ -2,12 +2,17 @@ import IdComponent, { IdArray } from "../classes/id_component";
 import Node from "../nodes/node";
 import { BasicPoint, HandlePoint, Point } from "./points";
 
-export default class Curve extends IdComponent{
+export default class Curve extends IdComponent {
     basics = new IdArray<BasicPoint>();
     handles = new IdArray<HandlePoint>();
-    constructor(basics:BasicPoint[], handles:HandlePoint[], id:number,parent:any, type:string = "c"){
+    constructor(basics:BasicPoint[], handles:HandlePoint[], id:number, parent:any, type:string = "c"){
         super(id, type, parent);
-        this.set(basics, handles);
+        for (let basic of basics){
+            this.basics.push(basic)
+        }
+        for (let handle of handles){
+            this.handles.push(handle)
+        }
     }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
@@ -22,8 +27,8 @@ export default class Curve extends IdComponent{
     returnJSON() {
         return {
             id: this.id,
-            basics: this.basics.map(basic => basic.toJSON()),
-            handles: this.handles.map(handle => handle.toJSON()),
+            basics: this.basics.map(basic => basic.returnJSON()),
+            handles: this.handles.map(handle => handle.returnJSON()),
         };
     }
     static fromJSON(json: any, parent: Node | null): Curve {
@@ -35,7 +40,12 @@ export default class Curve extends IdComponent{
             json.id,
             parent
         );
-
+        for (let b of basics) {
+            b.parent = func
+        }
+        for (let h of handles) {
+            h.parent = func
+        }
         return func;
     }
     set(basics:BasicPoint[], handles:HandlePoint[]){
@@ -117,13 +127,13 @@ export default class Curve extends IdComponent{
             const num = this.basics.indexOf(point);
             return [point, this.handles[num-1], this.handles[num]];
         } else {
-            return [new BasicPoint(0, 0, this.basics.getNewId(), false, false), new HandlePoint(0, 0, this.handles.getNewId()), new HandlePoint(0, 0, this.handles.getNewId())];
+            return [new BasicPoint(this, 0, 0, this.basics.getNewId(), false, false), new HandlePoint(this, 0, 0, this.handles.getNewId()), new HandlePoint(this, 0, 0, this.handles.getNewId())];
         }
     }
     create(points:any){
         const basic = points[0];
-        let handle1 = new HandlePoint(0, 0, this.handles.getNewId());
-        let handle2 = new HandlePoint(0, 0, this.handles.getNewId());
+        let handle1 = new HandlePoint(this, 0, 0, this.handles.getNewId());
+        let handle2 = new HandlePoint(this, 0, 0, this.handles.getNewId());
         if (points.length==3){
             handle1 = points[1];
             handle2 = points[2];
@@ -147,7 +157,7 @@ export default class Curve extends IdComponent{
         let point = points[0];
         const num = this.basics.indexOf(point);
         this.basics.splice(num, 1);
-        this.handles.splice(num-1, 2, new HandlePoint(0,0, this.handles.getNewId()));
+        this.handles.splice(num-1, 2, new HandlePoint(this, 0, 0, this.handles.getNewId()));
         this.setHandleAbsByRelPos(num-1);
     }
     getItest(i:number):number{

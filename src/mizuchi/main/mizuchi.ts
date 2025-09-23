@@ -26,7 +26,7 @@ export default class Mizuchi{
         });
         const loop_button = document.getElementById('loop') as HTMLInputElement;
         loop_button.addEventListener("change", () => {
-            mix.loopped = loop_button.checked;
+            mix.looped = loop_button.checked;
         });
         window.addEventListener("contextmenu", (e) => {
             e.preventDefault();
