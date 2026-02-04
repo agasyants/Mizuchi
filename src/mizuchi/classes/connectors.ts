@@ -15,17 +15,17 @@ export default class Connector extends IdComponent{
         super(id, Connector.getSeparator(), parent);
         this.input = input;
         if (input) {
-            this.curve.basics.push(new BasicPoint(input.x, input.y, 0))
+            this.curve.basics.push(new BasicPoint(this, input.x, input.y, 0))
         } else {
-            this.curve.basics.push(new BasicPoint(0,0,0))
+            this.curve.basics.push(new BasicPoint(this, 0,0,0))
         }
         this.output = output;
         if (output) {
-            this.curve.basics.push(new BasicPoint(output.x, output.y, 1))
+            this.curve.basics.push(new BasicPoint(this, output.x, output.y, 1))
         } else {
-            this.curve.basics.push(new BasicPoint(0, 0, 1))
+            this.curve.basics.push(new BasicPoint(this, 0, 0, 1))
         }
-        this.curve.handles.push(new HandlePoint(0, 0, 2));
+        this.curve.handles.push(new HandlePoint(this, 0, 0, 2));
         this.curve.setHandleAbsByRelPos(0)
     }
     returnJSON() {

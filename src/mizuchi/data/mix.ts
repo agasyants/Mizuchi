@@ -113,8 +113,8 @@ export default class Mix {
         localStorage.setItem('key', log);
     }
     setAsideFullID(fullID:string, setter:(value: any) => void) {
-    this.fullIDs.push({fullID, setter});
-}
+        this.fullIDs.push({fullID, setter});
+    }
     load(json:any){
         console.log(json);
         this.bpm = json.bpm;
@@ -137,7 +137,7 @@ export default class Mix {
             }
         }
         for (let del of json.deleted){
-            console.log('del', del.sep);
+            console.log('del', del);
             if (del.sep == Track.getSeparator()){
                 this.deleted.push(Track.fromJSON(del, null, this));
             } else if (del.sep == Score.getSeparator()) {

@@ -68,6 +68,7 @@ export default class NodeSpaceDrawer extends Drawer {
         });
     }
     createNode(node: Node, x: number, y: number) {
+        node.id = this.nodeSpace.nodes.getNewId() + 1
         node.moveTo(x, y);
         this.commandPattern.addCommand(new Create(this.nodeSpace, node, 0));
     }
@@ -175,7 +176,8 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.drugged = false;
                 if (this.view.selected.elements.length>0) {
                     if (this.view.selected.elements[0] instanceof Node) {
-                        this.move(this.view.selected.elements, this.view.selected.offset.start, this.view.selected.offset.pitch);
+                        const scale = this.view.scale
+                        this.move(this.view.selected.elements, this.view.selected.offset.start/scale, this.view.selected.offset.pitch/scale);
                     } else if (this.view.selected.elements[0] instanceof Input) {
                         // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
                     } else if (this.view.selected.elements[0] instanceof Output) {
@@ -196,9 +198,11 @@ export default class NodeSpaceDrawer extends Drawer {
     }
     move(nodes:Node[], start:number, pitch:number) {
         this.commandPattern.recordOpen();
+        const s = this.view.scale
+        console.log("AAAAAAA:", start, pitch)
         for (let node of nodes){
             const now = [node.x, node.y];
-            const was = [node.x+start, node.y+pitch];
+            const was = [node.x+start/s, node.y+pitch/s];
             this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
         }
         this.commandPattern.recordClose();
@@ -211,8 +215,9 @@ export default class NodeSpaceDrawer extends Drawer {
     }
     delete(){
         for (let e of this.view.selected.elements) {
-            if (e instanceof Node) {
+            if (e instanceof Node && e.id != 0) {
                 this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.nodes.indexOf(e)));
+                console.log("REWRITE!!!")
             } else if (e instanceof Connector) {
                 this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.connectors.indexOf(e)));
             }
@@ -250,7 +255,7 @@ export default class NodeSpaceDrawer extends Drawer {
     private _render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.ctx.save();
-        this.ctx.scale(1, -1); // вернуть нормальную ориентацию
+        this.ctx.scale(1, -1);
         for (const star of this.stars) {
             const x = star.x + this.view.center.x * this.starParallax;
             const y = star.y + this.view.center.y * this.starParallax;
@@ -273,12 +278,13 @@ export default class NodeSpaceDrawer extends Drawer {
     }
     drugNode(x:number, y:number){
         const s = this.view.selected;
+        const scale = this.view.scale
         s.offset.start = this.view.calcDim(s.drugged_x - x);
         s.offset.pitch = this.view.calcDim(s.drugged_y - y);
         s.drugged_x -= s.offset.start;
         s.drugged_y -= s.offset.pitch;
         for (let node of s.elements) {
-            node.translate(-s.offset.start*devicePixelRatio, -s.offset.pitch*devicePixelRatio);
+            node.translate(-s.offset.start*devicePixelRatio/scale, -s.offset.pitch*devicePixelRatio/scale);
         }
     }
     hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){

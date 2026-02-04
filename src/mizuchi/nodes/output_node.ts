@@ -23,6 +23,11 @@ export default class OutputNode extends Node {
         // ctx.fillText(this.name, x+w/16,y+height/2-h/4);
         // ctx.scale(1, -1);
     }
+    returnJSON() {
+        return {
+            ...super.returnJSON()
+        };
+    }
     findByFullID(fullID:string) {
         if (fullID.length==0) return this;
         return null;

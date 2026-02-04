@@ -11,6 +11,7 @@ import NoteInput from "./note_input_node"
 import FromTrackNode from "./track_node";
 import MixNode from "./mix_node";
 import DelayNode from "./delay_node";
+import DistortionNode from "./distortion_node";
 
 export default class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
@@ -29,7 +30,7 @@ export default class NodeSpace extends Node {
             ...super.returnJSON(),
             outputNode: this.outputNode,
             NODES: this.nodes,
-            connectors: this.connectors,
+            connectors: this.connectors.toJSON(),
         };
     }
     findByFullID(fullID:string) {
@@ -48,12 +49,12 @@ export default class NodeSpace extends Node {
         for (let node of json.NODES.data) {
             nodeSpace.create(NodeSpace.AnyNodefromJSON(node, nodeSpace, mix));
         } 
-        nodeSpace.nodes = IdArray.fromJSON(nodeSpace.nodes, nodeSpace.nodes.increment);
+        nodeSpace.nodes = IdArray.fromJSON(nodeSpace.nodes, json.NODES.increment);
         const connectors = [];
         for (let connector of json.connectors.data) {
             connectors.push(Connector.fromJSON(connector, nodeSpace));
         }
-        nodeSpace.connectors = IdArray.fromJSON(connectors, nodeSpace.connectors.increment);
+        nodeSpace.connectors = IdArray.fromJSON(connectors, json.connectors.increment);
         return nodeSpace;
     }
     static AnyNodefromJSON(json:any, parent:any, mix:Mix): Node {
@@ -64,6 +65,7 @@ export default class NodeSpace extends Node {
             case 'FromTrackNode': return FromTrackNode.fromJSON(json, mix);
             case 'MixNode': return MixNode.fromJSON(json);
             case 'DelayNode': return DelayNode.fromJSON(json);
+            case 'DistortionNode': return DistortionNode.fromJSON(json);
             default: return new OutputNode(0,0,0,parent);
         }
     }
@@ -111,6 +113,7 @@ export default class NodeSpace extends Node {
     }
     move(object:Node, offset:number[]){
         object.moveTo(offset[0], offset[1]);
+        console.warn(object, offset)
     }
     delete(object:any, place:number){
         if (object instanceof Node) {
