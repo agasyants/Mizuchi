@@ -3,6 +3,7 @@ import Input, { InputSignal } from "../classes/Input";
 import Output, { OutputSignal } from "../classes/Output";
 // import Mix from "../data/mix";
 import View from "../drawers/view";
+import NodeComponent from "./node_components/node_component";
 
 
 export default abstract class Node extends IdComponent {
@@ -14,6 +15,7 @@ export default abstract class Node extends IdComponent {
     inputs: Input[] = [];
     output: Output|null = null;
     window: number[] = [];
+    components: NodeComponent[] = []
     static getSeparator(){
         return 'e';
     }
@@ -60,6 +62,20 @@ export default abstract class Node extends IdComponent {
         } 
         if (this.output) this.output.render(view);
         view.drawText(this.x, this.y, this.width, this.height, this.name, color)
+        
+        for (let com of this.components) {
+            com.render(view)
+        }
+    }
+    correctPos(x:number, y:number){
+        let rx = this.x + x*this.width
+        let ry = this.y + y*this.height
+        return [rx, ry]
+    }
+    correctSize(x:number, y:number){
+        let rx = x*this.width
+        let ry = y*this.height
+        return [rx, ry]
     }
     translate(x:number, y:number){
         this.x += x;

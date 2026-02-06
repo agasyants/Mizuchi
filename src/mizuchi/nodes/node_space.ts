@@ -46,8 +46,10 @@ export default class NodeSpace extends Node {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
         nodeSpace.window = json.window;
         nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
+        let i = 0
         for (let node of json.NODES.data) {
-            nodeSpace.create(NodeSpace.AnyNodefromJSON(node, nodeSpace, mix));
+            nodeSpace.create(NodeSpace.AnyNodefromJSON(node, nodeSpace, mix), i);
+            i += 1
         } 
         nodeSpace.nodes = IdArray.fromJSON(nodeSpace.nodes, json.NODES.increment);
         const connectors = [];
@@ -95,14 +97,15 @@ export default class NodeSpace extends Node {
     get():number{
         return this.outputNode.get();
     }
-    create(obj:Node|Connector){
+    create(obj:Node|Connector, place:number){
         if (obj instanceof Node){
             obj.parent = this;
-            this.nodes.push(obj);
+            this.nodes.splice(place, 0, obj);
         } else if (obj instanceof Connector && obj.input && obj.output) {
             const index = obj.output.parent.inputs.indexOf(obj.output);
-            this.connectNodes(obj.input.parent, obj.output.parent, index);
+            this.connectNodes(obj.input.parent, obj.output.parent, index, place);
         }
+        console.log(this.nodes)
     }
     clone(){
         const clone = new NodeSpace(this.x, this.y, this.id, this.parent, this.input_names);
@@ -113,21 +116,10 @@ export default class NodeSpace extends Node {
     }
     move(object:Node, offset:number[]){
         object.moveTo(offset[0], offset[1]);
-        console.warn(object, offset)
     }
     delete(object:any, place:number){
         if (object instanceof Node) {
             this.nodes.splice(place, 1);
-            for (let input of object.inputs){
-                if (input.connected) {
-                    this.delete(input.connected, this.connectors.indexOf(input.connected));
-                }
-            }
-            if (object.output && object.output.connected) {
-                for (let output of object.output.connected) {
-                    this.delete(output, this.connectors.indexOf(output));
-                }
-            }
         } else if (object instanceof Connector) {
             if (object.input) {
                 object.input.connected.splice(object.input.connected.indexOf(object), 1)
@@ -137,12 +129,12 @@ export default class NodeSpace extends Node {
             this.connectors.splice(place, 1);
         }
     }
-    connectNodes(node1:Node, node2:Node, index1:number){
+    connectNodes(node1:Node, node2:Node, index1:number, con_i:number){
         if (node1.output && node2.inputs.length){
             const input = node1.output
             const output = node2.inputs[index1]
             const con = new Connector(this.connectors.getNewId(), this, input, output);
-            this.connectors.push(con);
+            this.connectors.splice(con_i, 0, con);
             input.connected.push(con);
             output.connected = con;
         }

@@ -1,9 +1,11 @@
 import View from "../drawers/view";
 import Node from "./node";
+import Switch from "./node_components/switcher";
 
 export default class DistortionNode extends Node {
     constructor(x:number, y:number, id:number, ){
         super(id, x, y, 70, 70, ['input'], 'Distortion');
+        this.components.push(new Switch(this))
     }
     render(view:View){
         // console.log(view);

@@ -33,7 +33,7 @@ export default class NodeSpaceDrawer extends Drawer {
     width = 0;
     height = 0;
     commandPattern = new CommandPattern();
-    was:[x:number,y:number] = [0, 0];
+    was:[x:number, y:number] = [0, 0];
     
     stars: Star[] = [];
     starDensity = 0.001;
@@ -162,8 +162,11 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.view.selected.elements = this.view.hovered.elements;
                 this.view.selected.drugged_x = x;
                 this.view.selected.drugged_y = y;
+                // Сбрасываем накопленный offset в начале драга
+                this.view.selected.offset.start = 0;
+                this.view.selected.offset.pitch = 0;
                 this.drugged = true;
-                this.view.calcDown(x,y);
+                this.view.calcDown(x, y);
                 this.render();
             } else if (!e.shiftKey) {
                 this.creatingMenu.show(this.view.calcToX(x),this.view.calcToY(y), e.clientX, e.clientY);
@@ -176,18 +179,27 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.drugged = false;
                 if (this.view.selected.elements.length>0) {
                     if (this.view.selected.elements[0] instanceof Node) {
-                        const scale = this.view.scale
-                        this.move(this.view.selected.elements, this.view.selected.offset.start/scale, this.view.selected.offset.pitch/scale);
+                        if (this.view.selected.elements[0] instanceof Node) {
+                            // Используем накопленный offset
+                            this.move(
+                                this.view.selected.elements, 
+                                this.view.selected.offset.start,
+                                this.view.selected.offset.pitch
+                            );
+                        }
                     } else if (this.view.selected.elements[0] instanceof Input) {
                         // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
                     } else if (this.view.selected.elements[0] instanceof Output) {
+                        this.commandPattern.recordOpen()
                         if (this.view.hovered.elements[0] instanceof Input) {
                             if (this.view.hovered.elements[0].connected) {
                                 this.commandPattern.addCommand(new Delete(this.nodeSpace, this.view.hovered.elements[0].connected, this.nodeSpace.connectors.indexOf(this.view.hovered.elements[0].connected)));
-                            }this.view.selected.elements[0].connected
+                            }
+                            this.view.selected.elements[0].connected
                             const new_con = new Connector(0, this.nodeSpace, this.view.selected.elements[0], this.view.hovered.elements[0]);
                             this.commandPattern.addCommand(new Create(this.nodeSpace, new_con, 0));
                         }
+                        this.commandPattern.recordClose()
                     } 
                     
                 }
@@ -196,17 +208,17 @@ export default class NodeSpaceDrawer extends Drawer {
             }
         });
     }
-    move(nodes:Node[], start:number, pitch:number) {
-        this.commandPattern.recordOpen();
-        const s = this.view.scale
-        console.log("AAAAAAA:", start, pitch)
-        for (let node of nodes){
-            const now = [node.x, node.y];
-            const was = [node.x+start/s, node.y+pitch/s];
-            this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
-        }
-        this.commandPattern.recordClose();
+    move(nodes: Node[], totalDx: number, totalDy: number) {
+    this.commandPattern.recordOpen();
+    
+    for (let node of nodes) {
+        const now = [node.x, node.y];
+        const was = [node.x - totalDx, node.y - totalDy];
+        this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
     }
+    
+    this.commandPattern.recordClose();
+}
     rectInput(e:MouseEvent){
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left);
@@ -214,14 +226,27 @@ export default class NodeSpaceDrawer extends Drawer {
         return [x,y];
     }
     delete(){
+        this.commandPattern.recordOpen()
         for (let e of this.view.selected.elements) {
             if (e instanceof Node && e.id != 0) {
                 this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.nodes.indexOf(e)));
+                for (let input of e.inputs){
+                    if (input.connected) {
+                        this.commandPattern.addCommand(new Delete(this.nodeSpace, input.connected, this.nodeSpace.connectors.indexOf(input.connected)));
+                    }
+                }
+                if (e.output && e.output.connected) {
+                    for (let output of e.output.connected) {
+
+                        this.commandPattern.addCommand(new Delete(this.nodeSpace, output, this.nodeSpace.connectors.indexOf(output)));
+                    }
+                }
                 console.log("REWRITE!!!")
             } else if (e instanceof Connector) {
                 this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.connectors.indexOf(e)));
             }
         }
+        this.commandPattern.recordClose()
     }
     setCanvasSize(width: number, height: number): void {
         // this.ctx.translate(0, -this.h)
@@ -276,16 +301,21 @@ export default class NodeSpaceDrawer extends Drawer {
         }
         this.nodeSpace.outputNode.render(this.view);
     }
-    drugNode(x:number, y:number){
+    drugNode(x: number, y: number) {
         const s = this.view.selected;
-        const scale = this.view.scale
-        s.offset.start = this.view.calcDim(s.drugged_x - x);
-        s.offset.pitch = this.view.calcDim(s.drugged_y - y);
-        s.drugged_x -= s.offset.start;
-        s.drugged_y -= s.offset.pitch;
+        const screenDx = x - s.drugged_x;
+        const screenDy = y - s.drugged_y;
+        const worldDx = screenDx * devicePixelRatio / this.view.scale;
+        const worldDy = screenDy * devicePixelRatio / this.view.scale;
+        s.offset.start += worldDx;
+        s.offset.pitch += worldDy;
         for (let node of s.elements) {
-            node.translate(-s.offset.start*devicePixelRatio/scale, -s.offset.pitch*devicePixelRatio/scale);
+            if (node instanceof Node) {
+                node.translate(worldDx, worldDy);
+            }
         }
+        s.drugged_x = x;
+        s.drugged_y = y;
     }
     hitScan(x:number, y:number, radius:number, ctrl:boolean, alt:boolean){
         ctrl = ctrl;
