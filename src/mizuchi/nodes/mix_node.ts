@@ -4,7 +4,7 @@ import Node from "./node";
 export default class MixNode extends Node {
     dryWet:number = 0.5;
     constructor(x:number, y:number, id:number){
-        super(id, x, y, 100, 80, ['track1','track2'], 'MixNode');
+        super(id, x, y, 100, 80, 'MixNode');
     }
     render(view:View){
         this._render(view);
@@ -13,8 +13,8 @@ export default class MixNode extends Node {
         if (fullID.length==0) return this;
         return null;
     }
-    get(){
-        return this.inputs[0].get()*this.dryWet + this.inputs[1].get()*(1-this.dryWet);
+    compute(){
+        this.outputs[0].cache = this.inputs[0].get()*this.dryWet + this.inputs[1].get()*(1-this.dryWet);
     }
     returnJSON() {
         return {
@@ -24,7 +24,7 @@ export default class MixNode extends Node {
     }
     static fromJSON(json: any): MixNode {
         const node = new MixNode(json.x, json.y, json.id);
-        node.window = json.window;
+        
         node.dryWet = json.dryWet;
         return node;
     }

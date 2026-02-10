@@ -1,10 +1,13 @@
+import { InputSignal } from "../classes/Input";
 import View from "../drawers/view";
 import Node from "./node";
 import NodeSpace from "./node_space";
 
 export default class OutputNode extends Node {
     constructor(x:number, y:number, id:number, parent:NodeSpace){
-        super(id, x, y, 100, 50, ['in'], 'Output', parent);
+        super(id, x, y, 100, 50, 'Output', parent);
+        this.inputs = [new InputSignal("in", 0, 0, 0)];
+        this.outputs = [];
     }
     render(view:View){
         // console.log(view);
@@ -34,10 +37,10 @@ export default class OutputNode extends Node {
     }
     static fromJSON(json: any, parent: any): OutputNode {
         const node = new OutputNode(json.x, json.y, json.id, parent);
-        node.window = json.window;
+        
         return node;
     }
-    get():number{
+    compute():number{
         return this.inputs[0].get();
     }
 }

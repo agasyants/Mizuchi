@@ -22,7 +22,7 @@ export default class Track extends IdComponent {
         const node = new NoteInput(0, 0, this.parent, mapping, this.nodeSpace.nodes.getNewId()+1);
         node.track = this
         this.nodeSpace.create(node,0)
-        this.nodeSpace.connectNodes(node, this.nodeSpace.outputNode, 0, 0);
+        this.nodeSpace.connectNodes(node, this.nodeSpace.outputNode, 0, 0, 0);
     }
     returnJSON(){
         return {

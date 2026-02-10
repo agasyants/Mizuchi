@@ -12,13 +12,15 @@ import FromTrackNode from "./track_node";
 import MixNode from "./mix_node";
 import DelayNode from "./delay_node";
 import DistortionNode from "./distortion_node";
+import InputNode from "./input_node";
 
 export default class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
+    inputNode:InputNode = new InputNode(0,0,1,this)
     nodes:IdArray<Node> = new IdArray<Node>();
     connectors:IdArray<Connector> = new IdArray<Connector>();
     constructor(x:number, y:number, id:number, parent:Mix|Track|NodeSpace, public input_names:string[]=[]){
-        super(id, x, y, 100, 100, input_names, 'Space', parent);
+        super(id, x, y, 100, 100, 'Space', parent);
     }
     render(view:View){
         console.log(view);
@@ -44,7 +46,6 @@ export default class NodeSpace extends Node {
     }
     static fromJSON(json:any, parent:any, mix:Mix): NodeSpace {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
-        nodeSpace.window = json.window;
         nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
         let i = 0
         for (let node of json.NODES.data) {
@@ -73,8 +74,15 @@ export default class NodeSpace extends Node {
     }
     findOutputById(fullId: string): Output|null {
         for (const node of this.nodes) {
-            if (node.output && node.output.getFullId() === fullId) {
-                return node.output;
+            for (const output of node.outputs) {
+                if (output.getFullId() === fullId) {
+                    return output;
+                }
+            }
+        }
+        for (const output of this.inputNode.outputs) {
+            if (output.getFullId() === fullId) {
+                return output;
             }
         }
         return null;
@@ -94,16 +102,17 @@ export default class NodeSpace extends Node {
         }
         return null;
     }
-    get():number{
-        return this.outputNode.get();
+    compute():number{
+        return this.outputNode.compute();
     }
     create(obj:Node|Connector, place:number){
         if (obj instanceof Node){
             obj.parent = this;
             this.nodes.splice(place, 0, obj);
         } else if (obj instanceof Connector && obj.input && obj.output) {
-            const index = obj.output.parent.inputs.indexOf(obj.output);
-            this.connectNodes(obj.input.parent, obj.output.parent, index, place);
+            const out_index = obj.output.parent.inputs.indexOf(obj.output);
+            const in_index = obj.input.parent.outputs.indexOf(obj.input);
+            this.connectNodes(obj.input.parent, obj.output.parent, in_index, out_index, place);
         }
         console.log(this.nodes)
     }
@@ -129,10 +138,10 @@ export default class NodeSpace extends Node {
             this.connectors.splice(place, 1);
         }
     }
-    connectNodes(node1:Node, node2:Node, index1:number, con_i:number){
-        if (node1.output && node2.inputs.length){
-            const input = node1.output
-            const output = node2.inputs[index1]
+    connectNodes(node1:Node, node2:Node, input_index:number, output_index:number, con_i:number){
+        if (node1.outputs.length && node2.inputs.length){
+            const input = node1.outputs[output_index]
+            const output = node2.inputs[input_index]
             const con = new Connector(this.connectors.getNewId(), this, input, output);
             this.connectors.splice(con_i, 0, con);
             input.connected.push(con);

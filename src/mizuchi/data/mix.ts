@@ -39,7 +39,7 @@ export default class Mix {
             this.tracks.increment = 2;
             const mixNode = new FromTrackNode(-140, 20, 1, this);
             this.nodeSpace.create(mixNode, 0);
-            this.nodeSpace.connectNodes(mixNode, this.nodeSpace.outputNode, 0, 0);
+            this.nodeSpace.connectNodes(mixNode, this.nodeSpace.outputNode, 0, 0, 0);
         }
     }
     getFullId(){
@@ -64,6 +64,9 @@ export default class Mix {
         return /^-?\d+(\.\d+)?$/.test(str);
     }
     findByFullID(fullId:string): any {
+        // if (fullId.substring(0, 15) == "[object Object]") {
+        //     fullId = fullId.substring(15)
+        // }
         // console.log("fullId:", fullId)
         if (!fullId) return this;
         if (Mix.isStringNumber(fullId)){

@@ -7,7 +7,9 @@ import DelayNode from "../nodes/delay_node";
 import DistortionNode from "../nodes/distortion_node";
 import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
+import NodeComponent from "../nodes/node_components/node_component";
 import NodeSpace from "../nodes/node_space";
+import NoiseNode from "../nodes/noise_node";
 import Drawer from "./Drawer";
 import View from "./view";
 
@@ -58,8 +60,8 @@ export default class NodeSpaceDrawer extends Drawer {
             this.createNode(new DistortionNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
-        this.creatingMenu.addItem('Mix Node', ()=>{
-            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+        this.creatingMenu.addItem('Noise Node', ()=>{
+            this.createNode(new NoiseNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
         this.creatingMenu.addItem('Mix Node', ()=>{
@@ -162,7 +164,6 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.view.selected.elements = this.view.hovered.elements;
                 this.view.selected.drugged_x = x;
                 this.view.selected.drugged_y = y;
-                // Сбрасываем накопленный offset в начале драга
                 this.view.selected.offset.start = 0;
                 this.view.selected.offset.pitch = 0;
                 this.drugged = true;
@@ -178,25 +179,35 @@ export default class NodeSpaceDrawer extends Drawer {
             if (e.button == 0) {
                 this.drugged = false;
                 if (this.view.selected.elements.length>0) {
-                    if (this.view.selected.elements[0] instanceof Node) {
-                        if (this.view.selected.elements[0] instanceof Node) {
-                            // Используем накопленный offset
+                    const sel = this.view.selected.elements[0]
+                    if (sel instanceof Node) {
+                        this.move(
+                            this.view.selected.elements, 
+                            this.view.selected.offset.start,
+                            this.view.selected.offset.pitch
+                        );
+                    } else if (sel instanceof NodeComponent) {
+                        if (sel.isMoveble) {
                             this.move(
                                 this.view.selected.elements, 
                                 this.view.selected.offset.start,
                                 this.view.selected.offset.pitch
                             );
+                        } else {
+                            if (this.view.hovered.elements[0] == sel) {
+                                sel.click()
+                            }
                         }
-                    } else if (this.view.selected.elements[0] instanceof Input) {
+                    } else if (sel instanceof Input) {
                         // this.commandPattern.addCommand(new Create(this.nodeSpace, this.view.selected.elements, this.view.selected.offset));
-                    } else if (this.view.selected.elements[0] instanceof Output) {
+                    } else if (sel instanceof Output) {
                         this.commandPattern.recordOpen()
                         if (this.view.hovered.elements[0] instanceof Input) {
                             if (this.view.hovered.elements[0].connected) {
                                 this.commandPattern.addCommand(new Delete(this.nodeSpace, this.view.hovered.elements[0].connected, this.nodeSpace.connectors.indexOf(this.view.hovered.elements[0].connected)));
                             }
-                            this.view.selected.elements[0].connected
-                            const new_con = new Connector(0, this.nodeSpace, this.view.selected.elements[0], this.view.hovered.elements[0]);
+                            sel.connected
+                            const new_con = new Connector(0, this.nodeSpace, sel, this.view.hovered.elements[0]);
                             this.commandPattern.addCommand(new Create(this.nodeSpace, new_con, 0));
                         }
                         this.commandPattern.recordClose()
@@ -235,10 +246,9 @@ export default class NodeSpaceDrawer extends Drawer {
                         this.commandPattern.addCommand(new Delete(this.nodeSpace, input.connected, this.nodeSpace.connectors.indexOf(input.connected)));
                     }
                 }
-                if (e.output && e.output.connected) {
-                    for (let output of e.output.connected) {
-
-                        this.commandPattern.addCommand(new Delete(this.nodeSpace, output, this.nodeSpace.connectors.indexOf(output)));
+                for (let output of e.outputs) {
+                    for (let o of output.connected) {
+                        this.commandPattern.addCommand(new Delete(this.nodeSpace, o, this.nodeSpace.connectors.indexOf(o)));
                     }
                 }
                 console.log("REWRITE!!!")

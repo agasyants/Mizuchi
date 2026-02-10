@@ -1,4 +1,5 @@
 import Note from "../classes/note";
+import { OutputSignal } from "../classes/Output";
 import Mapping from "../curves/mapping_function";
 import Mix from "../data/mix";
 import Track from "../data/track";
@@ -10,7 +11,9 @@ export default class NoteInput extends Node {
     osc:Mapping;
     track:Track|null = null;
     constructor(x:number, y:number, mix:Mix, osc:Mapping, id:number){
-        super(id, x, y, 100, 150, [], 'Note Input', parent);
+        super(id, x, y, 100, 150, "NOTE INPUT");
+        this.inputs = [];
+        this.outputs = [new OutputSignal("signal", 0, 0, this)];
         this.mix = mix;
         this.osc = osc;
         this.osc.parent = this
@@ -22,7 +25,7 @@ export default class NoteInput extends Node {
         if (fullID.length==0) return this;
         return null;
     }
-    get():number {
+    compute() {
         const SPS = this.mix.sampleRate/this.mix.bpm*120/8;
         const founded:Note[] = this.findNote(this.mix.playback/SPS);
         if (founded.length == 0) return 0;
@@ -33,7 +36,7 @@ export default class NoteInput extends Node {
         }
         if (this.inputs.length>0) sum /= this.inputs.length;
         // console.log('NoteInput', sum)
-        return sum;
+        this.outputs[0].cache = sum;
     }
     private findNote(rel_time:number): Note[] {
         if (this.track == null) return [];
@@ -65,7 +68,7 @@ export default class NoteInput extends Node {
         mix.setAsideFullID(json.track, (track) => {
             node.track = track;
         });
-        node.window = json.window;
+        
         return node;
     }
 }

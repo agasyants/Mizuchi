@@ -27,7 +27,7 @@ export default class DelayNode extends Node {
     }
     static fromJSON(json: any): DelayNode {
         const node = new DelayNode(json.x, json.y, json.id);
-        node.window = json.window;
+        
         node.windowLenght = json.windowLenght;
         return node;
     }

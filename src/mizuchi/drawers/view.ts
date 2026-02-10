@@ -135,7 +135,7 @@ export default class View {
     }
 
     // Draw filled or stroked circle
-    drawCircle(x: number, y: number, radius: number, color: string, fill: boolean = true) {
+    drawCircle(x:number, y:number, radius:number, color:string, fill:boolean = true, width:number = 2) {
         const pos = this.getScreenPos(x, y);
         const r = radius * Math.sqrt(this.scale) * 1.1;
 
@@ -148,6 +148,7 @@ export default class View {
             ctx.fill();
         } else {
             ctx.strokeStyle = color;
+            ctx.lineWidth = width;
             ctx.stroke();
         }
 
@@ -214,7 +215,7 @@ export default class View {
         }
 
         ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
         ctx.closePath();
     }

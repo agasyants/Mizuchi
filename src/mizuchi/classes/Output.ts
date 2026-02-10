@@ -4,9 +4,10 @@ import Connector from "./connectors";
 import IdComponent from "./id_component";
 
 export default abstract class Output extends IdComponent {
+    abstract cache:any
     connected: Connector[] = [];
     static getSeparator(){ return 'o';}
-    constructor(parent:Node, public name:string, public x:number, public y:number) {
+    constructor(public name:string, public x:number, public y:number, parent:Node) {
         super(0, Output.getSeparator(), parent);
     }
     abstract get():any
@@ -16,12 +17,15 @@ export default abstract class Output extends IdComponent {
     render(view:View){
         view.drawPin(this.x, this.y, 4, 1, view.color.back, view.getColor(this));
     }
+    linkParent(p:Node){
+        this.parent = p
+    }
 }
 
 export class OutputSignal extends Output{
-    
-    constructor(parent:Node, name:string, x:number, y:number) {
-        super(parent, name, x, y);
+    cache:number = 0
+    constructor(name:string, x:number, y:number, parent:Node) {
+        super(name, x, y, parent);
     }
     returnJSON() {
         return { };
@@ -31,6 +35,43 @@ export class OutputSignal extends Output{
         return null;
     }
     get():number{
-        return this.parent.get();
+        this.parent.compute();
+        return this.cache
+    }
+}
+
+export class OutputBool extends Output {
+    cache:boolean = false
+    constructor(name:string, x:number, y:number, parent:Node) {
+        super(name, x, y, parent);
+    }
+    returnJSON() {
+        return { };
+    }
+    findByFullID(fullID: string) {
+        if (fullID.length==0) return this;
+        return null;
+    }
+    get():boolean{
+        this.parent.compute();
+        return this.cache
+    }
+}
+
+export class OutputFloat extends Output {
+    cache:number = 0
+    constructor(name:string, x:number, y:number, parent:Node) {
+        super(name, x, y, parent);
+    }
+    returnJSON() {
+        return { };
+    }
+    findByFullID(fullID: string) {
+        if (fullID.length==0) return this;
+        return null;
+    }
+    get():number{
+        this.parent.compute();
+        return this.cache
     }
 }

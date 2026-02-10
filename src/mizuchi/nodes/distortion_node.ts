@@ -4,7 +4,7 @@ import Switch from "./node_components/switcher";
 
 export default class DistortionNode extends Node {
     constructor(x:number, y:number, id:number, ){
-        super(id, x, y, 70, 70, ['input'], 'Distortion');
+        super(id, x, y, 70, 70, 'Distortion');
         this.components.push(new Switch(this))
     }
     render(view:View){
@@ -15,11 +15,11 @@ export default class DistortionNode extends Node {
         if (fullID.length==0) return this;
         return null;
     }
-    get(){
-        const c = this.inputs[0].get() * 5
-        if (c<-1) return -1;
-        else if (c>1) return 1;
-        else return c;
+    compute(){
+        let c = this.inputs[0].get() * 5
+        if (c<-1) c = -1;
+        else if (c>1) c = 1;
+        this.outputs[0].cache = c
     }
     returnJSON() {
         return {
