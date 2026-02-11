@@ -1,14 +1,12 @@
 import View from "../drawers/view";
-import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
 import Connector from "./connectors";
 import IdComponent from "./id_component";
 
 export default abstract class Input extends IdComponent {
-    parent: Node = new MixNode(0,0,0);
     connected: Connector|null = null;
     static getSeparator(){ return 'i';}
-    constructor(public name:string, id:number, public x:number, public y:number) {
+    constructor(public name:string, id:number, public x:number, public y:number, parent:Node) {
         super(id, Input.getSeparator(), parent);
     }
     abstract get():any
@@ -18,15 +16,12 @@ export default abstract class Input extends IdComponent {
     render(view:View){
         view.drawPin(this.x, this.y, 4, 1, view.color.back, view.getColor(this));
     }
-    linkParent(p:Node){
-        this.parent = p
-    }
 }
 
 export class InputSignal extends Input{
     connected: Connector|null = null;
-    constructor(name:string, id:number, x:number, y:number) {
-        super(name, id, x, y);
+    constructor(name:string, id:number, x:number, y:number, parent:Node) {
+        super(name, id, x, y, parent);
     }
     returnJSON() {
         return { };

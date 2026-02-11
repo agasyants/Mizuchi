@@ -220,16 +220,23 @@ export default class NodeSpaceDrawer extends Drawer {
         });
     }
     move(nodes: Node[], totalDx: number, totalDy: number) {
-    this.commandPattern.recordOpen();
-    
-    for (let node of nodes) {
-        const now = [node.x, node.y];
-        const was = [node.x - totalDx, node.y - totalDy];
-        this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
+        const treshhold = 4.5;
+        console.log(Math.hypot(totalDx, totalDy))
+        if (Math.hypot(totalDx, totalDy) < treshhold) {
+            for (let node of nodes) {
+                node.x -= totalDx
+                node.y -= totalDy
+            }
+        } else {
+            this.commandPattern.recordOpen();
+            for (let node of nodes) {
+                const now = [node.x, node.y];
+                const was = [node.x - totalDx, node.y - totalDy];
+                this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
+            }
+            this.commandPattern.recordClose();
+        }
     }
-    
-    this.commandPattern.recordClose();
-}
     rectInput(e:MouseEvent){
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left);

@@ -26,7 +26,6 @@ export default class NodeSpace extends Node {
         console.log(view);
     }
     returnJSON() {
-        console.log(this.nodes.increment)
         return {
             sep: Node.getSeparator(),
             ...super.returnJSON(),
@@ -112,6 +111,7 @@ export default class NodeSpace extends Node {
         } else if (obj instanceof Connector && obj.input && obj.output) {
             const out_index = obj.output.parent.inputs.indexOf(obj.output);
             const in_index = obj.input.parent.outputs.indexOf(obj.input);
+            console.log(obj, out_index, in_index)
             this.connectNodes(obj.input.parent, obj.output.parent, in_index, out_index, place);
         }
         console.log(this.nodes)
@@ -140,8 +140,8 @@ export default class NodeSpace extends Node {
     }
     connectNodes(node1:Node, node2:Node, input_index:number, output_index:number, con_i:number){
         if (node1.outputs.length && node2.inputs.length){
-            const input = node1.outputs[output_index]
-            const output = node2.inputs[input_index]
+            const input = node1.outputs[input_index]
+            const output = node2.inputs[output_index]
             const con = new Connector(this.connectors.getNewId(), this, input, output);
             this.connectors.splice(con_i, 0, con);
             input.connected.push(con);

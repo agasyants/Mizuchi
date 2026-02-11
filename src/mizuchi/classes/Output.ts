@@ -17,9 +17,6 @@ export default abstract class Output extends IdComponent {
     render(view:View){
         view.drawPin(this.x, this.y, 4, 1, view.color.back, view.getColor(this));
     }
-    linkParent(p:Node){
-        this.parent = p
-    }
 }
 
 export class OutputSignal extends Output{

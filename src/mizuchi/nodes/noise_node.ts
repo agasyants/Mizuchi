@@ -4,7 +4,7 @@ import Node from "./node";
 
 export default class NoiseNode extends Node {
     constructor(x:number, y:number, id:number){
-        super(id, x, y, 90, 160, 'FromTrackNode');
+        super(id, x, y, 90, 90, 'White Noise');
         this.inputs = []
         this.outputs = [new OutputSignal("out", 0, 0, this)]
     }

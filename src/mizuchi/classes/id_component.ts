@@ -4,21 +4,17 @@ export default abstract class IdComponent {
         this.id = id;
     }
     getFullId():string {
-        if (this.parent == null) 
+        if (this.parent == null)  {
             return this.toJSON();
+        }
+        if (this.parent.getFullId() instanceof Object) {
+            return this.parent.separator + this.separator + this.id.toString();
+        }
         return this.parent.getFullId() + this.separator + this.id.toString();
     }
     abstract returnJSON():any;
     abstract findByFullID(fullID:string):any;
     static getSeparator():string {return 'null'};
-    // static splitFullID(fullID:string, Class: typeof IdComponent):any[]{
-    //     if (fullID.startsWith(Class.getSeparator())){
-    //         fullID = fullID.slice(Class.getSeparator().length);
-    //         const index = parseInt(fullID, 10)
-    //         return [fullID, index];
-    //     }
-    //     return [fullID, -1];
-    // }
     toJSON() {
         if (this.parent === null) {
             return this;

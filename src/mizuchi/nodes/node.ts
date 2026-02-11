@@ -1,7 +1,6 @@
 import IdComponent from "../classes/id_component";
 import Input from "../classes/Input";
 import Output from "../classes/Output";
-// import Mix from "../data/mix";
 import View from "../drawers/view";
 import NodeComponent from "./node_components/node_component";
 
@@ -40,7 +39,7 @@ export default abstract class Node extends IdComponent {
         }
         for (let i = 0; i < this.outputs.length; i++){
             this.outputs[i].x = x+this.width;
-            this.outputs[i].y = y-this.height*(i+1)/(this.inputs.length+1);
+            this.outputs[i].y = y-this.height*(i+1)/(this.outputs.length+1);
             for (let a of this.outputs[i].connected){
                 const point = a.curve.basics[0];
                 a.curve.move(point, [this.outputs[i].x, this.outputs[i].y])
@@ -104,17 +103,6 @@ export default abstract class Node extends IdComponent {
             name: this.name
         };
     }
-    // static fromJSON(json:any, parent:any, mix:Mix): Node {
-    //     switch (json.type) {
-    //         case 'NodeSpace': return NodeSpace.fromJSON(json, parent, mix);
-    //         case 'OutputNode': return OutputNode.fromJSON(json, parent);
-    //         case 'NoteInput': return NoteInput.fromJSON(json, mix);
-    //         case 'FromTrackNode': return FromTrackNode.fromJSON(json, mix);
-    //         case 'MixNode': return MixNode.fromJSON(json);
-    //         case 'DelayNode': return DelayNode.fromJSON(json);
-    //         default: return new OutputNode(0,0,0,parent);
-    //     }
-    // }
     // clone(){
     //     const clone = new (this.constructor as any)(this.id, this.x, this.y, this.inputs.length, this.parent);
     //     for (let i = 0; i < this.inputs.length; i++){

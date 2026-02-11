@@ -64,13 +64,14 @@ export default class Mix {
         return /^-?\d+(\.\d+)?$/.test(str);
     }
     findByFullID(fullId:string): any {
-        // if (fullId.substring(0, 15) == "[object Object]") {
-        //     fullId = fullId.substring(15)
-        // }
-        // console.log("fullId:", fullId)
         if (!fullId) return this;
         if (Mix.isStringNumber(fullId)){
-            return this.deleted[Number(fullId)];
+            return this.deleted[Number(fullId)]
+        }
+        if (fullId.startsWith("d")){
+            fullId = fullId.slice(1);
+            const id = parseInt(fullId, 10)
+            return this.deleted[id].findByFullID(fullId.slice(String(id).length));
         }
         if (fullId.startsWith(Track.getSeparator())){
             fullId = fullId.slice(Track.getSeparator().length);
@@ -103,7 +104,9 @@ export default class Mix {
                             console.log('finded');
                             this.deleted.push(value);
                         }
-                        return String(this.deleted.indexOf(value));
+                        let v = this.deleted.indexOf(value)
+                        value.separator = "d" + v.toString()
+                        return String(v);
                     }
                 } 
                 seen.add(value);
@@ -194,7 +197,6 @@ export default class Mix {
             console.error('Invalid input: must be an array of Tracks or Scores.');
     }
     selectTracks(tracks:Track[]){
-        // console.log("tracks");        
         if (tracks.length){
             for (let track of tracks){
                 const index = this.selected.tracks.elements.indexOf(track);
@@ -209,8 +211,6 @@ export default class Mix {
         }
     }
     selectScores(scores:Score[], start:number, end:number){
-        // console.log("scores");       
-        // console.log(start,end);
         for (let score of scores) {
             const index = this.selected.scores.elements.indexOf(score);
             if (index > -1) {
