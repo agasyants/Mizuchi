@@ -14,7 +14,7 @@ export default class Switch extends NodeComponent {
         let [rw, rh] = this.node.correctSize(this.width, this.height)
         view.drawCircle(rx+rw/2, ry-rh/2, r*12, color, false, 2)
         if (this.bool) {
-        view.drawCircle(rx+rw/2, ry-rh/2, r*8, "yellow")
+            view.drawCircle(rx+rw/2, ry-rh/2, r*8, "yellow")
         }
     }
     hitScan(x:number, y:number, r:number):boolean {
@@ -27,5 +27,8 @@ export default class Switch extends NodeComponent {
     }
     click(): void {
         this.bool = !this.bool
+    }
+    move(): void {
+        console.error("error")
     }
 }

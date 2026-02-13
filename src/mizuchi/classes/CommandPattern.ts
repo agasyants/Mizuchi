@@ -19,6 +19,7 @@ export default class CommandPattern
             command.do();
             this.undoCommands = [];
         }
+        console.warn(command, this.commands)
         // save
     }
     undo(){
@@ -47,6 +48,7 @@ export default class CommandPattern
         }
     }
     toJSON() {
+        console.error(this.commands, this.undoCommands)
         return {
             COMMANDS: this.commands,
             undoCOMMANDS: this.undoCommands,
@@ -181,7 +183,7 @@ export class Delete extends SimpleCommand{
         };
     }
     static fromJSON(json:any, root:Mix): Delete {
-        console.log('json', json);
+        // console.log('json', json);
         return new Delete(root.findByFullID(json.subject), root.findByFullID(json.object), json.place);
     }
 }

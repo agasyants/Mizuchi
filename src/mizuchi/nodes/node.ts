@@ -129,8 +129,9 @@ export default abstract class Node extends IdComponent {
         } else {
             let xn = (x - this.x) / this.width
             let yn = (y - this.y) / this.height
+            let rn = r / (this.width + this.height)
             for (let comp of this.components) {
-                if (comp.hitScan(xn, -yn, r)) {
+                if (comp.hitScan(xn, -yn, rn)) {
                     return comp
                 }
             }

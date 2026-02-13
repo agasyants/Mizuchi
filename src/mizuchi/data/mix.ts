@@ -114,6 +114,9 @@ export default class Mix {
             return value;
         };
         const log = JSON.stringify(this, replacer)
+        for (let del of this.deleted) {
+            del.parent = null;
+        }
         console.log(log);
         console.log("Start: ", this);
         localStorage.setItem('key', log);
@@ -143,7 +146,7 @@ export default class Mix {
             }
         }
         for (let del of json.deleted){
-            console.log('del', del);
+            // console.log('del', del);
             if (del.sep == Track.getSeparator()){
                 this.deleted.push(Track.fromJSON(del, null, this));
             } else if (del.sep == Score.getSeparator()) {

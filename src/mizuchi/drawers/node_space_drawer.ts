@@ -5,6 +5,7 @@ import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
 import DelayNode from "../nodes/delay_node";
 import DistortionNode from "../nodes/distortion_node";
+import InvertNode from "../nodes/invert_node";
 import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
 import NodeComponent from "../nodes/node_components/node_component";
@@ -64,8 +65,8 @@ export default class NodeSpaceDrawer extends Drawer {
             this.createNode(new NoiseNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
-        this.creatingMenu.addItem('Mix Node', ()=>{
-            this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+        this.creatingMenu.addItem('Invert Node', ()=>{
+            this.createNode(new InvertNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
     }
@@ -138,6 +139,9 @@ export default class NodeSpaceDrawer extends Drawer {
                         const sel = e[0];
                         if (sel instanceof Node) {
                             this.drugNode(x, y)
+                        } else if (sel instanceof NodeComponent) {
+                            if (sel.isMoveble)
+                                this.drugComponent(x, y)
                         } else if (sel instanceof Input) {
                             console.log('input')
                         } else if (sel instanceof Output) {
@@ -188,8 +192,8 @@ export default class NodeSpaceDrawer extends Drawer {
                         );
                     } else if (sel instanceof NodeComponent) {
                         if (sel.isMoveble) {
-                            this.move(
-                                this.view.selected.elements, 
+                            this.moveComponent(
+                                this.view.selected.elements[0], 
                                 this.view.selected.offset.start,
                                 this.view.selected.offset.pitch
                             );
@@ -219,23 +223,39 @@ export default class NodeSpaceDrawer extends Drawer {
             }
         });
     }
-    move(nodes: Node[], totalDx: number, totalDy: number) {
+    move(nodes:Node[], totalDx:number, totalDy:number) {
         const treshhold = 4.5;
         console.log(Math.hypot(totalDx, totalDy))
         if (Math.hypot(totalDx, totalDy) < treshhold) {
             for (let node of nodes) {
-                node.x -= totalDx
-                node.y -= totalDy
+                node.translate(-totalDx, -totalDy)
             }
         } else {
-            this.commandPattern.recordOpen();
+            const flag = nodes.length != 1
+            if (flag)
+                this.commandPattern.recordOpen();
             for (let node of nodes) {
                 const now = [node.x, node.y];
                 const was = [node.x - totalDx, node.y - totalDy];
                 this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
             }
-            this.commandPattern.recordClose();
+            if (flag)
+                this.commandPattern.recordClose();
         }
+    }
+    moveComponent(component:NodeComponent, totalDx:number, totalDy:number) {
+        // const treshhold = 4.5;
+        // if (Math.hypot(totalDx, totalDy) < treshhold) {
+        //     for (let node of nodes) {
+        //         node.x -= totalDx
+        //         node.y -= totalDy
+        //     }
+        // } else {
+            // const now = [node.x, node.y];
+            // const was = [node.x - totalDx, node.y - totalDy];
+            // this.commandPattern.addCommand(new Move(this.nodeSpace, node, was, now));
+            console.log("don't forget")
+        // }
     }
     rectInput(e:MouseEvent){
         const rect = this.canvas.getBoundingClientRect();
@@ -329,6 +349,22 @@ export default class NodeSpaceDrawer extends Drawer {
         for (let node of s.elements) {
             if (node instanceof Node) {
                 node.translate(worldDx, worldDy);
+            }
+        }
+        s.drugged_x = x;
+        s.drugged_y = y;
+    }
+    drugComponent(x: number, y: number) {
+        const s = this.view.selected;
+        const screenDx = x - s.drugged_x;
+        const screenDy = y - s.drugged_y;
+        const worldDx = screenDx * devicePixelRatio / this.view.scale;
+        const worldDy = screenDy * devicePixelRatio / this.view.scale;
+        s.offset.start += worldDx;
+        s.offset.pitch += worldDy;
+        for (let component of s.elements) {
+            if (component instanceof NodeComponent && component.isMoveble) {
+                component.move(worldDx, worldDy);
             }
         }
         s.drugged_x = x;

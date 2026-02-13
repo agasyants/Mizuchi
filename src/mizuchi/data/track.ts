@@ -20,9 +20,12 @@ export default class Track extends IdComponent {
         mapping.basics.increment = mapping.basics.length;
         mapping.handles.increment = mapping.handles.length;
         const node = new NoteInput(0, 0, this.parent, mapping, this.nodeSpace.nodes.getNewId()+1);
+        node.moveTo(-200, 40)
         node.track = this
         this.nodeSpace.create(node,0)
         this.nodeSpace.connectNodes(node, this.nodeSpace.outputNode, 0, 0, 0);
+        this.nodeSpace.outputNode.moveTo(0,0)
+        console.log('Rewrite!')
     }
     returnJSON(){
         return {

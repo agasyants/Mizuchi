@@ -9,4 +9,5 @@ export default abstract class NodeComponent {
     abstract render(view:View):void
     abstract hitScan(x:number, y:number, r:number):boolean
     abstract click():void
+    abstract move(x:number,y:number):void
 }
