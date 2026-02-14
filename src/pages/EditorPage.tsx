@@ -24,20 +24,40 @@ const EditorPage: React.FC = () => {
           <button id="test"> Test </button>
         </div>
       </div>
-      <div id="mix-canvas-wrapper" style={{ flex: "1 1 auto" }}>
+      <div id="mix-canvas-wrapper" style={{ position: "relative", flex: "1 1 auto" }}>
         <canvas id="MixCanvas" style={{ backgroundColor: "black" }}></canvas>
+        <canvas id="MixBloomCanvas" style={{ 
+          position: "absolute", 
+          top: 0, 
+          left: 0, 
+          pointerEvents: "none" 
+        }}></canvas>
+      </div>
+
+      <div id="score-canvas-wrapper" style={{ position: "absolute" }}>
+        <canvas id="ScoreCanvas" style={{ backgroundColor: "black" }}></canvas>
+        <canvas id="ScoreBloomCanvas" style={{ 
+          position: "absolute", 
+          top: 0, 
+          left: 0, 
+          pointerEvents: "none" 
+        }}></canvas>
+      </div>
+
+      <div id="node-space-canvas-wrapper" style={{ position: "absolute"}}>
+        <canvas id="NodeSpaceCanvas" style={{ backgroundColor: "black" }}></canvas>
+        <canvas id="NodeBloomCanvas" style={{ 
+          position: "absolute", 
+          top: 0, 
+          left: 0, 
+          pointerEvents: "none" 
+        }}></canvas>
+        <div id="node-context-menu"></div>
       </div>
       <div style={{ display: "flex", position: "absolute" }}>
         <div style={{ padding: "5px" }}>
           <canvas id="OscCanvas" height="250" width="375" style={{ backgroundColor: "black", display: "none" }}></canvas>
         </div>
-      </div>
-      <div id="score-canvas-wrapper" style={{ position: "absolute" }}>
-        <canvas id="ScoreCanvas" style={{ backgroundColor: "black" }}></canvas>
-      </div>
-      <div id="node-space-canvas-wrapper" style={{ position: "absolute"}}>
-        <canvas id="NodeSpaceCanvas" style={{ backgroundColor: "black" }}></canvas>
-        <div id="node-context-menu"></div>
       </div>
     </div>
   );

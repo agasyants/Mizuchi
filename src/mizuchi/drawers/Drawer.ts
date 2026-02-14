@@ -1,3 +1,5 @@
+import BloomShader from "../classes/BloomShader";
+
 export default abstract class Drawer{
     w:number=0;
     h:number=0;
@@ -5,11 +7,23 @@ export default abstract class Drawer{
     margin_left:number=0;
     ctx:CanvasRenderingContext2D;
     stopRender:boolean = false;
+    public bloomShader?: BloomShader;
 
-    constructor(public canvas:HTMLCanvasElement){
+    constructor(public canvas:HTMLCanvasElement, _bloomShader?: BloomShader){
         this.ctx = canvas.getContext('2d') || new CanvasRenderingContext2D();
+        if (_bloomShader) {
+            this.bloomShader = _bloomShader;
+        }
     }
-    abstract render():void
+    render():void {
+        requestAnimationFrame(()=>{
+            this._render()
+            if (this.bloomShader) {
+                this.bloomShader.render();
+            }
+        })
+    }
+    abstract _render():void
     setCanvasSize(width:number, height:number, k:number=20):void{
         this.w = this.canvas.width = width * devicePixelRatio;
         this.h = this.canvas.height = height * devicePixelRatio;
@@ -17,5 +31,8 @@ export default abstract class Drawer{
         this.canvas.style.height = height + 'px';
         this.margin_top = Math.min(this.canvas.height,this.canvas.width)/k;
         this.margin_left = this.margin_top;
+        if (this.bloomShader) {
+            this.bloomShader.resize();
+        }
     }
 }

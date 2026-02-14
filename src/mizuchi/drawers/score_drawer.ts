@@ -217,11 +217,8 @@ export default class ScoreDrawer extends Drawer{
         this.gridY = -this.margin_top;
         this.render();
     }
-    render(){
+    _render() {
         this.duration = Math.min(this.score.duration, this.score.loop_duration)
-        requestAnimationFrame(()=>{this._render()})
-    }
-    private _render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.renderGrid()
         this.renderPiano();

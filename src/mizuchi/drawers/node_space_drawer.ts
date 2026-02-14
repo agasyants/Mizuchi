@@ -310,11 +310,7 @@ export default class NodeSpaceDrawer extends Drawer {
             ));
         }
     }
-    render(){
-        // this.duration = Math.min(this.score.duration, this.score.loop_duration)
-        requestAnimationFrame(()=>{this._render()})
-    }
-    private _render() {
+    _render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.ctx.save();
         this.ctx.scale(1, -1);

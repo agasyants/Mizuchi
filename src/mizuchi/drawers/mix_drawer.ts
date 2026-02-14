@@ -9,6 +9,7 @@ import MixController from "./mix_controller";
 import { HoveredMix } from "../classes/hovered";
 import SectorSelection from "../classes/SectorSelection";
 import NodeSpaceDrawer from "./node_space_drawer";
+import BloomShader from "../classes/BloomShader";
 
 export default class MixDrawer extends Drawer {
     show_id:boolean = true;
@@ -47,9 +48,10 @@ export default class MixDrawer extends Drawer {
         public score_window:WindowController,
         public node_window:WindowController, 
         width:number, 
-        height:number)
-    {
-        super(canvas);
+        height:number,
+         _bloomShader: BloomShader
+        ){
+        super(canvas, _bloomShader);
         this.controller = new MixController(mix, mix.commandPattern, this, this.hovered, this.sectorsSelection, score_window)
         this.setCanvasSize(width,height);
         
@@ -255,8 +257,6 @@ export default class MixDrawer extends Drawer {
     }
     setCanvasSize(width: number, height: number): void {
         super.setCanvasSize(width, height, 30);
-        // this.canvas.style.width = width + 'px';
-        // this.canvas.style.height = height + 'px';
         this.width = (1-this.instrument_width)*this.w - 2*this.margin_left;
         this.height = (this.h - 2*this.margin_top);
         this.track_h = this.height/this.mix.tracks_number_on_screen
@@ -293,9 +293,6 @@ export default class MixDrawer extends Drawer {
                 } this.tracks_min_max.push([min, max]);
             }
         }
-    render(){
-        requestAnimationFrame(()=>{this._render()});
-    }
     _render(){
         this.ctx.clearRect(0, 0, this.w, this.h);
         this.ctx.font = "16px system-ui";

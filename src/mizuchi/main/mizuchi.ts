@@ -5,6 +5,7 @@ import Mixer from "./mixer";
 import WindowController from "../classes/WindowController";
 import Score from "../data/score";
 import NodeSpaceDrawer from "../drawers/node_space_drawer";
+import BloomShader from "../classes/BloomShader";
 
 
 export default class Mizuchi{
@@ -44,6 +45,20 @@ export default class Mizuchi{
         
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;
         const mix_div = document.getElementById('mix-canvas-wrapper') as HTMLDivElement;
+
+        
+        const mixBloomCanvas = document.getElementById('MixBloomCanvas') as HTMLCanvasElement;
+        const mixBloom = new BloomShader(mixCanvas, mixBloomCanvas);
+
+        // Bloom для ScoreCanvas
+        const scoreBloomCanvas = document.getElementById('ScoreBloomCanvas') as HTMLCanvasElement;
+        const scoreBloom = new BloomShader(scoreCanvas, scoreBloomCanvas);
+
+        // Bloom для NodeSpaceCanvas  
+        const nodeBloomCanvas = document.getElementById('NodeBloomCanvas') as HTMLCanvasElement;
+        const nodeBloom = new BloomShader(nodeCanvas, nodeBloomCanvas);
+
+        
         if (mixCanvas && mix_div)
         {
             const id_shower = document.getElementById('id_show');
@@ -55,9 +70,8 @@ export default class Mizuchi{
             }
 
             const rect = mix_div.getBoundingClientRect();
-            const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, node_window, rect.width, rect.height);
+            const mixDrawer = new MixDrawer(mixCanvas, mix, score_window, node_window, rect.width, rect.height, mixBloom);
             const mixer = new Mixer(mix, mixDrawer);
-            // let f = new OscFunction([[new BasicPoint(0,-1), new BasicPoint(0.5,0), new BasicPoint(1,1)],[new HandlePoint(0.5,-1,1,0), new HandlePoint(0.5,1,0,1)]]);
             console.log(mix.nodeSpace);  
             
             window.addEventListener("keydown", (e) => {
