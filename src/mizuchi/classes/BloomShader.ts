@@ -2,6 +2,7 @@ export default class BloomShader {
     private sourceCanvas: HTMLCanvasElement;
     private displayCanvas: HTMLCanvasElement;
     private gl: WebGL2RenderingContext;
+    private on:boolean = false
     
     // Shader programs
     private brightPassProgram!: WebGLProgram;
@@ -19,10 +20,10 @@ export default class BloomShader {
     private blurTexture2!: WebGLTexture;
     
     public params = {
-        intensity: 1.5,
-        radius: 2.0,
-        threshold: 0.7,
-        spread: 1.0
+        intensity: 1.2,
+        radius: 1.5,
+        threshold: 0.2,
+        spread: 2.8
     };
 
     constructor(sourceCanvas: HTMLCanvasElement, displayCanvas: HTMLCanvasElement) {
@@ -41,6 +42,10 @@ export default class BloomShader {
         this.gl = gl;
         this.init();
         this.resize();
+
+        if (!this.on) {
+            this.hide()
+        }
     }
 
     private init() {
@@ -141,6 +146,16 @@ export default class BloomShader {
         gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
         this.createFramebuffers();
+    }
+
+    public hide() {
+        this.displayCanvas.hidden = true
+        this.on = false
+    }
+
+    public show() {
+        this.displayCanvas.hidden = false
+        this.on = true
     }
 
     private createShader(type: number, source: string): WebGLShader {
@@ -266,7 +281,8 @@ export default class BloomShader {
     }
 
     public render() {
-        console.log("BloomShader render called");
+        if (!this.on) return;
+        
         const gl = this.gl;
         const width = this.displayCanvas.width;
         const height = this.displayCanvas.height;

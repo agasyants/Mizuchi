@@ -19,7 +19,7 @@ export default class CommandPattern
             command.do();
             this.undoCommands = [];
         }
-        console.warn(command, this.commands)
+        // console.warn(command, this.commands)
         // save
     }
     undo(){
@@ -48,7 +48,7 @@ export default class CommandPattern
         }
     }
     toJSON() {
-        console.error(this.commands, this.undoCommands)
+        // console.error(this.commands, this.undoCommands)
         return {
             COMMANDS: this.commands,
             undoCOMMANDS: this.undoCommands,

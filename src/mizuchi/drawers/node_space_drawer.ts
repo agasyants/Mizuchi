@@ -1,3 +1,4 @@
+import BloomShader from "../classes/BloomShader";
 import CommandPattern, { Move, Create, Delete } from "../classes/CommandPattern";
 import Connector from "../classes/connectors";
 import Input from "../classes/Input";
@@ -43,8 +44,8 @@ export default class NodeSpaceDrawer extends Drawer {
     starParallax = 0.5;
     creatingMenu:ContextMenu = new ContextMenu();
 
-    constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace){
-        super(canvas);
+    constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace, bloom:BloomShader){
+        super(canvas, bloom);
         this.setCanvasSize(canvas.width, canvas.height);
         this.initialize();
         this.generateStars(this.width, this.height);
@@ -80,8 +81,10 @@ export default class NodeSpaceDrawer extends Drawer {
         this.canvas.tabIndex = 2;
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            if (e.deltaY)
+            if (e.deltaY) {
                 this.view.zoom(e.deltaY/100, this.was);
+                this.starParallax += e.deltaY/1000
+            }
             this.render();
         });
         this.canvas.addEventListener('keyup', (e) => {
@@ -299,7 +302,7 @@ export default class NodeSpaceDrawer extends Drawer {
         
     }
     generateStars(width: number, height: number) {
-        const area = width * height * 5; // генерация с запасом
+        const area = width * height * 8; // генерация с запасом
         const count = area * this.starDensity;
         for (let i = 0; i < count; i++) {
             this.stars.push(new Star(
@@ -315,8 +318,8 @@ export default class NodeSpaceDrawer extends Drawer {
         this.ctx.save();
         this.ctx.scale(1, -1);
         for (const star of this.stars) {
-            const x = star.x + this.view.center.x * this.starParallax;
-            const y = star.y + this.view.center.y * this.starParallax;
+            const x = star.x + this.view.center.x * this.starParallax/2;
+            const y = star.y + this.view.center.y * this.starParallax/2;
             if (x < 0 || x > this.width || y < 0 || y > this.height) continue;
 
             this.ctx.beginPath();

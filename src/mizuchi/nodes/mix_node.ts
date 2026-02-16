@@ -5,7 +5,7 @@ import Node from "./node";
 import ControlController from "./node_components/control_controller";
 
 export default class MixNode extends Node {
-    dryWet:ControlController = new ControlController(this)
+    dryWet:ControlController = new ControlController(this, 0.5, 0.5, 30)
     a_signal:InputSignal = new InputSignal('A', 0, 0, 0, this)
     b_signal:InputSignal = new InputSignal('B', 1, 0, 0, this)
     output:OutputSignal = new OutputSignal('out', 0, 0, this)

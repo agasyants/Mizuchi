@@ -5,7 +5,7 @@ import Node from "./node";
 import Switch from "./node_components/switcher";
 
 export default class InvertNode extends Node {
-    active:Switch = new Switch(this, true)
+    active:Switch = new Switch(this, true, 0.5, 0.5, 40)
     constructor(x:number, y:number, id:number, ){
         super(id, x, y, 70, 70, 'Invert');
         this.components.push(this.active)

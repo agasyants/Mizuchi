@@ -21,7 +21,8 @@ const EditorPage: React.FC = () => {
           <input type="number" defaultValue={0} id="loop_start"/>
           <input type="number" defaultValue={128} id="loop_end"/>
           <button id="id_show"> Show ID </button>
-          <button id="test"> Test </button>
+          <button id="test"> Reset </button>
+          <button id="shader"> bloom </button>
         </div>
       </div>
       <div id="mix-canvas-wrapper" style={{ position: "relative", flex: "1 1 auto" }}>

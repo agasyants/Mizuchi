@@ -6,6 +6,7 @@ import hovered from "../classes/hovered";
 import Drawer from "./Drawer";
 import Mix from "../data/mix";
 import SectorSelection from "../classes/SectorSelection";
+import BloomShader from "../classes/BloomShader";
 
 
 export default class ScoreDrawer extends Drawer{
@@ -35,8 +36,8 @@ export default class ScoreDrawer extends Drawer{
 
     sectorsSelection = new SectorSelection();
 
-    constructor(public canvas:HTMLCanvasElement, public score:Score, mix:Mix) {
-        super(canvas);
+    constructor(public canvas:HTMLCanvasElement, public score:Score, mix:Mix, _BloomShader:BloomShader) {
+        super(canvas, _BloomShader);
         this.setCanvasSize(canvas.width, canvas.height)
         this.controller = new score_drawer_controller(this, this.sectorsSelection, mix.commandPattern);
         this.duration = Math.min(this.score.duration, this.score.loop_duration)

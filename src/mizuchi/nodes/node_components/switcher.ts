@@ -4,22 +4,22 @@ import NodeComponent from "./node_component";
 
 export default class Switch extends NodeComponent {
     isMoveble: boolean = false;
-    constructor(node:Node, public bool:boolean = true){
-        super(node, 0, 0, 0.2, 0.2)
+    constructor(node:Node, public bool:boolean, x:number, y:number, r:number){
+        super(node, x, y, r/node.width, r/node.height)
     }
     render(view:View){
         const color = view.getColor(this);
-        let [rx, ry] = this.node.correctPos(this.x, this.y)
-        let r = Math.sqrt(view.calcDim(this.width))
-        let [rw, rh] = this.node.correctSize(this.width, this.height)
-        view.drawCircle(rx+rw/2, ry-rh/2, r*12, color, false, 2)
+        this.correct_abs()
+        let rx = this.abs.x
+        let ry = this.abs.y
+        let r = this.abs.w/2
+        view.drawCircle(rx, ry, r, color, false, 2)
         if (this.bool) {
-            view.drawCircle(rx+rw/2, ry-rh/2, r*8, "yellow")
+            view.drawCircle(rx, ry, r*0.8, "yellow")
         }
     }
     hitScan(x:number, y:number, r:number):boolean {
-        if (this.x < x && x < this.x + this.width && this.y < y && y < this.y + this.height) {
-            console.log(r)
+        if (this.rel.x-this.rel.w/2 < x-r && x+r < this.rel.x + this.rel.w/2 && this.rel.y-this.rel.h/2 < y-r && y+r < this.rel.y + this.rel.h/2) {
             return true
         } else {
             return false

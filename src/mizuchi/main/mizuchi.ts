@@ -36,11 +36,17 @@ export default class Mizuchi{
         // const oscDrawer = new OscDrawer(OscCanvas, mix.tracks[0].inst.osc.oscFunction);
 
         const scoreCanvas = document.getElementById('ScoreCanvas') as HTMLCanvasElement;
-        const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0), mix);
+        // Bloom для ScoreCanvas
+        const scoreBloomCanvas = document.getElementById('ScoreBloomCanvas') as HTMLCanvasElement;
+        const scoreBloom = new BloomShader(scoreCanvas, scoreBloomCanvas);
+        const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0), mix, scoreBloom);
         const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
 
         const nodeCanvas = document.getElementById('NodeSpaceCanvas') as HTMLCanvasElement;
-        const node_space_drawer = new NodeSpaceDrawer(nodeCanvas, mix.nodeSpace);
+        // Bloom для NodeSpaceCanvas  
+        const nodeBloomCanvas = document.getElementById('NodeBloomCanvas') as HTMLCanvasElement;
+        const nodeBloom = new BloomShader(nodeCanvas, nodeBloomCanvas);
+        const node_space_drawer = new NodeSpaceDrawer(nodeCanvas, mix.nodeSpace, nodeBloom);
         const node_window = new WindowController('node-space-canvas-wrapper', node_space_drawer, 12, 810, 390);
         
         const mixCanvas = document.getElementById('MixCanvas') as HTMLCanvasElement;
@@ -49,14 +55,6 @@ export default class Mizuchi{
         
         const mixBloomCanvas = document.getElementById('MixBloomCanvas') as HTMLCanvasElement;
         const mixBloom = new BloomShader(mixCanvas, mixBloomCanvas);
-
-        // Bloom для ScoreCanvas
-        const scoreBloomCanvas = document.getElementById('ScoreBloomCanvas') as HTMLCanvasElement;
-        const scoreBloom = new BloomShader(scoreCanvas, scoreBloomCanvas);
-
-        // Bloom для NodeSpaceCanvas  
-        const nodeBloomCanvas = document.getElementById('NodeBloomCanvas') as HTMLCanvasElement;
-        const nodeBloom = new BloomShader(nodeCanvas, nodeBloomCanvas);
 
         
         if (mixCanvas && mix_div)
@@ -112,6 +110,14 @@ export default class Mizuchi{
         if (BPM){
             BPM.addEventListener('change', () => {
                 mix.bpm = Number(BPM.value);
+            })
+        }
+        const shaderButton = document.getElementById('shader');
+        if (shaderButton){
+            shaderButton.addEventListener("click", () => {
+                scoreBloom.show()
+                mixBloom.show()
+                nodeBloom.show()
             })
         }
     }
