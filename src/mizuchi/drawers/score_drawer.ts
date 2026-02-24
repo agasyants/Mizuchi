@@ -220,6 +220,7 @@ export default class ScoreDrawer extends Drawer{
     }
     _render() {
         this.duration = Math.min(this.score.duration, this.score.loop_duration)
+        this.note_w = this.width/this.duration;
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.renderGrid()
         this.renderPiano();
@@ -280,7 +281,17 @@ export default class ScoreDrawer extends Drawer{
             for (let i = 0; i < this.notes_width_count; i++){
                 this.ctx.beginPath();
                 if (n.includes((i+this.score.lowest_note)%12))
-                    this.ctx.fillStyle = "rgba(255,100,100,0.2)";
+                    this.ctx.fillStyle = "rgb(60,20,20)";
+                else
+                    this.ctx.fillStyle = "black";
+                this.ctx.fillRect(this.gridX, this.gridY - i*this.note_h, this.width, -this.note_h);
+                this.ctx.closePath();
+            }
+        } else {
+            for (let i = 0; i < this.notes_width_count; i++){
+                this.ctx.beginPath();
+                if (n.includes((i+this.score.lowest_note)%12))
+                    this.ctx.fillStyle = "rgb(30,10,10)";
                 else
                     this.ctx.fillStyle = "black";
                 this.ctx.fillRect(this.gridX, this.gridY - i*this.note_h, this.width, -this.note_h);

@@ -137,12 +137,51 @@ export default class MixController {
         }
         this.mix.select(scores,this.sectorsSelection.x1,this.sectorsSelection.x2);
     }
+    private isBetween(a:number,b:number,c:number):boolean {
+        if (a <= c && c <= b) return true;
+        return false
+    }
+    private fix_intersection(start:number, end:number, score:Score, track:Track) {
+        for (let sc of track.scores) {
+            const endS = sc.absolute_start+sc.duration
+            if (sc == score) {
+                continue
+            } else if (this.isBetween(start, end, sc.absolute_start) && this.isBetween(start, end, endS)) {
+                this.commandPattern.addCommand(new Delete(track, sc, track.scores.indexOf(sc)));
+
+            } else if (this.isBetween(sc.absolute_start, endS, start) && this.isBetween(sc.absolute_start, endS, end)) {
+                const new_score = sc.clone(track.scores.getNewId())
+                this.commandPattern.addCommand(new Create(track, new_score, 0))
+
+                const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
+                const d = end-(w[0]+w[1])
+                const no = [end, -d, w[2], w[3]+(end-w[0])]
+                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+                
+                const w2 = [new_score.absolute_start, new_score.duration, new_score.loop_duration, new_score.relative_start]
+                const no2 = [w[0], start-w[0], w[2], w[3]]
+                this.commandPattern.addCommand(new Move(this.mix, new_score, w2, no2));
+
+            } else if (this.isBetween(start, end, sc.absolute_start)) {
+                const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
+                const d = end-(w[0]+w[1])
+                const no = [end, -d, w[2], w[3]+(end-w[0])]
+                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+
+            } else if (this.isBetween(start, end, endS)) {
+                const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
+                const no = [w[0], start-w[0], w[2], w[3]]
+                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+            }
+        }
+    }
     move(scores:Score[], start:number, duration:number, loop_duration:number, rel:number){
         this.commandPattern.recordOpen();
         for (let i = 0; i < scores.length; i++){
             const score = scores[i];
-            let was = [score.absolute_start, score.duration, score.loop_duration, score.relative_start];
+            const was = [score.absolute_start, score.duration, score.loop_duration, score.relative_start];
             const become = [score.absolute_start + start, score.duration + duration, score.loop_duration + loop_duration, score.relative_start + rel];
+            this.fix_intersection(become[0], become[0]+become[1], score, score.parent)
             this.commandPattern.addCommand(new Move(this.mix, score, was, become));
         }
         this.commandPattern.recordClose();

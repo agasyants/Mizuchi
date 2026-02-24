@@ -77,6 +77,7 @@ export default class score_drawer_controller {
     }
     applyChanges(ctrl:boolean){
         const s = this.drawer.score.selection;
+        this.commandPattern.recordOpen()
         if (ctrl && s.isShifted()){
             this.makeNewNotes(s.elements);
             this.move(s.elements.slice(), s.offset.start, s.offset.duration, s.offset.pitch);
@@ -88,17 +89,34 @@ export default class score_drawer_controller {
             s.start += s.offset.start;
             s.end += s.offset.start;
         }
+        this.commandPattern.recordClose()
         this.drawer.update_mix();
         s.clear();
     }
+    private isBetween(a:number,b:number,c:number):boolean {
+        if (a < c && c < b) return true;
+        return false
+    }
     move(notes:Note[], start:number, dur:number, pitch:number){
-        this.commandPattern.recordOpen();
         for (let note of notes){
             const was = [note.start, note.duration, note.pitch];
             const now = [was[0]+start, was[1]+dur, was[2]+pitch];
+            const s = now[0]
+            const e = now[0]+now[1]
+            for (let n of this.drawer.score.notes) {
+                if (n.pitch === note.pitch+pitch && (this.isBetween(s, e, n.start) || this.isBetween(s, e, n.start+n.duration)) && n != note) {
+                    if (this.isBetween(s, e, n.start)) {
+                        console.log(s, e, n.start)
+                        this.commandPattern.addCommand(new Delete(this.drawer.score, n, this.drawer.score.notes.indexOf(n)));
+                    } else if (this.isBetween(s, e, n.start+n.duration)) {
+                        const w = [n.start, n.duration, n.pitch]
+                        const no = [n.start, s-n.start, n.pitch]
+                        this.commandPattern.addCommand(new Move(this.drawer.score, n, w, no));
+                    }
+                }
+            }
             this.commandPattern.addCommand(new Move(this.drawer.score, note, was, now));
         }
-        this.commandPattern.recordClose();
     }
     zoom(i:number){
         if (this.drawer.score.lowest_note >= this.max_note && this.drawer.score.lowest_note <= 0 && i==1) return;

@@ -1,8 +1,6 @@
 import Mix from "../data/mix";
 import Score from "../data/score";
 import ScoreDrawer from "./score_drawer";
-// import Track from "../data/track";
-// import {TrackSelection, ScoreSelection} from "../classes/selection";
 import Drawer from "./Drawer";
 import WindowController from "../classes/WindowController";
 import MixController from "./mix_controller";
@@ -264,35 +262,35 @@ export default class MixDrawer extends Drawer {
         this.score_w = this.width/this.score_number_on_screen;
         this.calcMaxes();
     }
-        calcHeights(){
-            let h = 0;
-            this.heights = [];
-            for (let track of this.mix.tracks){
-                this.heights.push(h);
-                h+=track.renderHeight;
-            }
+    calcHeights(){
+        let h = 0;
+        this.heights = [];
+        for (let track of this.mix.tracks){
             this.heights.push(h);
-            // console.log(this.heights);
+            h+=track.renderHeight;
         }
-        calcMaxes(){
-            this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
-            if (this.y_max<0) this.y_max = 0;
-            this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
-            if (this.x_max<0) this.x_max = 0;
+        this.heights.push(h);
+        // console.log(this.heights);
+    }
+    calcMaxes(){
+        this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
+        if (this.y_max<0) this.y_max = 0;
+        this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
+        if (this.x_max<0) this.x_max = 0;
+    }
+    calcMinMax(){
+        this.tracks_min_max = [];
+        for (let track of this.mix.tracks){
+            let min = 127;
+            let max = 0;
+            for (let score of track.scores){
+                for (let note of score.notes){
+                    min = Math.min(min, note.pitch);
+                    max = Math.max(max, note.pitch);
+                }
+            } this.tracks_min_max.push([min, max]);
         }
-        calcMinMax(){
-            this.tracks_min_max = [];
-            for (let track of this.mix.tracks){
-                let min = 127;
-                let max = 0;
-                for (let score of track.scores){
-                    for (let note of score.notes){
-                        min = Math.min(min, note.pitch);
-                        max = Math.max(max, note.pitch);
-                    }
-                } this.tracks_min_max.push([min, max]);
-            }
-        }
+    }
     _render(){
         this.ctx.clearRect(0, 0, this.w, this.h);
         this.ctx.font = "16px system-ui";
@@ -553,10 +551,10 @@ export default class MixDrawer extends Drawer {
             this.ctx.closePath();
         }
     }
-    getMatrix(x:number,y:number){
+    private getMatrix(x:number,y:number){
         return [(x+this.x/this.width)*this.score_number_on_screen, (y+this.y/this.height)*this.mix.tracks_number_on_screen];
     }
-    processInput(x:number, y:number){
+    private processInput(x:number, y:number){
         x = (x - this.margin_left)/this.width;
         y = (y - this.margin_top)/this.height;
         return [x,y];
