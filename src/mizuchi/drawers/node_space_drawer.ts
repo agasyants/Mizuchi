@@ -4,8 +4,10 @@ import Connector from "../classes/connectors";
 import Input from "../classes/Input";
 import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
+import BaseOscNode from "../nodes/base_osc_node";
 import DelayNode from "../nodes/delay_node";
 import DistortionNode from "../nodes/distortion_node";
+import GetNotes from "../nodes/get_notes";
 import InvertNode from "../nodes/invert_node";
 import MixNode from "../nodes/mix_node";
 import Node from "../nodes/node";
@@ -68,6 +70,14 @@ export default class NodeSpaceDrawer extends Drawer {
         });
         this.creatingMenu.addItem('Invert Node', ()=>{
             this.createNode(new InvertNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Get Notes', ()=>{
+            this.createNode(new GetNotes(0, 0, mix, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Base Osc', ()=>{
+            this.createNode(new BaseOscNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
     }
@@ -271,7 +281,7 @@ export default class NodeSpaceDrawer extends Drawer {
         for (let e of this.view.selected.elements) {
             if (e instanceof Node && e.id != 0) {
                 this.commandPattern.addCommand(new Delete(this.nodeSpace, e, this.nodeSpace.nodes.indexOf(e)));
-                for (let input of e.inputs){
+                for (let input of e.inputs) {
                     if (input.connected) {
                         this.commandPattern.addCommand(new Delete(this.nodeSpace, input.connected, this.nodeSpace.connectors.indexOf(input.connected)));
                     }

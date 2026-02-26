@@ -19,7 +19,7 @@ export default class Switch extends NodeComponent {
         }
     }
     hitScan(x:number, y:number, r:number):boolean {
-        if (this.rel.x-this.rel.w/2 < x-r && x+r < this.rel.x + this.rel.w/2 && this.rel.y-this.rel.h/2 < y-r && y+r < this.rel.y + this.rel.h/2) {
+        if (this.rel.x-this.rel.w/2 < x+r && x-r < this.rel.x + this.rel.w/2 && this.rel.y-this.rel.h/2 < y+r && y-r < this.rel.y + this.rel.h/2) {
             return true
         } else {
             return false

@@ -141,6 +141,16 @@ export default class MixController {
         if (a <= c && c <= b) return true;
         return false
     }
+    private move_protected(what:Score, from:number[], to:number[]) {
+        let flag = from.length==to.length
+        let i = 0
+        while (i < from.length && flag) {
+            flag = from[i]==to[i];
+            i++;
+        }
+        if (!flag)
+            this.commandPattern.addCommand(new Move(this.mix, what, from, to));
+    }
     private fix_intersection(start:number, end:number, score:Score, track:Track) {
         for (let sc of track.scores) {
             const endS = sc.absolute_start+sc.duration
@@ -156,22 +166,22 @@ export default class MixController {
                 const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
                 const d = end-(w[0]+w[1])
                 const no = [end, -d, w[2], w[3]+(end-w[0])]
-                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+                this.move_protected(sc, w, no);
                 
                 const w2 = [new_score.absolute_start, new_score.duration, new_score.loop_duration, new_score.relative_start]
                 const no2 = [w[0], start-w[0], w[2], w[3]]
-                this.commandPattern.addCommand(new Move(this.mix, new_score, w2, no2));
+                this.move_protected(sc, w2, no2);
 
             } else if (this.isBetween(start, end, sc.absolute_start)) {
                 const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
                 const d = end-(w[0]+w[1])
                 const no = [end, -d, w[2], w[3]+(end-w[0])]
-                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+                this.move_protected(sc, w, no);
 
             } else if (this.isBetween(start, end, endS)) {
                 const w = [sc.absolute_start, sc.duration, sc.loop_duration, sc.relative_start]
                 const no = [w[0], start-w[0], w[2], w[3]]
-                this.commandPattern.addCommand(new Move(this.mix, sc, w, no));
+                this.move_protected(sc, w, no);
             }
         }
     }

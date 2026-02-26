@@ -94,8 +94,29 @@ export default class score_drawer_controller {
         s.clear();
     }
     private isBetween(a:number,b:number,c:number):boolean {
-        if (a < c && c < b) return true;
+        if (a <= c && c < b) return true;
         return false
+    }
+    private fix_intersections(s:number, e:number, p:number, note:Note, score:Score) {
+        for (let n of this.drawer.score.notes) {
+            if (n.pitch === note.pitch+p && (this.isBetween(s, e, n.start) || this.isBetween(s, e, n.start+n.duration)) && n != note) {
+                if (this.isBetween(s, e, n.start)) {
+                    console.log(s, e, n.start)
+                    this.commandPattern.addCommand(new Delete(score, n, score.notes.indexOf(n)));
+                } else if (this.isBetween(s, e, n.start+n.duration)) {
+                    const w = [n.start, n.duration, n.pitch]
+                    const no = [n.start, s-n.start, n.pitch]
+                    let flag = w.length==no.length
+                    let i = 0
+                    while (i < w.length && flag) {
+                        flag = w[i]==no[i];
+                        i++;
+                    }
+                    if (!flag)
+                        this.commandPattern.addCommand(new Move(score, n, w, no));
+                }
+            }
+        }
     }
     move(notes:Note[], start:number, dur:number, pitch:number){
         for (let note of notes){
@@ -103,18 +124,7 @@ export default class score_drawer_controller {
             const now = [was[0]+start, was[1]+dur, was[2]+pitch];
             const s = now[0]
             const e = now[0]+now[1]
-            for (let n of this.drawer.score.notes) {
-                if (n.pitch === note.pitch+pitch && (this.isBetween(s, e, n.start) || this.isBetween(s, e, n.start+n.duration)) && n != note) {
-                    if (this.isBetween(s, e, n.start)) {
-                        console.log(s, e, n.start)
-                        this.commandPattern.addCommand(new Delete(this.drawer.score, n, this.drawer.score.notes.indexOf(n)));
-                    } else if (this.isBetween(s, e, n.start+n.duration)) {
-                        const w = [n.start, n.duration, n.pitch]
-                        const no = [n.start, s-n.start, n.pitch]
-                        this.commandPattern.addCommand(new Move(this.drawer.score, n, w, no));
-                    }
-                }
-            }
+            this.fix_intersections(s,e,pitch,note,this.drawer.score)
             this.commandPattern.addCommand(new Move(this.drawer.score, note, was, now));
         }
     }

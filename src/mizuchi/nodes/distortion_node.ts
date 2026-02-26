@@ -6,14 +6,14 @@ import ControlController from "./node_components/control_controller";
 import Switch from "./node_components/switcher";
 
 export default class DistortionNode extends Node {
-    gain:ControlController = new ControlController(this,0.5,0.5,40)
+    gain:ControlController = new ControlController(this,0.5,0.5,30)
     input_signal:InputSignal = new InputSignal('in',0,0,0,this)
     output_signal:OutputSignal = new OutputSignal('in',0,0,this)
     constructor(x:number, y:number, id:number, ){
-        super(id, x, y, 70, 70, 'Distortion');
+        super(id, x, y, 80, 80, 'Distortion');
         this.inputs = [this.input_signal]
         this.outputs = [this.output_signal]
-        this.components = [new Switch(this, true, 0.1, 0.1, 20), this.gain]
+        this.components = [new Switch(this, true, 0.1, 0.1, 12), this.gain]
     }
     render(view:View){
         // console.log(view);
