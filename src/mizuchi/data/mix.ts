@@ -240,3 +240,6 @@ export default class Mix {
         }
     }
 }
+
+
+export const mix = new Mix();

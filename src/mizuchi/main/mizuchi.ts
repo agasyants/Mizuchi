@@ -1,4 +1,4 @@
-import Mix from "../data/mix";
+import { mix } from "../data/mix";
 import ScoreDrawer from "../drawers/score_drawer";
 import MixDrawer from "../drawers/mix_drawer";
 import Mixer from "./mixer";
@@ -16,7 +16,6 @@ export default class Mizuchi{
                 localStorage.setItem('key', '');
             })
         }
-        const mix:Mix = new Mix();
         const start_input = document.getElementById('loop_start') as HTMLInputElement;
         start_input.addEventListener("change", () => {
             mix.loop_start = Number(start_input.value);

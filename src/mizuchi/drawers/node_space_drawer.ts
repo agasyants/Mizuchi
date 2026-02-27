@@ -4,6 +4,7 @@ import Connector from "../classes/connectors";
 import Input from "../classes/Input";
 import ContextMenu from "../classes/menu";
 import Output from "../classes/Output";
+import Track from "../data/track";
 import BaseOscNode from "../nodes/base_osc_node";
 import DelayNode from "../nodes/delay_node";
 import DistortionNode from "../nodes/distortion_node";
@@ -73,7 +74,11 @@ export default class NodeSpaceDrawer extends Drawer {
             this.render();
         });
         this.creatingMenu.addItem('Get Notes', ()=>{
-            this.createNode(new GetNotes(0, 0, mix, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            const node = new GetNotes(0, 0, 0)
+            this.createNode(node, this.creatingMenu.clickX, this.creatingMenu.clickY);
+            if (this.nodeSpace.parent instanceof Track) {
+                node.setTrack(this.nodeSpace.parent)
+            }
             this.render();
         });
         this.creatingMenu.addItem('Base Osc', ()=>{

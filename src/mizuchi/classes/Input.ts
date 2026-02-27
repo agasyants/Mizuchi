@@ -46,6 +46,9 @@ export class InputBool extends Input {
         if (this.connected == null) return false;
         return this.connected.get();
     }
+    render(view:View){
+        view.drawFrame(this.x-4, this.y+4, 8, 8, 1.2, view.getColor(this), view.color.back);
+    }
 }
 
 export class InputFloat extends Input {
