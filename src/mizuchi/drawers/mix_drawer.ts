@@ -200,8 +200,8 @@ export default class MixDrawer extends Drawer {
                     }
                     let [x, y] = this.processInput(this.input_x, this.input_y);
                     [x,y] = this.getMatrix(x,y);
-                    x = Math.floor(x);
-                    y = Math.floor(y);
+                    x = Math.round(x);
+                    y = Math.round (y);
                     this.mix.selected.scores.drugged_x = x;
                     this.mix.selected.scores.drugged_y = y;
                     const drawer = this.score_window.drawer;

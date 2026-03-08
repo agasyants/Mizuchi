@@ -13,6 +13,10 @@ import MixNode from "./mix_node";
 import DelayNode from "./delay_node";
 import DistortionNode from "./distortion_node";
 import InputNode from "./input_node";
+import NoiseNode from "./noise_node";
+import BaseOscNode from "./base_osc_node";
+import GetNotes from "./get_notes";
+import InvertNode from "./invert_node";
 
 export default class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
@@ -46,9 +50,12 @@ export default class NodeSpace extends Node {
     static fromJSON(json:any, parent:any, mix:Mix): NodeSpace {
         const nodeSpace = new NodeSpace(json.x, json.y, json.id, parent, json.input_names);
         nodeSpace.outputNode = OutputNode.fromJSON(json.outputNode, nodeSpace);
+        nodeSpace.outputNode.moveTo(nodeSpace.outputNode.x, nodeSpace.outputNode.y)
         let i = 0
         for (let node of json.NODES.data) {
-            nodeSpace.create(NodeSpace.AnyNodefromJSON(node, nodeSpace, mix), i);
+            const new_node = NodeSpace.AnyNodefromJSON(node, nodeSpace, mix)
+            nodeSpace.create(new_node, i);
+            new_node.moveTo(new_node.x, new_node.y)
             i += 1
         } 
         nodeSpace.nodes = IdArray.fromJSON(nodeSpace.nodes, json.NODES.increment);
@@ -68,6 +75,11 @@ export default class NodeSpace extends Node {
             case 'MixNode': return MixNode.fromJSON(json);
             case 'DelayNode': return DelayNode.fromJSON(json);
             case 'DistortionNode': return DistortionNode.fromJSON(json);
+            case 'NoiseNode': return NoiseNode.fromJSON(json);
+            case 'BaseOscNode': return BaseOscNode.fromJSON(json);
+            case 'DistortionNode': return DistortionNode.fromJSON(json);
+            case 'GetNotes': return GetNotes.fromJSON(json);
+            case 'InvertNode': return InvertNode.fromJSON(json);
             default: return new OutputNode(0,0,0,parent);
         }
     }

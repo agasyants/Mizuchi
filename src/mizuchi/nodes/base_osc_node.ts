@@ -3,12 +3,14 @@ import { OutputSignal } from "../classes/Output";
 import { mix } from "../data/mix";
 import View from "../drawers/view";
 import Node from "../nodes/node";
+import ListComponent from "./node_components/enum";
 
 export default class BaseOscNode extends Node {
     constructor(x:number, y:number, id:number){
         super(id, x, y, 200, 100, "base osc");
         this.inputs = [new InputMultiFloat('in', 0, 0, 0, this)];
         this.outputs = [new OutputSignal("signal", 0, 0, this)];
+        this.components = [new ListComponent(this, 0.5, 0.6, 70, 20, ['SINE', 'SAW', "A", 'B'], 0)]
     }
     render(view:View){
         this._render(view);
