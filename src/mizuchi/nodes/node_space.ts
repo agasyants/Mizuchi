@@ -77,7 +77,6 @@ export default class NodeSpace extends Node {
             case 'DistortionNode': return DistortionNode.fromJSON(json);
             case 'NoiseNode': return NoiseNode.fromJSON(json);
             case 'BaseOscNode': return BaseOscNode.fromJSON(json);
-            case 'DistortionNode': return DistortionNode.fromJSON(json);
             case 'GetNotes': return GetNotes.fromJSON(json);
             case 'InvertNode': return InvertNode.fromJSON(json);
             default: return new OutputNode(0,0,0,parent);

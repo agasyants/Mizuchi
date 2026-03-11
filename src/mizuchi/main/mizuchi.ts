@@ -40,6 +40,7 @@ export default class Mizuchi{
         const scoreBloom = new BloomShader(scoreCanvas, scoreBloomCanvas);
         const score_drawer = new ScoreDrawer(scoreCanvas, new Score(mix.tracks[0],0,0), mix, scoreBloom);
         const score_window = new WindowController('score-canvas-wrapper', score_drawer, 12, 810, 390);
+        
 
         const nodeCanvas = document.getElementById('NodeSpaceCanvas') as HTMLCanvasElement;
         // Bloom для NodeSpaceCanvas  

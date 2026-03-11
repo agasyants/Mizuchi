@@ -5,7 +5,7 @@ import Curve from "../curves/curve";
 export default class View {
     constructor(public ctx: CanvasRenderingContext2D) {}
 
-    color: {back:string, main:string, hovered:string, selected:string} = {back:'black', main:'white', hovered:'yellow', selected:'blue'}
+    color: {back:string, main:string, hovered:string, selected:string} = {back:'black', main:'white', hovered:'yellow', selected:'rgb(95, 42, 255)'}
 
     width: number = 0;
     height: number = 0;

@@ -104,6 +104,7 @@ export default class score_drawer_controller {
                     console.log(s, e, n.start)
                     this.commandPattern.addCommand(new Delete(score, n, score.notes.indexOf(n)));
                 } else if (this.isBetween(s, e, n.start+n.duration)) {
+                    if (n.duration <= 0) continue
                     const w = [n.start, n.duration, n.pitch]
                     const no = [n.start, s-n.start, n.pitch]
                     let flag = w.length==no.length

@@ -111,7 +111,6 @@ export default class MixDrawer extends Drawer {
             this.input_x = x * devicePixelRatio;
             this.input_y = y * devicePixelRatio;
             if (this.hitScan(e.altKey, e.shiftKey)){
-                this.hitScan();
                 this.render();
             }
         });
@@ -201,12 +200,12 @@ export default class MixDrawer extends Drawer {
                     let [x, y] = this.processInput(this.input_x, this.input_y);
                     [x,y] = this.getMatrix(x,y);
                     x = Math.round(x);
-                    y = Math.round (y);
+                    y = Math.floor(y);
                     this.mix.selected.scores.drugged_x = x;
                     this.mix.selected.scores.drugged_y = y;
                     const drawer = this.score_window.drawer;
                     if (drawer instanceof ScoreDrawer) {
-                        if (drawer.canvas.style.display=='block'){
+                        if (drawer.canvas.style.display == 'block'){
                             drawer.controller.setScore(this.mix.selected.scores.getLast());
                         }
                     }
@@ -274,9 +273,9 @@ export default class MixDrawer extends Drawer {
     }
     calcMaxes(){
         this.y_max = (this.mix.tracks.length-this.mix.tracks_number_on_screen+2)*this.track_h;
-        if (this.y_max<0) this.y_max = 0;
+        if (this.y_max < 0) this.y_max = 0;
         this.x_max = (this.mix.tracks[0].scores.length*4-this.score_number_on_screen+6)*this.score_w;
-        if (this.x_max<0) this.x_max = 0;
+        if (this.x_max < 0) this.x_max = 0;
     }
     calcMinMax(){
         this.tracks_min_max = [];
@@ -310,7 +309,7 @@ export default class MixDrawer extends Drawer {
             h += this.mix.tracks[i].renderHeight;
         }
 
-        if (!(this.drugged && this.hovered.scores.length==1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))){
+        if (!(this.drugged && this.hovered.scores.length == 1 && this.mix.selected.scores.elements.includes(this.hovered.scores[0]))){
             this.renderHovered()
         };
         
@@ -564,9 +563,9 @@ export default class MixDrawer extends Drawer {
         let y = this.input_y;
         [x, y] = this.processInput(x, y);
         if (x<0) x=0;
-        if (x>1) x=0.99;
+        if (x>1) x=0.9999;
         if (y<0) y=0;
-        if (y>1) y=0.99;
+        if (y>1) y=0.9999;
         [x,y] = this.getMatrix(x,y);
         const xr = x*8;
         if (this.slicerMode)
@@ -581,6 +580,7 @@ export default class MixDrawer extends Drawer {
         for (let i = 0; i < this.mix.tracks.length; i++){
             if (y == h){
                 this.hovered.track = this.mix.tracks[i];
+                console.log('rewrite...')
                 if (x-this.x < this.score_number_on_screen) {
                     this.sectorsSelection.setSS1(x, y);
                     this.sectorsSelection.setSS2(x, y);
@@ -590,19 +590,19 @@ export default class MixDrawer extends Drawer {
                         const start = score.absolute_start;
                         const end = start + score.duration;
                         // console.log(start, xr, end);
-                        if (start-range <= xr && xr <= start+range){
+                        if (start-range <= xr && xr <= start+range){ // find start
                             this.hovered.scores = [score];
                             this.hovered.pos = [i];
                             this.hovered.start = true;
                             return true;
                         } 
-                        else if (end-range <= xr && xr <= end+range) {
+                        else if (end-range <= xr && xr <= end+range) { // find end
                             this.hovered.scores = [score];
                             this.hovered.pos = [i];
                             this.hovered.end = true;
                             return true;
                         } 
-                        else if (start < xr && xr < end){
+                        else if (start < xr && xr < end){ // find middle
                             this.hovered.scores = [score];
                             this.hovered.pos = [i];
                             return true;

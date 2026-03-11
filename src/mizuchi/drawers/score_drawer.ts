@@ -4,7 +4,7 @@ import Note from "../classes/note";
 import score_drawer_controller from "./score_controller";
 import hovered from "../classes/hovered";
 import Drawer from "./Drawer";
-import Mix from "../data/mix";
+import Mix, {mix} from "../data/mix";
 import SectorSelection from "../classes/SectorSelection";
 import BloomShader from "../classes/BloomShader";
 
@@ -86,10 +86,14 @@ export default class ScoreDrawer extends Drawer{
                 this.update_mix();
             }
             if (e.code=="KeyZ" && e.ctrlKey){
-                if (e.shiftKey)
+                if (e.shiftKey) {
                     this.controller.commandPattern.redo();
-                else 
-                this.controller.commandPattern.undo();
+                } else {
+                    this.controller.commandPattern.undo();
+                    if (mix.deleted.includes(this.score)) {
+                        console.log('fix it')
+                    }
+                }
                 this.update_mix();
             }
             if (e.code=="KeyA" && e.ctrlKey){

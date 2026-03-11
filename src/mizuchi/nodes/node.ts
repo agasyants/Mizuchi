@@ -57,7 +57,7 @@ export default abstract class Node extends IdComponent {
         for (let i = 0; i < this.outputs.length; i++){
             this.outputs[i].render(view)
         }
-        view.drawText(this.x, this.y-this.height/3, this.width, this.height, this.name, color)
+        view.drawText(this.x, this.y-this.height/3, this.width, this.height, this.name, "white")
         
         for (let com of this.components) {
             com.render(view)

@@ -30,6 +30,7 @@ export default class MixController {
         if (ss.offset.start || ss.offset.pitch || ss.offset.duration || this.ctrl){
             this.commandPattern.recordOpen()
             const offset = ss.offset;
+            console.log("doesn't work correctly")
             if (this.ctrl && !offset.duration){
                 this.commandPattern.addCommand(new Complex(this.createScores(ss.elements.slice(), ss.track_index.slice())));
             }
@@ -37,9 +38,12 @@ export default class MixController {
                 const scores = []
                 const indexes = []
                 for (let i = 0; i < ss.elements.length; i++){
+                    const parent_index = ss.track_index[i] + offset.pitch;
+                    if (parent_index < 0 || parent_index >= this.mix.tracks.length) {
+                        continue
+                    }
                     const score = ss.elements[i];
                     this.deleteScores([score], [ss.track_index[i]]);
-                    const parent_index = ss.track_index[i] + offset.pitch;
                     const track = this.mix.tracks[parent_index]
                     const new_score = score.clone(track.scores.getNewId());
                     this.commandPattern.addCommand(new Create(track, new_score, track.scores.length));
@@ -142,6 +146,8 @@ export default class MixController {
         return false
     }
     private move_protected(what:Score, from:number[], to:number[]) {
+        console.warn(to[1])
+        if (to[1] <= 0) return
         let flag = from.length==to.length
         let i = 0
         while (i < from.length && flag) {
@@ -192,7 +198,7 @@ export default class MixController {
             const was = [score.absolute_start, score.duration, score.loop_duration, score.relative_start];
             const become = [score.absolute_start + start, score.duration + duration, score.loop_duration + loop_duration, score.relative_start + rel];
             this.fix_intersection(become[0], become[0]+become[1], score, score.parent)
-            this.commandPattern.addCommand(new Move(this.mix, score, was, become));
+            this.move_protected(score, was, become);
         }
         this.commandPattern.recordClose();
     }

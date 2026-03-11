@@ -35,9 +35,9 @@ export default class ListComponent extends NodeComponent {
     }
     hitScan(x:number, y:number, r:number):boolean {
         if (this.isOpened) {
-            if (this.rel.x < x+r && x-r < this.rel.x + this.rel.w && this.rel.y - this.rel.h * (this.variants.length) < y+r && y-r < this.rel.y + this.rel.h) {
+            if (this.rel.x < x && x < this.rel.x + this.rel.w && this.rel.y - this.rel.h * (this.variants.length) < y && y < this.rel.y + this.rel.h) {
                 for (let i = 0; i < this.variants.length; i++) {
-                    if (this.rel.x < x+r && x-r < this.rel.x + this.rel.w && this.rel.y - this.rel.h*i < y+r && y-r < this.rel.y + this.rel.h - this.rel.h*i) {
+                    if (this.rel.x < x && x < this.rel.x + this.rel.w && this.rel.y - this.rel.h*i < y && y < this.rel.y + this.rel.h - this.rel.h*i) {
                         this.hovered = i
                         break
                     }
