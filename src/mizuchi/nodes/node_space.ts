@@ -17,6 +17,12 @@ import NoiseNode from "./noise_node";
 import BaseOscNode from "./base_osc_node";
 import GetNotes from "./get_notes";
 import InvertNode from "./invert_node";
+import ADSRNode from "./adsr_node";
+import MultiplyNode from "./multiply_node";
+import GainNode from "./gain_node";
+import FilterNode from "./filter_node";
+import LFONode from "./lfo_node";
+import SumNode from "./sum_node";
 
 export default class NodeSpace extends Node {
     outputNode:OutputNode = new OutputNode(0,0,0,this);
@@ -79,6 +85,12 @@ export default class NodeSpace extends Node {
             case 'BaseOscNode': return BaseOscNode.fromJSON(json);
             case 'GetNotes': return GetNotes.fromJSON(json);
             case 'InvertNode': return InvertNode.fromJSON(json);
+            case 'ADSRNode': return ADSRNode.fromJSON(json);
+            case 'MultiplyNode': return MultiplyNode.fromJSON(json);
+            case 'GainNode': return GainNode.fromJSON(json);
+            case 'FilterNode': return FilterNode.fromJSON(json);
+            case 'LFONode': return LFONode.fromJSON(json);
+            case 'SumNode': return SumNode.fromJSON(json);
             default: return new OutputNode(0,0,0,parent);
         }
     }

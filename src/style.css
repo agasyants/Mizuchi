@@ -52,6 +52,13 @@ button{
     margin: 5px;
 }
 canvas:not(#MixCanvas):focus{
-    outline: rgb(0, 119, 255) solid 2px;
-    border-radius: 2px;
+    outline: none;
+}
+
+#ScoreCanvas, #NodeSpaceCanvas {
+    box-shadow: 0 0 0 2px white;
+}
+
+#ScoreCanvas:focus, #NodeSpaceCanvas:focus {
+    box-shadow: 0 0 0 2px yellow;
 }

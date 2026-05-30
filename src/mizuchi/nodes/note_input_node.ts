@@ -28,14 +28,13 @@ export default class NoteInput extends Node {
     compute() {
         const SPS = this.mix.sampleRate/this.mix.bpm*120/8;
         const founded:Note[] = this.findNote(this.mix.playback/SPS);
-        if (founded.length == 0) return 0;
+        if (founded.length == 0) { this.outputs[0].cache = 0; return; }
         let sum:number = 0;
         for (let note of founded){
             const t = this.mix.sampleRate/note.getFrequency();
             sum += this.osc.getSample((this.mix.playback-note.start*SPS) % t / t);
         }
-        if (this.inputs.length>0) sum /= this.inputs.length;
-        // console.log('NoteInput', sum)
+        sum /= founded.length;
         this.outputs[0].cache = sum;
     }
     private findNote(rel_time:number): Note[] {

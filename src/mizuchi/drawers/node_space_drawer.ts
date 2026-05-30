@@ -11,6 +11,12 @@ import DistortionNode from "../nodes/distortion_node";
 import GetNotes from "../nodes/get_notes";
 import InvertNode from "../nodes/invert_node";
 import MixNode from "../nodes/mix_node";
+import ADSRNode from "../nodes/adsr_node";
+import MultiplyNode from "../nodes/multiply_node";
+import GainNode from "../nodes/gain_node";
+import FilterNode from "../nodes/filter_node";
+import LFONode from "../nodes/lfo_node";
+import SumNode from "../nodes/sum_node";
 import Node from "../nodes/node";
 import NodeComponent from "../nodes/node_components/node_component";
 import NodeSpace from "../nodes/node_space";
@@ -23,11 +29,13 @@ class Star {
     y: number;
     radius: number;
     alpha: number;
-    constructor(x:number, y:number, radius:number, alpha:number){
+    depth: number;
+    constructor(x:number, y:number, radius:number, alpha:number, depth:number){
         this.x = x;
         this.y = y;
         this.radius = radius;
         this.alpha = alpha;
+        this.depth = depth;
     }
 }
 
@@ -81,8 +89,36 @@ export default class NodeSpaceDrawer extends Drawer {
             }
             this.render();
         });
-        this.creatingMenu.addItem('Base Osc', ()=>{
+        this.creatingMenu.addItem('Oscillator', ()=>{
             this.createNode(new BaseOscNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('ADSR', ()=>{
+            const node = new ADSRNode(0, 0, 0);
+            this.createNode(node, this.creatingMenu.clickX, this.creatingMenu.clickY);
+            if (this.nodeSpace.parent instanceof Track) {
+                node.setTrack(this.nodeSpace.parent);
+            }
+            this.render();
+        });
+        this.creatingMenu.addItem('Multiply', ()=>{
+            this.createNode(new MultiplyNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Gain', ()=>{
+            this.createNode(new GainNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Filter', ()=>{
+            this.createNode(new FilterNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('LFO', ()=>{
+            this.createNode(new LFONode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
+            this.render();
+        });
+        this.creatingMenu.addItem('Sum', ()=>{
+            this.createNode(new SumNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
             this.render();
         });
     }
@@ -98,7 +134,6 @@ export default class NodeSpaceDrawer extends Drawer {
             e.preventDefault();
             if (e.deltaY) {
                 this.view.zoom(e.deltaY/100, this.was);
-                this.starParallax += e.deltaY/1000
             }
             this.render();
         });
@@ -261,7 +296,7 @@ export default class NodeSpaceDrawer extends Drawer {
                 this.commandPattern.recordClose();
         }
     }
-    moveComponent(component:NodeComponent, totalDx:number, totalDy:number) {
+    moveComponent(_component:NodeComponent, _totalDx:number, _totalDy:number) {
         // const treshhold = 4.5;
         // if (Math.hypot(totalDx, totalDy) < treshhold) {
         //     for (let node of nodes) {
@@ -316,15 +351,17 @@ export default class NodeSpaceDrawer extends Drawer {
     calcVisible(){
         
     }
-    generateStars(width: number, height: number) {
-        const area = width * height * 8; // генерация с запасом
-        const count = area * this.starDensity;
+    generateStars(_width: number, _height: number) {
+        this.stars = [];
+        const count = 200;
         for (let i = 0; i < count; i++) {
+            const depth = Math.random() * 0.3 + 0.05;
             this.stars.push(new Star(
-                Math.random() * width * 5 - width * 2,
-                Math.random() * height * 5 - height * 2,
-                Math.random() * 1.5 + 0.3,
-                Math.random() * 0.5 + 0.4,
+                Math.random(),
+                Math.random(),
+                depth * 4 + Math.random() * 0.5 + 0.2,
+                Math.min(1.0, depth * 1.8 + Math.random() * 0.2 + 0.1),
+                depth
             ));
         }
     }
@@ -333,9 +370,11 @@ export default class NodeSpaceDrawer extends Drawer {
         this.ctx.save();
         this.ctx.scale(1, -1);
         for (const star of this.stars) {
-            const x = star.x + this.view.center.x * this.starParallax/2;
-            const y = star.y + this.view.center.y * this.starParallax/2;
-            if (x < 0 || x > this.width || y < 0 || y > this.height) continue;
+            let x = (star.x * this.width + this.view.center.x * this.view.scale * star.depth) % this.width;
+            if (x < 0) x += this.width;
+
+            let y = (star.y * this.height - this.view.center.y * this.view.scale * star.depth) % this.height;
+            if (y < 0) y += this.height;
 
             this.ctx.beginPath();
             this.ctx.arc(x, y, star.radius, 0, Math.PI * 2);

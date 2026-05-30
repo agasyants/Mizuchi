@@ -23,7 +23,7 @@ export default class InvertNode extends Node {
         let c = this.inputs[0].get()
         if (this.active.bool) {
             if (c<0) c = -1+c;
-            else if (c>=0) c = 1-c;
+            else if (c>0) c = 1-c;
         }
         this.outputs[0].cache = c
     }

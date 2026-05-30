@@ -22,9 +22,9 @@ export default class GetNotes extends Node {
     compute() {
         const SPS = mix.sampleRate/mix.bpm*120/8;
         const founded:Note[] = this.findNote(mix.playback/SPS);
-        if (founded.length == 0) return 0;
-        let freqs = []
-        for (let note of founded){
+        if (founded.length == 0) { this.outputs[0].cache = []; return; }
+        const freqs: number[] = [];
+        for (const note of founded){
             freqs.push(note.getFrequency());
         }
         this.outputs[0].cache = freqs;

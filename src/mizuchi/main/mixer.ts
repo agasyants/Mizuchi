@@ -35,10 +35,12 @@ export default class Mixer {
         this.chunkLength = 1050;
         this.counter = 0;
         this.loopAdded = 0;
-        this.start = Math.round(this.mix.start * 30 / this.mix.bpm * this.mix.sampleRate);
+        // SPS must match the formula used by all nodes: sampleRate * 15 / bpm
+        const SPS = this.mix.sampleRate * 15 / this.mix.bpm;
+        this.start = Math.round(this.mix.start * SPS);
         this.mix.playback = this.start;
-        this.loop_start = Math.round(this.mix.loop_start * 30 / this.mix.bpm * this.mix.sampleRate);
-        this.loop_end = Math.round(this.mix.loop_end * 30 / this.mix.bpm * this.mix.sampleRate);
+        this.loop_start = Math.round(this.mix.loop_start * SPS);
+        this.loop_end   = Math.round(this.mix.loop_end   * SPS);
         for (let i = 0; i < this.chunk_buffer; i++)
             this.generateChunk();
     }
