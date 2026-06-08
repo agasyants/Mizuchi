@@ -61,17 +61,33 @@ export default class View {
         };
     }
 
+    zoomOffset: { x: number, y: number } = { x: 0, y: 0 };
+
     // Zoom to cursor position
     zoom(delta: number, was: [x: number, y: number]) {
-        const zoomFactor = this.scale * delta / 2;
-        const newScale = this.scale - zoomFactor;
+        // Use an exponential multiplier for smoother, but stronger steps
+        const zoomMultiplier = Math.pow(1.2, -delta);
+        let newScale = this.scale * zoomMultiplier;
 
-        if (newScale < 0.3 || newScale > 14) return;
+        if (newScale < 0.3) newScale = 0.3;
+        if (newScale > 14) newScale = 14;
+
+        if (newScale === this.scale) return;
 
         // Adjust center so zoom focuses on pointer
-        const [x, y] = was;
-        this.center.x -= x * zoomFactor;
-        this.center.y -= y * zoomFactor;
+        // `was` is in CSS pixels, so we convert to physical pixels
+        const [px, py] = was;
+        const physX = px * devicePixelRatio;
+        const physY = py * devicePixelRatio;
+
+        const dx = (physX - this.width / 2) * (1 / newScale - 1 / this.scale);
+        const dy = (physY - this.height / 2) * (1 / newScale - 1 / this.scale);
+
+        this.center.x += dx;
+        this.center.y += dy;
+        
+        this.zoomOffset.x += dx;
+        this.zoomOffset.y += dy;
 
         this.scale = newScale;
     }

@@ -24,20 +24,6 @@ import NoiseNode from "../nodes/noise_node";
 import Drawer from "./Drawer";
 import View from "./view";
 
-class Star {
-    x: number;
-    y: number;
-    radius: number;
-    alpha: number;
-    depth: number;
-    constructor(x:number, y:number, radius:number, alpha:number, depth:number){
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.alpha = alpha;
-        this.depth = depth;
-    }
-}
 
 export default class NodeSpaceDrawer extends Drawer {
     tabs:NodeSpace[] = [];
@@ -50,16 +36,19 @@ export default class NodeSpaceDrawer extends Drawer {
     commandPattern = new CommandPattern();
     was:[x:number, y:number] = [0, 0];
     
-    stars: Star[] = [];
-    starDensity = 0.001;
-    starParallax = 0.5;
+    hash(x: number, y: number, seed: number) {
+        let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(seed, 1274126177);
+        h = Math.imul(h ^ (h >>> 13), 3266489917);
+        h = Math.imul(h ^ (h >>> 16), 668265263);
+        return (h >>> 0) / 4294967296;
+    }
     creatingMenu:ContextMenu = new ContextMenu();
+    animationRequested = false;
 
     constructor(canvas:HTMLCanvasElement, public nodeSpace:NodeSpace, bloom:BloomShader){
         super(canvas, bloom);
         this.setCanvasSize(canvas.width, canvas.height);
         this.initialize();
-        this.generateStars(this.width, this.height);
         this.render();
         this.creatingMenu.addItem('Mix Node', ()=>{
             this.createNode(new MixNode(0, 0, 0), this.creatingMenu.clickX, this.creatingMenu.clickY);
@@ -122,6 +111,25 @@ export default class NodeSpaceDrawer extends Drawer {
             this.render();
         });
     }
+
+    render() {
+        if (!this.animationRequested) {
+            this.animationRequested = true;
+            const loop = () => {
+                try {
+                    this._render();
+                    if (this.bloomShader) {
+                        this.bloomShader.render();
+                    }
+                } catch(e) {
+                    console.error("Render loop error:", e);
+                }
+                requestAnimationFrame(loop);
+            };
+            requestAnimationFrame(loop);
+        }
+    }
+
     createNode(node: Node, x: number, y: number) {
         node.id = this.nodeSpace.nodes.getNewId() + 1
         node.moveTo(x, y);
@@ -133,9 +141,12 @@ export default class NodeSpaceDrawer extends Drawer {
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.deltaY) {
+                if (this.was[0] === 0 && this.was[1] === 0) {
+                    this.was = [this.width / (2 * devicePixelRatio), this.height / (2 * devicePixelRatio)];
+                }
                 this.view.zoom(e.deltaY/100, this.was);
             }
-            this.render();
+            // this.render() is no longer needed here as it's continuous
         });
         this.canvas.addEventListener('keyup', (e) => {
             if (e.code=="ControlLeft"){
@@ -184,7 +195,7 @@ export default class NodeSpaceDrawer extends Drawer {
         });
         this.canvas.addEventListener('pointermove', (e) => {
             const [x,y] = this.rectInput(e);
-            this.was = [x/this.width, y/this.height];
+            this.was = [x, y];
             if (this.drugged) {
                 const e = this.view.selected.elements;
                 if (e.length) {
@@ -351,36 +362,84 @@ export default class NodeSpaceDrawer extends Drawer {
     calcVisible(){
         
     }
-    generateStars(_width: number, _height: number) {
-        this.stars = [];
-        const count = 200;
-        for (let i = 0; i < count; i++) {
-            const depth = Math.random() * 0.3 + 0.05;
-            this.stars.push(new Star(
-                Math.random(),
-                Math.random(),
-                depth * 4 + Math.random() * 0.5 + 0.2,
-                Math.min(1.0, depth * 1.8 + Math.random() * 0.2 + 0.1),
-                depth
-            ));
-        }
-    }
     _render() {
         this.ctx.clearRect(0, 0, this.w, -this.h);
         this.ctx.save();
         this.ctx.scale(1, -1);
-        for (const star of this.stars) {
-            let x = (star.x * this.width + this.view.center.x * this.view.scale * star.depth) % this.width;
-            if (x < 0) x += this.width;
+        
+        const time = performance.now() * 0.001; // seconds
+        
+        // Slow cosmic drift
+        const driftX = time * 20;
+        const driftY = time * 10;
+        
+        const panX = this.view.center.x - this.view.zoomOffset.x + driftX;
+        const panY = this.view.center.y - this.view.zoomOffset.y + driftY;
 
-            let y = (star.y * this.height - this.view.center.y * this.view.scale * star.depth) % this.height;
-            if (y < 0) y += this.height;
-
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, star.radius, 0, Math.PI * 2);
-            this.ctx.fillStyle = `rgba(255,255,255,${star.alpha})`;
-            this.ctx.fill();
+        // Fractal LOD calculations
+        const lodsToDraw = [];
+        const rawLod = -Math.log2(this.view.scale);
+        if (rawLod <= 0) {
+            lodsToDraw.push({ lod: 0, alphaMult: 1.0 });
+        } else {
+            const lod0 = Math.floor(rawLod);
+            const blend = rawLod - lod0;
+            lodsToDraw.push({ lod: lod0, alphaMult: 1.0 - blend });
+            if (blend > 0.01) {
+                lodsToDraw.push({ lod: lod0 + 1, alphaMult: blend });
+            }
         }
+
+        for (const { lod, alphaMult } of lodsToDraw) {
+            const cellSize = 200 * Math.pow(2, lod);
+            const lodSeedOffset = lod * 10;
+            
+            for (let layer = 0; layer < 3; layer++) {
+                const depth = 0.1 + layer * 0.15; // 0.1, 0.25, 0.4
+                
+                const minWx = (-this.width / 2) / this.view.scale - panX * depth - this.view.zoomOffset.x;
+                const maxWx = (this.width / 2) / this.view.scale - panX * depth - this.view.zoomOffset.x;
+                
+                const minWy = (-this.height / 2) / this.view.scale - panY * depth - this.view.zoomOffset.y;
+                const maxWy = (this.height / 2) / this.view.scale - panY * depth - this.view.zoomOffset.y;
+                
+                const startCx = Math.floor(minWx / cellSize) - 1;
+                const endCx = Math.ceil(maxWx / cellSize) + 1;
+                const startCy = Math.floor(minWy / cellSize) - 1;
+                const endCy = Math.ceil(maxWy / cellSize) + 1;
+                
+                for (let cx = startCx; cx <= endCx; cx++) {
+                    for (let cy = startCy; cy <= endCy; cy++) {
+                        if (this.hash(cx, cy, layer + lodSeedOffset) > 0.4) {
+                            const sx = cx * cellSize + this.hash(cx, cy, layer + 1 + lodSeedOffset) * cellSize;
+                            const sy = cy * cellSize + this.hash(cx, cy, layer + 2 + lodSeedOffset) * cellSize;
+                            const hash3 = this.hash(cx, cy, layer + 3 + lodSeedOffset);
+                            const hash4 = this.hash(cx, cy, layer + 4 + lodSeedOffset);
+                            
+                            const radius = (hash3 * 1.5 + 0.5 + depth * 3) * Math.pow(2, lod);
+                            let alpha = Math.min(1.0, hash4 * 0.5 + 0.2 + depth);
+                            
+                            // Twinkle effect!
+                            const phase = hash3 * Math.PI * 2;
+                            const twinkle = 0.6 + 0.4 * Math.sin(time * 2.0 + phase);
+                            alpha *= twinkle * alphaMult;
+                            
+                            const screen_x = (sx + panX * depth + this.view.zoomOffset.x) * this.view.scale + this.width / 2;
+                            const screen_y = (sy + panY * depth + this.view.zoomOffset.y) * this.view.scale + this.height / 2;
+                            
+                            // Use linear scale to perfectly match fractal size, but clamp max size
+                            const drawnRadius = Math.min(15.0, Math.max(0.8, radius * this.view.scale));
+                            
+                            this.ctx.beginPath();
+                            this.ctx.arc(screen_x, screen_y, drawnRadius, 0, Math.PI * 2);
+                            this.ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                            this.ctx.fill();
+                        }
+                    }
+                }
+            }
+        }
+        
         this.ctx.restore();
         for (let con of this.nodeSpace.connectors) {
             con.render(this.view);

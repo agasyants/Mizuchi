@@ -1,6 +1,7 @@
 import Note from "../classes/note";
 import { OutputMultiFloat } from "../classes/Output";
 import { mix } from "../data/mix";
+import Mix from "../data/mix";
 import Track from "../data/track";
 import View from "../drawers/view";
 import Node from "../nodes/node";
@@ -52,11 +53,13 @@ export default class GetNotes extends Node {
     setTrack(track: Track) {
         this.track = track;
     }
-    static fromJSON(json:any): GetNotes {
+    static fromJSON(json: any, mix: Mix): GetNotes {
         const node = new GetNotes(json.x, json.y, json.id);
-        mix.setAsideFullID(json.track, (track) => {
-            node.track = track;
-        });
+        if (json.track !== undefined) {
+            mix.setAsideFullID(json.track, (track) => {
+                node.track = track;
+            });
+        }
         return node;
     }
 }
